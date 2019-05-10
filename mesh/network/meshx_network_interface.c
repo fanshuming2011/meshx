@@ -38,25 +38,6 @@ static bool meshx_network_default_output_filter(meshx_network_if_t network_if,
     return MESHX_SUCCESS;
 }
 
-#if 0
-static uint16_t meshx_request_network_if_id(void)
-{
-    if (meshx_list_is_empty(&network_if_list))
-    {
-        return 0;
-    }
-
-    meshx_list_t *pnode;
-    meshx_network_interface_t *pinterface;
-    meshx_list_foreach(pnode, &network_if_list)
-    {
-        pinterface = MESHX_CONTAINER_OF(pnode, meshx_network_interface_t, node);
-    }
-
-    return 0;
-}
-#endif
-
 static meshx_network_interface_t *meshx_request_network_interface(void)
 {
     meshx_list_t *pnode = NULL;
