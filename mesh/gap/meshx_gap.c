@@ -321,7 +321,7 @@ int32_t meshx_gap_handle_adv_report(const uint8_t *pdata, uint16_t len,
         return -MESHX_ERR_LENGTH;
     }
 
-    uint8_t data_len = MESHX_GAP_GET_ADV_PDU_LEN(pdata);
+    uint8_t data_len = MESHX_GAP_GET_ADV_LEN(pdata);
     if (data_len != len - MESHX_GAP_ADV_LENGTH_FIELD_SIZE)
     {
         MESHX_DEBUG("received length does not match calculated length: %d-%d",

@@ -10,6 +10,7 @@ set(COMMON_SRC_LIST
     ../platform/linux/meshx_mem.c
     ../platform/linux/meshx_system.c
     ../platform/linux/meshx_timer.c
+    ../platform/linux/meshx_misc.c
     ../common/meshx_trace.c
     ../common/meshx_assert.c
     ../common/meshx_list.c

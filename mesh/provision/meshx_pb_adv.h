@@ -102,7 +102,7 @@ typedef struct
 typedef struct
 {
     uint8_t gpcf: 2;
-    uint8_t paddind: 6;
+    uint8_t padding: 6;
     uint8_t pdu[MESHX_PB_ADV_PDU_MAX_SIZE - 1];
 } __PACKED meshx_pb_adv_pdu_t;
 

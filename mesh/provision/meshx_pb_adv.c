@@ -12,45 +12,37 @@
 #include "meshx_errno.h"
 #include "meshx_mem.h"
 #include "meshx_list.h"
+#include "meshx_misc.h"
+
+#define MESHX_PROVISION_STATE_IDLE               0
+#define MESHX_PROVISION_STATE_LINK_OPEN          1
 
 typedef struct
 {
+    uint8_t state;
     uint32_t link_id;
-    meshx_dev_uuid_t dev_uuid;
     meshx_list_t node;
-} meshx_proving_devs_t;
+} meshx_prov_devs_t;
 
-static meshx_list_t proving_devs_list;
+/* for provisioner use */
+static meshx_list_t prov_devs_list;
 
 int32_t meshx_pb_adv_prov_init(void)
 {
-    meshx_list_init_head(&proving_devs_list);
+    meshx_list_init_head(&prov_devs_list);
     return MESHX_SUCCESS;
 }
 
 int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
 {
-    meshx_list_t *pnode;
-    meshx_proving_devs_t *pproving_dev;
-    meshx_list_foreach(pnode, &proving_devs_list)
-    {
-        pproving_dev = MESHX_CONTAINER_OF(pnode, meshx_proving_devs_t, node);
-        if (0 == memcmp(pproving_dev->dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t)))
-        {
-            MESHX_INFO("device is already in provision procedure");
-            return -MESHX_ERR_ALREADY;
-        }
-    }
-
-    pproving_dev = meshx_malloc(sizeof(meshx_proving_devs_t));
+    meshx_prov_devs_t *pproving_dev = meshx_malloc(sizeof(meshx_prov_devs_t));
     if (NULL == pproving_dev)
     {
         MESHX_WARN("link open failed: out of memory!");
         return -MESHX_ERR_NO_MEM;
     }
-    memcpy(pproving_dev->dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
-    meshx_list_append(&proving_devs_list, &pproving_dev->node);
-    pproving_dev->link_id = meshx_list_length(&proving_devs_list);
+    meshx_list_append(&prov_devs_list, &pproving_dev->node);
+    pproving_dev->link_id = ABS(meshx_rand());
 
     uint8_t len = 0;
     meshx_pb_adv_pkt_t pb_adv_pkt;
@@ -76,9 +68,51 @@ int32_t meshx_pb_adv_link_close(meshx_bearer_t bearer, uint8_t reason)
     return MESHX_SUCCESS;
 }
 
+static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
+{
+    int32_t ret = MESHX_SUCCESS;
+    switch (ppkt->bearer_ctl.metadata.bearer_opcode)
+    {
+    case MESHX_BEARER_LINK_OPEN:
+        MESHX_INFO("recv link open");
+        break;
+    case MESHX_BEARER_LINK_ACK:
+        MESHX_INFO("recv link ack");
+        break;
+    case MESHX_BEARER_LINK_CLOSE:
+        MESHX_INFO("recv link close");
+        break;
+    default:
+        ret = -MESHX_ERR_INVAL;
+        break;
+    }
+
+    return ret;
+}
+
 int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
     MESHX_ASSERT(MESHX_BEARER_TYPE_ADV == bearer.type);
-    //meshx_pb_adv_pkt_t *ppb_adv_pkt = pdata;
-    return MESHX_SUCCESS;
+    int32_t ret = MESHX_SUCCESS;
+    const meshx_pb_adv_pkt_t *ppb_adv_pkt = (const meshx_pb_adv_pkt_t *)pdata;
+    switch (ppb_adv_pkt->pdu.gpcf)
+    {
+    case MESHX_GCPF_TRANS_START:
+        MESHX_INFO("trans start");
+        break;
+    case MESHX_GCPF_TRANS_ACK:
+        MESHX_INFO("trans ack");
+        break;
+    case MESHX_GCPF_TRANS_CONTINUE:
+        MESHX_INFO("trans continue");
+        break;
+    case MESHX_GCPF_BEARER_CTL:
+        MESHX_INFO("bearer control");
+        ret = meshx_pb_adv_recv_bearer_ctl(bearer, ppb_adv_pkt);
+        break;
+    default:
+        MESHX_WARN("invalid gpcf: %d", ppb_adv_pkt->pdu.gpcf);
+        break;
+    }
+    return ret;
 }
