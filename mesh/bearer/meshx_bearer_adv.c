@@ -118,10 +118,11 @@ int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, meshx_bearer_pkt_type_t pkt
     return meshx_gap_add_action(&action);
 }
 
-int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
+int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const uint8_t *pdata,
+                                 uint8_t len)
 {
     int32_t ret = MESHX_SUCCESS;
-    switch (MESHX_GAP_GET_ADV_TYPE(pdata))
+    switch (adv_type)
     {
     case MESHX_GAP_ADTYPE_MESH_MSG:
         MESHX_INFO("receive mesh msg");
@@ -135,7 +136,7 @@ int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, ui
         MESHX_INFO("receive beacon msg");
         break;
     default:
-        MESHX_DEBUG("received no mesh message: 0x%x", MESHX_GAP_GET_ADV_TYPE(pdata));
+        MESHX_DEBUG("received no mesh message: 0x%x", adv_type);
         ret = -MESHX_ERR_INVAL_ADTYPE;
         break;
     }

@@ -20,8 +20,9 @@ MESHX_EXTERN meshx_bearer_t meshx_bearer_adv_create(meshx_bearer_param_adv_t adv
 MESHX_EXTERN void meshx_bearer_adv_delete(meshx_bearer_t bearer);
 MESHX_EXTERN int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, meshx_bearer_pkt_type_t pkt_type,
                                            const uint8_t *pdata, uint8_t len);
-MESHX_EXTERN int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata,
-                                              uint8_t len);
+
+MESHX_EXTERN int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type,
+                                              const uint8_t *pdata, uint8_t len);
 MESHX_EXTERN meshx_bearer_t meshx_bearer_adv_get(void);
 MESHX_EXTERN bool meshx_bearer_adv_is_valid(meshx_bearer_t bearer);
 

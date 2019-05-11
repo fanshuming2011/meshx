@@ -321,7 +321,7 @@ int32_t meshx_gap_handle_adv_report(const uint8_t *pdata, uint16_t len,
         return -MESHX_ERR_LENGTH;
     }
 
-    uint8_t data_len = MESHX_GAP_GET_ADV_LENGTH(pdata);
+    uint8_t data_len = MESHX_GAP_GET_ADV_PDU_LEN(pdata);
     if (data_len != len - MESHX_GAP_ADV_LENGTH_FIELD_SIZE)
     {
         MESHX_DEBUG("received length does not match calculated length: %d-%d",
@@ -329,7 +329,6 @@ int32_t meshx_gap_handle_adv_report(const uint8_t *pdata, uint16_t len,
         return -MESHX_ERR_LENGTH;
     }
 
-    return meshx_bearer_receive(MESHX_GAP_GET_ADV_PDU(pdata), MESHX_GAP_GET_ADV_PDU_LENGTH(pdata),
-                                prx_metadata);
+    return meshx_bearer_receive(pdata, len, prx_metadata);
 }
 

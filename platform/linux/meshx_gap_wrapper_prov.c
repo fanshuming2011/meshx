@@ -68,6 +68,7 @@ int32_t meshx_gap_adv_set_scan_rsp_data(const uint8_t *pdata, uint8_t len)
 
 int32_t meshx_gap_adv_start(void)
 {
+    MESHX_INFO("adv start");
     write(fd_psdr, adv_data.data, adv_data.len);
     return MESHX_SUCCESS;
 }

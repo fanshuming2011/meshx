@@ -22,8 +22,8 @@ MESHX_BEGIN_DECLS
 #define MESHX_GAP_ADV_LENGTH_FIELD_SIZE          1
 #define MESHX_GAP_ADV_PDU_OFFSET                 2
 #define MESHX_GAP_GET_ADV_PDU(pdata)             (pdata + MESHX_GAP_ADV_PDU_OFFSET)
-#define MESHX_GAP_GET_ADV_PDU_LENGTH(pdata)      (pdata[0] - 1)
-#define MESHX_GAP_GET_ADV_LENGTH(pdata)          (pdata[0])
+#define MESHX_GAP_GET_ADV_PDU_LEN(pdata)         (pdata[0] - 1)
+#define MESHX_GAP_GET_ADV_LEN(pdata)             (pdata[0])
 #define MESHX_GAP_GET_ADV_TYPE(pdata)            (pdata[1])
 
 typedef enum

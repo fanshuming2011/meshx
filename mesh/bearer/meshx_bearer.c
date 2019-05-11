@@ -142,7 +142,8 @@ int32_t meshx_bearer_receive(const uint8_t *pdata, uint8_t len,
     switch (bearer.type)
     {
     case MESHX_BEARER_TYPE_ADV:
-        ret = meshx_bearer_adv_receive(bearer, pdata, len);
+        ret = meshx_bearer_adv_receive(bearer, MESHX_GAP_GET_ADV_TYPE(pdata), MESHX_GAP_GET_ADV_PDU(pdata),
+                                       MESHX_GAP_GET_ADV_PDU_LEN(pdata));
         break;
     case MESHX_BEARER_TYPE_GATT:
         ret = meshx_bearer_gatt_receive(bearer, pdata, len);
