@@ -22,6 +22,7 @@
 #define MESHX_ERR_MAX                  11 /* Reach maximum limitation */
 #define MESHX_ERR_BEARER_CONNECT       12 /* Bearer has not connected to network interface */
 #define MESHX_ERR_FILTER               13 /* Do not pass netwrok interface filter */
+#define MESHX_ERR_DIFF                 14 /* Value is different */
 
 #define EPERM        1  /* Operation not permitted */
 #define ENOENT       2  /* No such file or directory */

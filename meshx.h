@@ -15,6 +15,7 @@
 #include "meshx_bearer.h"
 #include "meshx_network.h"
 #include "meshx_provision.h"
+#include "meshx_node.h"
 
 
 

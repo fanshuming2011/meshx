@@ -62,7 +62,6 @@ typedef struct
     };
 } meshx_bearer_rx_metadata_t;
 
-
 MESHX_END_DECLS
 
 #endif

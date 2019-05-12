@@ -49,15 +49,24 @@ static void *meshx_thread(void *pargs)
 {
     meshx_trace_init(linux_send_string);
     meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
+    meshx_gap_init();
     meshx_bearer_init();
     meshx_network_init();
     meshx_provision_init();
 
+    meshx_gap_start();
     meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV, .param_adv.adv_period = 0};
     meshx_bearer_t adv_bearer = meshx_bearer_create(adv_param);
 
     meshx_network_if_t adv_network_if = meshx_network_if_create(MESHX_NETWORK_IF_TYPE_ADV);
     meshx_network_if_connect(adv_network_if, adv_bearer, NULL, NULL);
+
+    meshx_dev_uuid_t uuid;
+    for (uint8_t i = 0; i < 16; ++i)
+    {
+        uuid[i] = i;
+    }
+    meshx_set_device_uuid(uuid);
 
     //uint8_t test_data[] = {6, 5, 4, 3, 2, 1};
     while (1)
@@ -83,6 +92,7 @@ static void *meshx_receive_thread(void *pargs)
     };
     rx_metadata.bearer_type = MESHX_BEARER_TYPE_ADV;
     rx_metadata.adv_metadata = adv_metadata;
+    sleep(1);
 
     while (1)
     {

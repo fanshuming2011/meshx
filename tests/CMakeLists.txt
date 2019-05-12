@@ -14,6 +14,7 @@ set(COMMON_SRC_LIST
     ../common/meshx_trace.c
     ../common/meshx_assert.c
     ../common/meshx_list.c
+    ../mesh/node/meshx_node.c
     ../mesh/gap/meshx_gap.c
     ../mesh/bearer/meshx_bearer.c
     ../mesh/bearer/meshx_bearer_adv.c
