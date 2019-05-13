@@ -69,5 +69,15 @@ int32_t meshx_network_send(meshx_network_if_t network_if, const meshx_network_pd
     /* encrypt data */
 
     /* send data to bearer */
-    return meshx_bearer_send(bearer, MESHX_BEARER_PKT_TYPE_MESH_MSG, (const uint8_t *)ppdu, pdu_len);
+    uint8_t pkt_type;
+    if (MESHX_BEARER_TYPE_ADV == bearer.type)
+    {
+        pkt_type = MESHX_BEARER_ADV_PKT_TYPE_MESH_MSG;
+    }
+    else
+    {
+        pkt_type = MESHX_BEARER_GATT_PKT_TYPE_NETWORK;
+    }
+
+    return meshx_bearer_send(bearer, pkt_type, (const uint8_t *)ppdu, pdu_len);
 }

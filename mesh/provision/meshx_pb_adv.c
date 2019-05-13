@@ -14,10 +14,12 @@
 #include "meshx_list.h"
 #include "meshx_misc.h"
 #include "meshx_node.h"
+#include "meshx_crc8.h"
 
 #define MESHX_PROV_STATE_IDLE               0
 #define MESHX_PROV_STATE_LINK_OPENING       1
 #define MESHX_PROV_STATE_LINK_OPENED        2
+#define MESHX_PROV_STATE_INVITE             3
 
 typedef struct
 {
@@ -60,14 +62,14 @@ static meshx_prov_dev_t *meshx_find_prov_dev_by_uuid(const meshx_dev_uuid_t dev_
     return pprov_dev;
 }
 
-static meshx_find_prov_dev_by_link_id(uint32_t link_id)
+static meshx_prov_dev_t *meshx_find_prov_dev_by_link_id(uint32_t link_id)
 {
     meshx_list_t *pnode;
     meshx_prov_dev_t *pprov_dev = NULL;
     meshx_list_foreach(pnode, &prov_devs_list)
     {
         pprov_dev = MESHX_CONTAINER_OF(pnode, meshx_prov_dev_t, node);
-        if (pprov_dev->prov_info.link_id = link_id)
+        if (pprov_dev->prov_info.link_id == link_id)
         {
             break;
         }
@@ -91,25 +93,26 @@ int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
         }
     }
 
-    meshx_list_append(&prov_devs_list, &pproving_dev->node);
-    pproving_dev->prov_info.link_id = ABS(meshx_rand());
+    meshx_list_append(&prov_devs_list, &pprov_dev->node);
+    pprov_dev->prov_info.link_id = ABS(meshx_rand());
 
     uint8_t len = 0;
     meshx_pb_adv_pkt_t pb_adv_pkt;
-    pb_adv_pkt.metadata.link_id = pproving_dev->prov_info.link_id;
+    pb_adv_pkt.metadata.link_id = pprov_dev->prov_info.link_id;
     pb_adv_pkt.metadata.trans_num = 0;
-    pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GCPF_BEARER_CTL;
+    pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_OPEN;
     memcpy(pb_adv_pkt.bearer_ctl.link_open.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
     len = sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_bearer_ctl_metadata_t) + sizeof(
               meshx_pb_adv_link_open_t);
 
-    MESHX_INFO("link opening: %d", pproving_dev->prov_info.link_id);
-    int32_t ret = meshx_bearer_send(bearer, MESHX_BEARER_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
+    MESHX_INFO("link opening: %d", pprov_dev->prov_info.link_id);
+    int32_t ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
+                                    (const uint8_t *)&pb_adv_pkt,
                                     len);
     if (MESHX_SUCCESS == ret)
     {
-        pproving_dev->prov_info.state = MESHX_PROV_STATE_LINK_OPENING;
+        pprov_dev->prov_info.state = MESHX_PROV_STATE_LINK_OPENING;
     }
 
     return ret;
@@ -121,18 +124,60 @@ int32_t meshx_pb_adv_link_ack(meshx_bearer_t bearer)
     meshx_pb_adv_pkt_t pb_adv_pkt;
     pb_adv_pkt.metadata.link_id = prov_self_info.link_id;
     pb_adv_pkt.metadata.trans_num = 0;
-    pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GCPF_BEARER_CTL;
+    pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_ACK;
     len = sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_bearer_ctl_metadata_t) + sizeof(
               meshx_pb_adv_link_ack_t);
 
     MESHX_INFO("link ack: %d", prov_self_info.link_id);
-    return meshx_bearer_send(bearer, MESHX_BEARER_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt, len);
+    return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
+                             len);
 }
 
 int32_t meshx_pb_adv_link_close(meshx_bearer_t bearer, uint8_t reason)
 {
     return MESHX_SUCCESS;
+}
+
+static int32_t meshx_pb_adv_send(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
+{
+    MESHX_ASSERT(len <= MESHX_PB_ADV_PDU_MAX_LEN);
+
+    uint8_t data_len = 0;
+    int32_t ret = MESHX_SUCCESS;
+    if (len <= MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN)
+    {
+        /* no segment */
+        meshx_pb_adv_trans_start_t trans_start;
+        trans_start.metadata.gpcf = MESHX_GPCF_TRANS_START;
+        trans_start.metadata.seg_num = 0;
+        trans_start.metadata.total_len = len;
+        trans_start.metadata.fcs = meshx_crc8(pdata, len);
+        memcpy(trans_start.pdu, pdata, len);
+
+        meshx_pb_adv_pkt_t pb_adv_pkt;
+        pb_adv_pkt.metadata.link_id = prov_self_info.link_id;
+        pb_adv_pkt.metadata.trans_num = 0;
+        pb_adv_pkt.trans_start = trans_start;
+
+        data_len = sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_start_metadata_t) + len;
+        ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
+                                data_len);
+    }
+    else
+    {
+        /* segmented */
+        //uint8_t segment_num = ((len - MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN) + MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN - 1) / MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN + 1;
+
+    }
+
+    return ret;
+}
+
+int32_t meshx_pb_adv_invite(meshx_bearer_t bearer, meshx_provision_invite_t invite)
+{
+    MESHX_INFO("invite: %d", invite);
+    return meshx_pb_adv_send(bearer, (const uint8_t *)&invite, sizeof(meshx_provision_invite_t));
 }
 
 static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
@@ -153,11 +198,14 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const meshx_pb
         return -MESHX_ERR_DIFF;
     }
 
+    MESHX_INFO("receive link open: %d", ppkt->metadata.link_id);
     prov_self_info.link_id = ppkt->metadata.link_id;
+
+    /* link ack */
     int32_t ret = meshx_pb_adv_link_ack(bearer);
     if (MESHX_SUCCESS == ret)
     {
-        prov_self_info.state = MESHX_PROV_STATE_LINK_OPEN;
+        prov_self_info.state = MESHX_PROV_STATE_LINK_OPENED;
     }
 
     return ret;
@@ -166,6 +214,23 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const meshx_pb
 static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
 {
     int32_t ret = MESHX_SUCCESS;
+
+    meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);
+    if (NULL == pprov_dev)
+    {
+        MESHX_WARN("can't find provision device with link id %d", ppkt->metadata.link_id);
+    }
+
+    MESHX_INFO("link established with id %d", ppkt->metadata.link_id);
+
+    /* start invite */
+    meshx_provision_invite_t invite = {0};
+    /* TODO: get invite from app */
+    ret = meshx_pb_adv_invite(bearer, invite);
+    if (MESHX_SUCCESS == ret)
+    {
+        pprov_dev->prov_info.state = MESHX_PROV_STATE_INVITE;
+    }
 
     return ret;
 }
@@ -191,8 +256,50 @@ static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const meshx_p
         MESHX_INFO("recv link close");
         break;
     default:
+        MESHX_WARN("invalid bearer opcode: %d", ppkt->bearer_ctl.metadata.bearer_opcode);
         ret = -MESHX_ERR_INVAL;
         break;
+    }
+
+    return ret;
+}
+
+static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
+{
+    int32_t ret = MESHX_SUCCESS;
+    /* check link id first */
+    if (ppkt->metadata.link_id == prov_self_info.link_id)
+    {
+
+    }
+    else
+    {
+        meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);
+        if (NULL == pprov_dev)
+        {
+
+        }
+    }
+
+    return ret;
+}
+
+static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer,
+                                                const meshx_pb_adv_pkt_t *ppkt)
+{
+    int32_t ret = MESHX_SUCCESS;
+    /* check link id first */
+    if (ppkt->metadata.link_id == prov_self_info.link_id)
+    {
+
+    }
+    else
+    {
+        meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);
+        if (NULL == pprov_dev)
+        {
+
+        }
     }
 
     return ret;
@@ -205,17 +312,16 @@ int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
     const meshx_pb_adv_pkt_t *ppb_adv_pkt = (const meshx_pb_adv_pkt_t *)pdata;
     switch (ppb_adv_pkt->pdu.gpcf)
     {
-    case MESHX_GCPF_TRANS_START:
+    case MESHX_GPCF_TRANS_START:
         MESHX_INFO("trans start");
         break;
-    case MESHX_GCPF_TRANS_ACK:
+    case MESHX_GPCF_TRANS_ACK:
         MESHX_INFO("trans ack");
         break;
-    case MESHX_GCPF_TRANS_CONTINUE:
+    case MESHX_GPCF_TRANS_CONTINUE:
         MESHX_INFO("trans continue");
         break;
-    case MESHX_GCPF_BEARER_CTL:
-        MESHX_INFO("bearer control");
+    case MESHX_GPCF_BEARER_CTL:
         ret = meshx_pb_adv_recv_bearer_ctl(bearer, ppb_adv_pkt);
         break;
     default:

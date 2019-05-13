@@ -16,7 +16,7 @@
 #include "meshx_list.h"
 #include "meshx_mem.h"
 #include "meshx_network.h"
-#include "meshx_provision.h"
+#include "meshx_provision_internal.h"
 
 typedef union
 {
@@ -70,10 +70,10 @@ void meshx_bearer_adv_delete(meshx_bearer_t bearer)
     }
 }
 
-int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, meshx_bearer_pkt_type_t pkt_type,
+int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
                               const uint8_t *pdata, uint8_t len)
 {
-    MESHX_ASSERT(pkt_type < MESHX_BEARER_PKT_TYPE_UNKONWN);
+    MESHX_ASSERT(MESHX_IS_BEARER_ADV_PKT_TYPE_VALID(pkt_type));
 
     if ((bearer.bearer != bearer_adv.bearer.bearer) ||
         (MESHX_BEARER_TYPE_ADV != bearer.type) ||
@@ -91,18 +91,7 @@ int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, meshx_bearer_pkt_type_t pkt
     }
     meshx_bearer_adv_pkt_t adv_data;
     adv_data.length = len + 1;
-    if (MESHX_BEARER_PKT_TYPE_PB_ADV == pkt_type)
-    {
-        adv_data.ad_type = MESHX_GAP_ADTYPE_PB_ADV;
-    }
-    else if (MESHX_BEARER_PKT_TYPE_MESH_MSG == pkt_type)
-    {
-        adv_data.ad_type = MESHX_GAP_ADTYPE_MESH_MSG;
-    }
-    else
-    {
-        adv_data.ad_type = MESHX_GAP_ADTYPE_MESH_BEACON;
-    }
+    adv_data.ad_type = pkt_type;
     memcpy(adv_data.pdu, pdata, len);
 
     MESHX_INFO("send adv data:  ");
@@ -129,7 +118,6 @@ int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const 
         ret = meshx_network_receive(bearer, pdata, len);
         break;
     case MESHX_GAP_ADTYPE_PB_ADV:
-        MESHX_INFO("receive pb-adv msg");
         ret = meshx_provision_receive(bearer, pdata, len);
         break;
     case MESHX_GAP_ADTYPE_MESH_BEACON:

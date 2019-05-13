@@ -18,22 +18,6 @@ int32_t meshx_provision_init(void)
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_provision_send(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
-{
-    int32_t ret = MESHX_SUCCESS;
-    switch (bearer.type)
-    {
-    case MESHX_BEARER_TYPE_ADV:
-        break;
-    case MESHX_BEARER_TYPE_GATT:
-        break;
-    default:
-        break;
-    }
-
-    return ret;
-}
-
 int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
     int32_t ret = MESHX_SUCCESS;
@@ -85,5 +69,22 @@ int32_t meshx_provision_link_close(meshx_bearer_t bearer, uint8_t reason)
     return meshx_pb_adv_link_close(bearer, reason);
 }
 
+int32_t meshx_provision_invite(meshx_bearer_t bearer, meshx_provision_invite_t invite)
+{
+    int32_t ret = MESHX_SUCCESS;
+    switch (bearer.type)
+    {
+    case MESHX_BEARER_TYPE_ADV:
+        ret = meshx_pb_adv_invite(bearer, invite);
+        break;
+    case MESHX_BEARER_TYPE_GATT:
+        break;
+    default:
+        MESHX_WARN("invalid bearer: bearer");
+        ret = -MESHX_ERR_INVAL_BEARER;
+        break;
+    }
 
+    return ret;
+}
 

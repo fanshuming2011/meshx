@@ -9,6 +9,7 @@
 #include "meshx_trace.h"
 #include "meshx_bearer_internal.h"
 #include "meshx_errno.h"
+#include "meshx_assert.h"
 
 
 int32_t meshx_bearer_gatt_init(void)
@@ -16,8 +17,10 @@ int32_t meshx_bearer_gatt_init(void)
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
+int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, uint8_t pkt_type, const uint8_t *pdata,
+                               uint8_t len)
 {
+    MESHX_ASSERT(MESHX_IS_BEARER_GATT_ADV_PKT_TYPE_VALID(pkt_type));
     return MESHX_SUCCESS;
 }
 

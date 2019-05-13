@@ -12,6 +12,23 @@
 
 MESHX_BEGIN_DECLS
 
+typedef struct
+{
+    uint8_t attention_duration;
+} __PACKED meshx_provision_invite_t;
+
+typedef struct
+{
+    uint8_t element_nums;
+    uint16_t algorithms;
+    uint8_t public_key_type;
+    uint8_t static_oob_type;
+    uint8_t output_oob_type;
+    uint16_t output_oob_action;
+    uint8_t input_oob_size;
+    uint8_t input_oob_action;
+} meshx_provision_capabilites_t;
+
 
 MESHX_EXTERN int32_t meshx_provision_init(void);
 
@@ -19,9 +36,7 @@ MESHX_EXTERN int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_
 MESHX_EXTERN int32_t meshx_provision_link_ack(meshx_bearer_t bearer);
 MESHX_EXTERN int32_t meshx_provision_link_close(meshx_bearer_t bearer, uint8_t reason);
 
-MESHX_EXTERN int32_t meshx_provision_send(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len);
-MESHX_EXTERN int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata,
-                                             uint8_t len);
+MESHX_EXTERN int32_t meshx_provision_invite(meshx_bearer_t bearer, meshx_provision_invite_t invite);
 
 MESHX_END_DECLS
 

@@ -9,21 +9,20 @@
 #define _MESHX_PB_ADV_H_
 
 #include "meshx_bearer.h"
+#include "meshx_provision.h"
 
 MESHX_BEGIN_DECLS
 
-#define MESHX_PB_ADV_PDU_MAX_SIZE       24
+#define MESHX_PB_ADV_PDU_MAX_LEN        24
 
-#define MESHX_GCPF_TRANS_START          0x00
-#define MESHX_GCPF_TRANS_ACK            0x01
-#define MESHX_GCPF_TRANS_CONTINUE       0x02
-#define MESHX_GCPF_BEARER_CTL           0x03
+#define MESHX_GPCF_TRANS_START          0x00
+#define MESHX_GPCF_TRANS_ACK            0x01
+#define MESHX_GPCF_TRANS_CONTINUE       0x02
+#define MESHX_GPCF_BEARER_CTL           0x03
 
 #define MESHX_BEARER_LINK_OPEN          0x00
 #define MESHX_BEARER_LINK_ACK           0x01
 #define MESHX_BEARER_LINK_CLOSE         0x02
-
-#define MESHX_PB_ADV_METADATA_LEN       6
 
 typedef struct
 {
@@ -39,10 +38,12 @@ typedef struct
     uint8_t fcs;
 } __PACKED meshx_pb_adv_trans_start_metadata_t;
 
+
+#define MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN       (MESHX_PB_ADV_PDU_MAX_LEN - sizeof(meshx_pb_adv_trans_start_metadata_t))
 typedef struct
 {
     meshx_pb_adv_trans_start_metadata_t metadata;
-    uint8_t pdu[MESHX_PB_ADV_PDU_MAX_SIZE - 4];
+    uint8_t pdu[MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN];
 } __PACKED meshx_pb_adv_trans_start_t;
 
 typedef struct
@@ -62,10 +63,11 @@ typedef struct
     uint8_t seg_index: 6;
 } __PACKED meshx_pb_adv_trans_continue_metadata_t;
 
+#define MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN       (MESHX_PB_ADV_PDU_MAX_LEN - sizeof(meshx_pb_adv_trans_continue_metadata_t))
 typedef struct
 {
     meshx_pb_adv_trans_continue_metadata_t metadata;
-    uint8_t pdu[MESHX_PB_ADV_PDU_MAX_SIZE - 1];
+    uint8_t pdu[MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN];
 } __PACKED meshx_pb_adv_trans_continue_t;
 
 typedef struct
@@ -103,7 +105,7 @@ typedef struct
 {
     uint8_t gpcf: 2;
     uint8_t padding: 6;
-    uint8_t pdu[MESHX_PB_ADV_PDU_MAX_SIZE - 1];
+    uint8_t pdu[MESHX_PB_ADV_PDU_MAX_LEN - 1];
 } __PACKED meshx_pb_adv_pdu_t;
 
 typedef struct
@@ -126,6 +128,7 @@ MESHX_EXTERN int32_t meshx_pb_adv_link_ack(meshx_bearer_t bearer);
 MESHX_EXTERN int32_t meshx_pb_adv_link_close(meshx_bearer_t bearer, uint8_t reason);
 MESHX_EXTERN int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len);
 
+MESHX_EXTERN int32_t meshx_pb_adv_invite(meshx_bearer_t bearer, meshx_provision_invite_t invite);
 
 MESHX_END_DECLS
 

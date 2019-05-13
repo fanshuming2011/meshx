@@ -75,22 +75,17 @@ bool meshx_bearer_is_valid(meshx_bearer_t bearer)
     return ret;
 }
 
-int32_t meshx_bearer_send(meshx_bearer_t bearer, meshx_bearer_pkt_type_t pkt_type,
+int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
                           const uint8_t *pdata, uint8_t len)
 {
     int32_t ret = MESHX_SUCCESS;
-    if (pkt_type >= MESHX_BEARER_PKT_TYPE_UNKONWN)
-    {
-        MESHX_ERROR("invalid packet type: %d", pkt_type);
-        return -MESHX_ERR_INVAL;
-    }
     switch (bearer.type)
     {
     case MESHX_BEARER_TYPE_ADV:
         ret = meshx_bearer_adv_send(bearer, pkt_type, pdata, len);
         break;
     case MESHX_BEARER_TYPE_GATT:
-        ret = meshx_bearer_gatt_send(bearer, pdata, len);
+        ret = meshx_bearer_gatt_send(bearer, pkt_type, pdata, len);
         break;
     default:
         MESHX_ERROR("invalid bearer: %d", bearer);
