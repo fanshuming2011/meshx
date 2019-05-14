@@ -305,6 +305,13 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer,
     return ret;
 }
 
+static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
+{
+    int32_t ret = MESHX_SUCCESS;
+
+    return ret;
+}
+
 int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
     MESHX_ASSERT(MESHX_BEARER_TYPE_ADV == bearer.type);
@@ -313,13 +320,13 @@ int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
     switch (ppb_adv_pkt->pdu.gpcf)
     {
     case MESHX_GPCF_TRANS_START:
-        MESHX_INFO("trans start");
+        ret = meshx_pb_adv_recv_trans_start(bearer, ppb_adv_pkt);
         break;
     case MESHX_GPCF_TRANS_ACK:
-        MESHX_INFO("trans ack");
+        ret = meshx_pb_adv_recv_trans_ack(bearer, ppb_adv_pkt);
         break;
     case MESHX_GPCF_TRANS_CONTINUE:
-        MESHX_INFO("trans continue");
+        ret = meshx_pb_adv_recv_trans_continue(bearer, ppb_adv_pkt);
         break;
     case MESHX_GPCF_BEARER_CTL:
         ret = meshx_pb_adv_recv_bearer_ctl(bearer, ppb_adv_pkt);
