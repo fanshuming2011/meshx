@@ -44,7 +44,7 @@
 
 /* get struct address */
 #define MESHX_CONTAINER_OF(member_ptr, struct_type, member)                     \
-    (struct_type *)((char *)member_ptr- MESHX_OFFSET_OF(struct_type, member))
+    (struct_type *)((char *)member_ptr - MESHX_OFFSET_OF(struct_type, member))
 
 /* function name */
 #if defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)

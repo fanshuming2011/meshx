@@ -23,10 +23,10 @@ typedef enum
 
 int32_t meshx_timer_create(meshx_timer_t *ptimer, meshx_timer_mode_t mode,
                            meshx_timer_handler_t phandler);
-void meshx_timer_start(meshx_timer_t timer, uint32_t interval);
-void meshx_timer_stop(meshx_timer_t timer);
+int32_t meshx_timer_start(meshx_timer_t timer, uint32_t interval);
+int32_t meshx_timer_stop(meshx_timer_t timer);
 void meshx_timer_delete(meshx_timer_t timer);
-bool meshx_is_timer_active(meshx_timer_t timer);
+bool meshx_timer_is_active(meshx_timer_t timer);
 
 MESHX_END_DECLS
 

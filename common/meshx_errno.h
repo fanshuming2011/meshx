@@ -9,20 +9,21 @@
 #define _MESHX_ERRNO_H_
 
 #define MESHX_SUCCESS                  0 /* Operation success */
-#define MESHX_ERR_NO_MEM               1 /* Out of memory */
-#define MESHX_ERR_INVAL                2 /* Invalid argument */
-#define MESHX_ERR_INVAL_BEARER         3 /* Invalid bearer */
-#define MESHX_ERR_INVAL_ADTYPE         4 /* Invalid adtype */
-#define MESHX_ERR_INVAL_STATE          5 /* Invalid state */
-#define MESHX_ERR_INVAL_NETWORK_IF     6 /* Invalid network interface */
-#define MESHX_ERR_BUSY                 7 /* Device or resource busy*/
-#define MESHX_ERR_AGAIN                8 /* Try again*/
-#define MESHX_ERR_ALREADY              9 /* Operation already done */
-#define MESHX_ERR_LENGTH               10 /* Invalid parameter length */
-#define MESHX_ERR_MAX                  11 /* Reach maximum limitation */
-#define MESHX_ERR_BEARER_CONNECT       12 /* Bearer has not connected to network interface */
-#define MESHX_ERR_FILTER               13 /* Do not pass netwrok interface filter */
-#define MESHX_ERR_DIFF                 14 /* Value is different */
+#define MESHX_ERR_FAIL                 1 /* Operation failed */
+#define MESHX_ERR_NO_MEM               2 /* Out of memory */
+#define MESHX_ERR_INVAL                3 /* Invalid argument */
+#define MESHX_ERR_INVAL_BEARER         4 /* Invalid bearer */
+#define MESHX_ERR_INVAL_ADTYPE         5 /* Invalid adtype */
+#define MESHX_ERR_INVAL_STATE          6 /* Invalid state */
+#define MESHX_ERR_INVAL_NETWORK_IF     7 /* Invalid network interface */
+#define MESHX_ERR_BUSY                 8 /* Device or resource busy*/
+#define MESHX_ERR_AGAIN                9 /* Try again*/
+#define MESHX_ERR_ALREADY              10 /* Operation already done */
+#define MESHX_ERR_LENGTH               11 /* Invalid parameter length */
+#define MESHX_ERR_MAX                  12 /* Reach maximum limitation */
+#define MESHX_ERR_BEARER_CONNECT       13 /* Bearer has not connected to network interface */
+#define MESHX_ERR_FILTER               14 /* Do not pass netwrok interface filter */
+#define MESHX_ERR_DIFF                 15 /* Value is different */
 
 #define EPERM        1  /* Operation not permitted */
 #define ENOENT       2  /* No such file or directory */

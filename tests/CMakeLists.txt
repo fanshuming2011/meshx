@@ -37,9 +37,9 @@ find_package(Threads REQUIRED)
 #test tassert
 add_executable(meshx_provisioner meshx_provisioner.c
                ${COMMON_SRC_LIST} ${PROV_SRC_LIST})
-target_link_libraries(meshx_provisioner pthread)
+target_link_libraries(meshx_provisioner pthread rt)
 
 add_executable(meshx_device meshx_device.c
                ${COMMON_SRC_LIST} ${DEV_SRC_LIST})
-target_link_libraries(meshx_device pthread)
+target_link_libraries(meshx_device pthread rt)
 
