@@ -6,6 +6,7 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #include <string.h>
+#include "meshx_config.h"
 #define TRACE_MODULE "MESHX_PB_ADV"
 #include "meshx_trace.h"
 #include "meshx_pb_adv.h"
@@ -15,6 +16,7 @@
 #include "meshx_misc.h"
 #include "meshx_node.h"
 #include "meshx_crc8.h"
+#include "meshx_timer.h"
 
 #define MESHX_PROV_STATE_IDLE               0
 #define MESHX_PROV_STATE_LINK_OPENING       1
@@ -27,25 +29,38 @@ typedef struct
     uint32_t link_id;
 } meshx_prov_info_t;
 
+#if MESHX_ROLE_PROVISIONER
 typedef struct
 {
     meshx_prov_info_t prov_info;
     meshx_dev_uuid_t uuid;
+    meshx_timer_t timer;
     meshx_list_t node;
 } meshx_prov_dev_t;
 
 /* for provisioner use */
 static meshx_list_t prov_devs_list;
+#endif
 
+#if MESHX_ROLE_DEVICE
 /* for device use */
 static meshx_prov_info_t prov_self_info;
+#endif
 
-int32_t meshx_pb_adv_prov_init(void)
+int32_t meshx_pb_adv_init(void)
 {
+#if MESHX_ROLE_PROVISIONER
     meshx_list_init_head(&prov_devs_list);
+#endif
     return MESHX_SUCCESS;
 }
 
+void meshx_pb_adv_timeout_handler(void *pargs)
+{
+
+}
+
+#if MESHX_ROLE_PROVISIONER
 static meshx_prov_dev_t *meshx_find_prov_dev_by_uuid(const meshx_dev_uuid_t dev_uuid)
 {
     meshx_list_t *pnode;
@@ -88,10 +103,28 @@ int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
         pprov_dev = meshx_malloc(sizeof(meshx_prov_dev_t));
         if (NULL == pprov_dev)
         {
-            MESHX_WARN("link open failed: out of memory!");
+            MESHX_ERROR("link open failed: out of memory!");
             return -MESHX_ERR_NO_MEM;
         }
+        memset(pprov_dev, 0, sizeof(meshx_prov_dev_t));
+        if (MESHX_SUCCESS != meshx_timer_create(&pprov_dev->timer, MESHX_TIMER_MODE_REPEATED,
+                                                meshx_pb_adv_timeout_handler))
+        {
+            meshx_free(pprov_dev);
+            MESHX_ERROR("link open failed: create timer failed!");
+            return -MESHX_ERR_FAIL;
+        }
     }
+    else
+    {
+        /* existing provision deivice */
+        if (MESHX_PROV_STATE_IDLE != pprov_dev->prov_info.state)
+        {
+            MESHX_WARN("device is already in provision procedure");
+            return -MESHX_ERR_BUSY;
+        }
+    }
+
 
     meshx_list_append(&prov_devs_list, &pprov_dev->node);
     pprov_dev->prov_info.link_id = ABS(meshx_rand());
@@ -107,6 +140,7 @@ int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
               meshx_pb_adv_link_open_t);
 
     MESHX_INFO("link opening: %d", pprov_dev->prov_info.link_id);
+
     int32_t ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
                                     (const uint8_t *)&pb_adv_pkt,
                                     len);
@@ -117,7 +151,9 @@ int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
 
     return ret;
 }
+#endif
 
+#if MESHX_ROLE_DEVICE
 int32_t meshx_pb_adv_link_ack(meshx_bearer_t bearer)
 {
     uint8_t len = 0;
@@ -133,6 +169,7 @@ int32_t meshx_pb_adv_link_ack(meshx_bearer_t bearer)
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
                              len);
 }
+#endif
 
 int32_t meshx_pb_adv_link_close(meshx_bearer_t bearer, uint8_t reason)
 {

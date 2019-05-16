@@ -17,8 +17,8 @@ typedef void (*meshx_timer_handler_t)(void *ptimer);
 
 typedef enum
 {
-    MESHX_TIMER_SINGLE_SHOT,
-    MESHX_TIMER_REPEATED,
+    MESHX_TIMER_MODE_SINGLE_SHOT,
+    MESHX_TIMER_MODE_REPEATED,
 } meshx_timer_mode_t;
 
 int32_t meshx_timer_create(meshx_timer_t *ptimer, meshx_timer_mode_t mode,

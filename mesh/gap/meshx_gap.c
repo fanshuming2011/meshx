@@ -67,7 +67,7 @@ int32_t meshx_gap_init(void)
 
     gap_state.enabled = FALSE;
 
-    return meshx_timer_create(&adv_timer, MESHX_TIMER_SINGLE_SHOT, meshx_adv_timeout_handler);
+    return meshx_timer_create(&adv_timer, MESHX_TIMER_MODE_SINGLE_SHOT, meshx_adv_timeout_handler);
 }
 
 static void meshx_clear_all_actions(void)

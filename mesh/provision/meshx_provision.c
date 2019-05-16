@@ -14,7 +14,7 @@
 
 int32_t meshx_provision_init(void)
 {
-    meshx_pb_adv_prov_init();
+    meshx_pb_adv_init();
     return MESHX_SUCCESS;
 }
 

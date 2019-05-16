@@ -122,7 +122,7 @@ typedef struct
 } __PACKED meshx_pb_adv_pkt_t;
 
 
-MESHX_EXTERN int32_t meshx_pb_adv_prov_init(void);
+MESHX_EXTERN int32_t meshx_pb_adv_init(void);
 MESHX_EXTERN int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid);
 MESHX_EXTERN int32_t meshx_pb_adv_link_ack(meshx_bearer_t bearer);
 MESHX_EXTERN int32_t meshx_pb_adv_link_close(meshx_bearer_t bearer, uint8_t reason);
