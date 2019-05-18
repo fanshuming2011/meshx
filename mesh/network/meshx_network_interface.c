@@ -187,7 +187,7 @@ void meshx_network_if_delete(meshx_network_if_t network_if)
     meshx_list_foreach(pnode, &network_if_list)
     {
         pinterface = MESHX_CONTAINER_OF(pnode, meshx_network_interface_t, node);
-        if (pinterface->network_if.network_if == network_if.network_if);
+        if (pinterface->network_if.network_if == network_if.network_if)
         {
             meshx_release_network_interface(pinterface);
             MESHX_INFO("delete network interface(%d) success", network_if.network_if);

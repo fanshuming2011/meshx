@@ -15,7 +15,7 @@
 #include "meshx_list.h"
 #include "meshx_misc.h"
 #include "meshx_node.h"
-#include "meshx_crc8.h"
+#include "meshx_3gpp_crc.h"
 #include "meshx_timer.h"
 
 #define MESHX_PROV_STATE_IDLE               0
@@ -189,7 +189,7 @@ static int32_t meshx_pb_adv_send(meshx_bearer_t bearer, const uint8_t *pdata, ui
         trans_start.metadata.gpcf = MESHX_GPCF_TRANS_START;
         trans_start.metadata.seg_num = 0;
         trans_start.metadata.total_len = len;
-        trans_start.metadata.fcs = meshx_crc8(pdata, len);
+        trans_start.metadata.fcs = meshx_3gpp_crc(pdata, len);
         memcpy(trans_start.pdu, pdata, len);
 
         meshx_pb_adv_pkt_t pb_adv_pkt;

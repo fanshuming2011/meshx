@@ -5,7 +5,7 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
-#include "meshx_crc8.h"
+#include "meshx_3gpp_crc.h"
 
 static const uint8_t crc8_table[256] =
 {
@@ -42,7 +42,7 @@ BOOL crc8EtsCheck(LPBYTE p, WORD len, BYTE rfcs)
 }
 #endif
 
-uint8_t meshx_crc8(const uint8_t *pdata, uint32_t len)
+uint8_t meshx_3gpp_crc(const uint8_t *pdata, uint32_t len)
 {
     uint8_t fcs = 0xff;
 
