@@ -23,16 +23,17 @@ typedef struct
     timer_t timer;
     meshx_timer_mode_t mode;
     meshx_timer_handler_t timeout_handler;
+    void *pargs;
 } meshx_timer_wrapper_t;
 
 void timer_handle_thread(union sigval sig)
 {
     meshx_timer_wrapper_t *ptimer_wrapper = sig.sival_ptr;
-    ptimer_wrapper->timeout_handler(ptimer_wrapper);
+    ptimer_wrapper->timeout_handler(ptimer_wrapper->pargs);
 }
 
 int32_t meshx_timer_create(meshx_timer_t *ptimer, meshx_timer_mode_t mode,
-                           meshx_timer_handler_t phandler)
+                           meshx_timer_handler_t phandler, void *pargs)
 {
     struct sigevent evp;
     memset(&evp, 0, sizeof(struct sigevent));
@@ -55,11 +56,12 @@ int32_t meshx_timer_create(meshx_timer_t *ptimer, meshx_timer_mode_t mode,
         MESHX_ERROR("create timer failed: internal");
         return MESHX_ERR_FAIL;
     }
+    *ptimer = ptimer_wrapper;
+
     ptimer_wrapper->timer = timer_id;
     ptimer_wrapper->mode = mode;
     ptimer_wrapper->timeout_handler = phandler;
-
-    *ptimer = ptimer_wrapper;
+    ptimer_wrapper->pargs = pargs;
 
     return MESHX_SUCCESS;
 }

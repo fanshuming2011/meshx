@@ -135,7 +135,7 @@ bool meshx_list_exists(const meshx_list_t *phead, const meshx_list_t *pnode)
     return FALSE;
 }
 
-meshx_list_t *mesh_list_peek(const meshx_list_t *phead)
+meshx_list_t *meshx_list_peek(const meshx_list_t *phead)
 {
     if (phead->pnext == phead)
     {

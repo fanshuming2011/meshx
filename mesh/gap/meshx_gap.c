@@ -67,7 +67,8 @@ int32_t meshx_gap_init(void)
 
     gap_state.enabled = FALSE;
 
-    return meshx_timer_create(&adv_timer, MESHX_TIMER_MODE_SINGLE_SHOT, meshx_adv_timeout_handler);
+    return meshx_timer_create(&adv_timer, MESHX_TIMER_MODE_SINGLE_SHOT, meshx_adv_timeout_handler,
+                              adv_timer);
 }
 
 static void meshx_clear_all_actions(void)
@@ -115,7 +116,7 @@ void meshx_gap_stop(void)
 
 static void meshx_run_actions(void)
 {
-    meshx_list_t *pnode = mesh_list_peek(&gap_action_list_active.node);
+    meshx_list_t *pnode = meshx_list_peek(&gap_action_list_active.node);
     if (NULL != pnode)
     {
         bool success_run = FALSE;
@@ -262,6 +263,7 @@ static void meshx_try_append_scan_action(void)
         scan_action.action_scan_data.scan_window = MESHX_GAP_SCAN_WINDOW;
         int32_t ret = meshx_append_action(&scan_action);
         MESHX_ASSERT(MESHX_SUCCESS == ret);
+        gap_action_list_active.scan_action_exists = TRUE;
         MESHX_INFO("add scan action");
     }
 }

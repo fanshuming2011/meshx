@@ -48,7 +48,7 @@ MESHX_EXTERN meshx_list_t *meshx_list_pop(meshx_list_t *phead);
 MESHX_EXTERN void meshx_list_remove(meshx_list_t *pnode);
 MESHX_EXTERN uint32_t meshx_list_index(const meshx_list_t *phead, const meshx_list_t *pnode);
 MESHX_EXTERN bool meshx_list_exists(const meshx_list_t *phead, const meshx_list_t *pnode);
-MESHX_EXTERN meshx_list_t *mesh_list_peek(const meshx_list_t *phead);
+MESHX_EXTERN meshx_list_t *meshx_list_peek(const meshx_list_t *phead);
 
 static __INLINE bool meshx_list_is_empty(const meshx_list_t *phead)
 {

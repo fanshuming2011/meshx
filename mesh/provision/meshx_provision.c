@@ -10,6 +10,7 @@
 #include "meshx_provision.h"
 #include "meshx_errno.h"
 #include "meshx_pb_adv.h"
+#include "meshx_misc.h"
 
 
 int32_t meshx_provision_init(void)
@@ -44,10 +45,10 @@ int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uu
         return -MESHX_ERR_INVAL_BEARER;
     }
 
-    return meshx_pb_adv_link_open(bearer, dev_uuid);
+    return meshx_pb_adv_link_open(bearer, ABS(meshx_rand()), dev_uuid);
 }
 
-int32_t meshx_provision_link_ack(meshx_bearer_t bearer)
+int32_t meshx_provision_link_ack(meshx_bearer_t bearer, uint32_t link_id)
 {
     if (MESHX_BEARER_TYPE_ADV != bearer.type)
     {
@@ -55,10 +56,10 @@ int32_t meshx_provision_link_ack(meshx_bearer_t bearer)
         return -MESHX_ERR_INVAL_BEARER;
     }
 
-    return meshx_pb_adv_link_ack(bearer);
+    return meshx_pb_adv_link_ack(bearer, link_id);
 }
 
-int32_t meshx_provision_link_close(meshx_bearer_t bearer, uint8_t reason)
+int32_t meshx_provision_link_close(meshx_bearer_t bearer, uint32_t link_id, uint8_t reason)
 {
     if (MESHX_BEARER_TYPE_ADV != bearer.type)
     {
@@ -66,16 +67,17 @@ int32_t meshx_provision_link_close(meshx_bearer_t bearer, uint8_t reason)
         return -MESHX_ERR_INVAL_BEARER;
     }
 
-    return meshx_pb_adv_link_close(bearer, reason);
+    return meshx_pb_adv_link_close(bearer, link_id, reason);
 }
 
-int32_t meshx_provision_invite(meshx_bearer_t bearer, meshx_provision_invite_t invite)
+int32_t meshx_provision_invite(meshx_bearer_t bearer, uint32_t link_id,
+                               meshx_provision_invite_t invite)
 {
     int32_t ret = MESHX_SUCCESS;
     switch (bearer.type)
     {
     case MESHX_BEARER_TYPE_ADV:
-        ret = meshx_pb_adv_invite(bearer, invite);
+        ret = meshx_pb_adv_invite(bearer, link_id, invite);
         break;
     case MESHX_BEARER_TYPE_GATT:
         break;

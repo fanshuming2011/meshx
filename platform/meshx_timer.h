@@ -13,7 +13,7 @@
 MESHX_BEGIN_DECLS
 
 typedef void *meshx_timer_t;
-typedef void (*meshx_timer_handler_t)(void *ptimer);
+typedef void (*meshx_timer_handler_t)(void *pargs);
 
 typedef enum
 {
@@ -22,7 +22,7 @@ typedef enum
 } meshx_timer_mode_t;
 
 int32_t meshx_timer_create(meshx_timer_t *ptimer, meshx_timer_mode_t mode,
-                           meshx_timer_handler_t phandler);
+                           meshx_timer_handler_t phandler, void *pargs);
 int32_t meshx_timer_start(meshx_timer_t timer, uint32_t interval);
 int32_t meshx_timer_stop(meshx_timer_t timer);
 void meshx_timer_delete(meshx_timer_t timer);
