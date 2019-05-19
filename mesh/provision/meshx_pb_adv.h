@@ -13,16 +13,20 @@
 
 MESHX_BEGIN_DECLS
 
-#define MESHX_PB_ADV_PDU_MAX_LEN        24
+#define MESHX_PB_ADV_PDU_MAX_LEN                24
 
-#define MESHX_GPCF_TRANS_START          0x00
-#define MESHX_GPCF_TRANS_ACK            0x01
-#define MESHX_GPCF_TRANS_CONTINUE       0x02
-#define MESHX_GPCF_BEARER_CTL           0x03
+#define MESHX_GPCF_TRANS_START                  0x00
+#define MESHX_GPCF_TRANS_ACK                    0x01
+#define MESHX_GPCF_TRANS_CONTINUE               0x02
+#define MESHX_GPCF_BEARER_CTL                   0x03
 
-#define MESHX_BEARER_LINK_OPEN          0x00
-#define MESHX_BEARER_LINK_ACK           0x01
-#define MESHX_BEARER_LINK_CLOSE         0x02
+#define MESHX_BEARER_LINK_OPEN                  0x00
+#define MESHX_BEARER_LINK_ACK                   0x01
+#define MESHX_BEARER_LINK_CLOSE                 0x02
+
+#define MESHX_LINK_CLOSE_REASON_SUCCESS         0x00
+#define MESHX_LINK_CLOSE_REASON_TIMEOUT         0x01
+#define MESHX_LINK_CLOSE_REASON_FAIL            0x02
 
 typedef struct
 {

@@ -17,13 +17,18 @@
 #include "meshx_3gpp_crc.h"
 #include "meshx_timer.h"
 
-#define MESHX_LINK_IDLE_TIME                10000 /* unit is ms */
-#define MESHX_LINK_RETRY_PERIOD             200 /* unit is ms */
+#define MESHX_LINK_IDLE_TIME                    60000 /* unit is ms */
+#define MESHX_LINK_RETRY_PERIOD                 200 /* unit is ms */
 
-#define MESHX_PROV_STATE_IDLE               0
-#define MESHX_PROV_STATE_LINK_OPENING       1
-#define MESHX_PROV_STATE_LINK_OPENED        2
-#define MESHX_PROV_STATE_INVITE             3
+#define MESHX_TRANS_IDLE_TIME                   30000 /* unit is ms */
+#define MESHX_TRANS_RETRY_PERIOD                500 /* unit is ms */
+
+#define MESHX_PROV_STATE_IDLE                   0
+#define MESHX_PROV_STATE_LINK                   0x0100
+#define MESHX_PROV_STATE_TRANS                  0x0200
+#define MESHX_PROV_STATE_LINK_OPENING           1
+#define MESHX_PROV_STATE_LINK_OPENED            2
+#define MESHX_PROV_STATE_INVITE                 3
 
 typedef struct
 {
@@ -32,6 +37,8 @@ typedef struct
     uint32_t link_id;
     uint32_t link_idle_time;
     meshx_timer_t timer;
+    uint8_t *pdata;
+    uint8_t data_len;
 } meshx_prov_info_t;
 
 #if MESHX_ROLE_PROVISIONER
@@ -65,7 +72,14 @@ int32_t meshx_pb_adv_init(void)
 }
 
 #if MESHX_ROLE_PROVISIONER
-void meshx_pb_adv_devs_timeout_handler(void *pargs)
+static void meshx_pb_adv_remove_dev(meshx_prov_dev_t *pdev)
+{
+    meshx_list_remove(&pdev->node);
+    meshx_timer_delete(pdev->prov_info.timer);
+    meshx_free(pdev);
+}
+
+static void meshx_pb_adv_devs_timeout_handler(void *pargs)
 {
     meshx_prov_dev_t *pprov_dev = pargs;
     switch (pprov_dev->prov_info.state)
@@ -77,10 +91,12 @@ void meshx_pb_adv_devs_timeout_handler(void *pargs)
         {
             MESHX_ERROR("provision failed: receive no ack from device uuid!");
             MESHX_DUMP_ERROR(pprov_dev->uuid, sizeof(meshx_dev_uuid_t));
-            meshx_list_remove(&pprov_dev->node);
-            meshx_timer_delete(pprov_dev->prov_info.timer);
-            meshx_free(pprov_dev);
+            meshx_pb_adv_remove_dev(pprov_dev);
         }
+        break;
+    case MESHX_PROV_STATE_GENERIC_PROVISION:
+        meshx_pb_adv_send(pprov_dev->prov_info.bearer, pprov_dev->prov_info.link_id,
+                          pprov_dev->prov_info.pdata, pprov_dev->prov_info.data_len);
         break;
     default:
         break;
@@ -190,11 +206,12 @@ int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, uint32_t link_id, meshx_de
     ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
                             (const uint8_t *)&pb_adv_pkt,
                             len);
-    if (MESHX_SUCCESS == ret)
+    if ((MESHX_SUCCESS == ret) || (-MESHX_ERR_BUSY == ret))
     {
         meshx_list_append(&prov_devs, &pprov_dev->node);
         pprov_dev->prov_info.state = MESHX_PROV_STATE_LINK_OPENING;
         meshx_timer_start(pprov_dev->prov_info.timer, MESHX_LINK_RETRY_PERIOD);
+        ret = MESHX_SUCCESS;
     }
     else
     {
@@ -331,6 +348,7 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const meshx_pb_
     if (NULL == pprov_dev)
     {
         MESHX_WARN("can't find provision device with link id %d", ppkt->metadata.link_id);
+        return -MESHX_ERR_INVAL;
     }
 
     MESHX_INFO("link established with id %d", ppkt->metadata.link_id);
@@ -339,13 +357,15 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const meshx_pb_
     meshx_provision_invite_t invite = {0};
     /* TODO: get invite from app */
     ret = meshx_pb_adv_invite(bearer, ppkt->metadata.link_id, invite);
-    if (MESHX_SUCCESS == ret)
+    if ((MESHX_SUCCESS == ret) || (-MESHX_ERR_BUSY == ret))
     {
+        ret = MESHX_SUCCESS;
         pprov_dev->prov_info.state = MESHX_PROV_STATE_INVITE;
     }
     else
     {
-        pprov_dev->prov_info.state = MESHX_PROV_STATE_LINK_OPENED;
+        meshx_pb_adv_link_close(bearer, ppkt->metadata.link_id, MESHX_LINK_CLOSE_REASON_FAIL);
+        meshx_pb_adv_remove_dev(pprov_dev);
     }
 
 
@@ -363,12 +383,16 @@ static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const meshx_p
     int32_t ret = MESHX_SUCCESS;
     switch (ppkt->bearer_ctl.metadata.bearer_opcode)
     {
+#if MESHX_ROLE_DEVICE
     case MESHX_BEARER_LINK_OPEN:
         ret = meshx_pb_adv_recv_link_open(bearer, ppkt);
         break;
+#endif
+#if MESHX_ROLE_PROVISIONER
     case MESHX_BEARER_LINK_ACK:
         ret = meshx_pb_adv_recv_link_ack(bearer, ppkt);
         break;
+#endif
     case MESHX_BEARER_LINK_CLOSE:
         MESHX_INFO("recv link close");
         break;
@@ -384,19 +408,21 @@ static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const meshx_p
 static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
 {
     int32_t ret = MESHX_SUCCESS;
+#if MESHX_ROLE_DEVICE
     /* check link id first */
     if (ppkt->metadata.link_id == prov_self.link_id)
     {
 
     }
-    else
-    {
-        meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);
-        if (NULL == pprov_dev)
-        {
+#endif
 
-        }
+#if MESHX_ROLE_PROVISIONER
+    meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);
+    if (NULL == pprov_dev)
+    {
+
     }
+#endif
 
     return ret;
 }
@@ -405,11 +431,13 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer,
                                                 const meshx_pb_adv_pkt_t *ppkt)
 {
     int32_t ret = MESHX_SUCCESS;
+#if MESHX_ROLE_DEVICE
     /* check link id first */
     if (ppkt->metadata.link_id == prov_self.link_id)
     {
 
     }
+#endif
     else
     {
         meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);

@@ -18,6 +18,7 @@
 #include "meshx_trace.h"
 #include "meshx_gap_wrapper.h"
 #include "meshx_errno.h"
+#include "meshx_gap.h"
 
 extern int fd_dspr;
 typedef struct

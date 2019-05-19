@@ -7,6 +7,8 @@
  */
 #include <stdarg.h>
 #include <string.h>
+#include <time.h>
+#include <sys/time.h>
 #include "meshx_errno.h"
 #include "meshx_trace.h"
 #include "meshx_config.h"
@@ -220,6 +222,27 @@ void meshx_trace(const char *module, uint16_t level, const char *func, const cha
         /* check level */
         if (trace_active_levels & (level >> 8))
         {
+            /* output time */
+            time_t lt = time(NULL);
+            struct tm ltm;
+            localtime_r(&lt, &ltm);
+            char time_cur[32];
+            size_t time_len = strftime(time_cur, 32, "%F %T", &ltm);
+            psend_func(time_cur, time_len);
+            psend_func(".", 1);
+            struct timeval tv;
+            gettimeofday(&tv, NULL);
+            char temp_buf[6];
+            temp_buf[0] = tv.tv_usec / 100000 + '0';
+            temp_buf[1] = tv.tv_usec / 10000 % 10 + '0';
+            temp_buf[2] = tv.tv_usec / 1000 % 10 + '0';
+            temp_buf[3] = tv.tv_usec / 100 % 10 + '0';
+            temp_buf[4] = tv.tv_usec / 10 % 10 + '0';
+            temp_buf[5] = tv.tv_usec % 10 + '0';
+            psend_func(temp_buf, 6);
+            psend_func(" ", 1);
+
+
             /* output level */
             psend_func(trace_level_names[level & 0x0f], TRACE_LEVEL_NAME_LEN);
             /* output seperator */
@@ -250,6 +273,26 @@ void meshx_trace_dump(const char *module, uint16_t level, const char *func, cons
         /* check level */
         if (trace_active_levels & (level >> 8))
         {
+            /* output time */
+            time_t lt = time(NULL);
+            struct tm ltm;
+            localtime_r(&lt, &ltm);
+            char time_cur[32];
+            size_t time_len = strftime(time_cur, 32, "%F %T", &ltm);
+            psend_func(time_cur, time_len);
+            psend_func(".", 1);
+            struct timeval tv;
+            gettimeofday(&tv, NULL);
+            char temp_buf[6];
+            temp_buf[0] = tv.tv_usec / 100000 + '0';
+            temp_buf[1] = tv.tv_usec / 10000 % 10 + '0';
+            temp_buf[2] = tv.tv_usec / 1000 % 10 + '0';
+            temp_buf[3] = tv.tv_usec / 100 % 10 + '0';
+            temp_buf[4] = tv.tv_usec / 10 % 10 + '0';
+            temp_buf[5] = tv.tv_usec % 10 + '0';
+            psend_func(temp_buf, 6);
+            psend_func(" ", 1);
+
             /* output level */
             psend_func(trace_level_names[level & 0x0f], TRACE_LEVEL_NAME_LEN);
             /* output seperator */

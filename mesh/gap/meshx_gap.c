@@ -195,7 +195,7 @@ int32_t meshx_gap_handle_bt_status(const meshx_gap_bt_status_t *pstatus)
         break;
     case MESHX_BT_STATUS_SCAN_STATE_CHANGE:
         gap_state.scan_state = pstatus->scan_state;
-        if (MESHX_GAP_SCAN_STATE_IDLE == gap_state.adv_state)
+        if (MESHX_GAP_SCAN_STATE_IDLE == gap_state.scan_state)
         {
             meshx_run_actions();
         }
@@ -302,6 +302,7 @@ int32_t meshx_gap_add_action(const meshx_gap_action_t *paction)
 #endif
         break;
     default:
+        ret = -MESHX_ERR_INVAL;
         MESHX_WARN("invalid action type: %d", paction->action_type);
         break;
     }
