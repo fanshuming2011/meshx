@@ -45,7 +45,7 @@ int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uu
         return -MESHX_ERR_INVAL_BEARER;
     }
 
-    return meshx_pb_adv_link_open(bearer, ABS(meshx_rand()), dev_uuid);
+    return meshx_pb_adv_link_open(bearer, dev_uuid);
 }
 
 int32_t meshx_provision_link_ack(meshx_bearer_t bearer, uint32_t link_id)
