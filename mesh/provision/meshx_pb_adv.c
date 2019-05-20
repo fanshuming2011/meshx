@@ -24,13 +24,10 @@
 #define MESHX_TRANS_IDLE_TIME                   30000 /* unit is ms */
 #define MESHX_TRANS_RETRY_PERIOD                500 /* unit is ms */
 
-#define MESHX_PROV_STATE_MASK                   0xff00
 #define MESHX_PROV_STATE_IDLE                   0
-#define MESHX_PROV_STATE_LINK                   0x0100
-#define MESHX_PROV_STATE_TRANS                  0x0200
-#define MESHX_PROV_STATE_LINK_OPENING           (MESHX_PROV_STATE_LINK | 0x01)
-#define MESHX_PROV_STATE_LINK_OPENED            (MESHX_PROV_STATE_LINK | 0x02)
-#define MESHX_PROV_STATE_INVITE                 (MESHX_PROV_STATE_TRANS | 0x03)
+#define MESHX_PROV_STATE_LINK_OPENING           0x01
+#define MESHX_PROV_STATE_LINK_OPENED            0x02
+#define MESHX_PROV_STATE_INVITE                 0x03
 
 typedef struct
 {
@@ -98,13 +95,12 @@ static int32_t meshx_pb_adv_send(meshx_bearer_t bearer, uint32_t link_id, const 
     else
     {
         /* segmented */
+#if 0
         uint8_t segment_num = ((len - MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN) +
                                MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN - 1) / MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN + 1;
-        if (segment_num > 0x07)
-        {
-            MESHX_ERROR("data length exceed maximum size: %d", len);
-            return -MESHX_ERR_LENGTH;
-        }
+
+        ASSERT(segment_num < 0x07);
+#endif
     }
 
     return ret;
@@ -130,10 +126,10 @@ static void meshx_pb_adv_remove_dev(meshx_prov_dev_t *pdev)
 static void meshx_pb_adv_devs_timeout_handler(void *pargs)
 {
     meshx_prov_dev_t *pprov_dev = pargs;
-    uint16_t state = (pprov_dev->prov_info.state & MESHX_PROV_STATE_MASK);
-    switch (state)
+    switch (pprov_dev->prov_info.state)
     {
-    case MESHX_PROV_STATE_LINK:
+    case MESHX_PROV_STATE_LINK_OPENING:
+        MESHX_INFO("link opening: %d", pprov_dev->prov_info.link_id);
         meshx_bearer_send(pprov_dev->prov_info.bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
                           pprov_dev->prov_info.pdata, pprov_dev->prov_info.data_len);
         pprov_dev->prov_info.link_idle_time += MESHX_LINK_RETRY_PERIOD;
@@ -144,7 +140,8 @@ static void meshx_pb_adv_devs_timeout_handler(void *pargs)
             meshx_pb_adv_remove_dev(pprov_dev);
         }
         break;
-    case MESHX_PROV_STATE_TRANS:
+    case MESHX_PROV_STATE_INVITE:
+        MESHX_INFO("invite: ");
         meshx_pb_adv_send(pprov_dev->prov_info.bearer, pprov_dev->prov_info.link_id,
                           pprov_dev->prov_info.pdata, pprov_dev->prov_info.data_len);
         pprov_dev->prov_info.trans_idle_time += MESHX_TRANS_RETRY_PERIOD;
@@ -202,7 +199,6 @@ static meshx_prov_dev_t *meshx_find_prov_dev_by_link_id(uint32_t link_id)
 
 int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
 {
-    int32_t ret = MESHX_SUCCESS;
     /* find exist first */
     meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_uuid(dev_uuid);
     if (NULL == pprov_dev)
@@ -224,14 +220,6 @@ int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
             return -MESHX_ERR_NO_MEM;
         }
         memset(pprov_dev, 0, sizeof(meshx_prov_dev_t));
-        ret = meshx_timer_create(&pprov_dev->prov_info.timer, MESHX_TIMER_MODE_REPEATED,
-                                 meshx_pb_adv_devs_timeout_handler, pprov_dev);
-        if (MESHX_SUCCESS != ret)
-        {
-            MESHX_ERROR("link open failed: create timer failed!");
-            meshx_free(pprov_dev);
-            return ret;
-        }
     }
     else
     {
@@ -262,31 +250,33 @@ int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
     if (NULL == pprov_dev->prov_info.pdata)
     {
         MESHX_ERROR("malloc data for retransmit failed!");
-        meshx_timer_delete(pprov_dev->prov_info.timer);
         meshx_free(pprov_dev);
         return -MESHX_ERR_NO_MEM;
     }
     memcpy(pprov_dev->prov_info.pdata, &pb_adv_pkt, len);
+    pprov_dev->prov_info.data_len = len;
+
+    int32_t ret = meshx_timer_create(&pprov_dev->prov_info.timer, MESHX_TIMER_MODE_REPEATED,
+                                     meshx_pb_adv_devs_timeout_handler, pprov_dev);
+    if (MESHX_SUCCESS != ret)
+    {
+        MESHX_ERROR("link open failed: create timer failed!");
+        meshx_free(pprov_dev->prov_info.pdata);
+        meshx_free(pprov_dev);
+        return ret;
+    }
 
     MESHX_INFO("link opening: %d", pprov_dev->prov_info.link_id);
 
-    ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
-                            (const uint8_t *)&pb_adv_pkt,
-                            len);
-    if ((MESHX_SUCCESS == ret) || (-MESHX_ERR_BUSY == ret))
-    {
-        meshx_list_append(&prov_devs, &pprov_dev->node);
-        pprov_dev->prov_info.state = MESHX_PROV_STATE_LINK_OPENING;
-        meshx_timer_start(pprov_dev->prov_info.timer, MESHX_LINK_RETRY_PERIOD);
-        ret = MESHX_SUCCESS;
-    }
-    else
-    {
-        meshx_timer_delete(pprov_dev->prov_info.timer);
-        meshx_free(pprov_dev);
-    }
+    meshx_list_append(&prov_devs, &pprov_dev->node);
+    pprov_dev->prov_info.state = MESHX_PROV_STATE_LINK_OPENING;
+    meshx_timer_start(pprov_dev->prov_info.timer, MESHX_LINK_RETRY_PERIOD);
 
-    return ret;
+    meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
+                      (const uint8_t *)&pb_adv_pkt,
+                      len);
+
+    return MESHX_SUCCESS;
 }
 #endif
 
@@ -303,8 +293,20 @@ int32_t meshx_pb_adv_link_ack(meshx_bearer_t bearer, uint32_t link_id)
               meshx_pb_adv_link_ack_t);
 
     MESHX_INFO("link ack: %d", link_id);
-    return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                             len);
+
+    int32_t ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
+                                    (const uint8_t *)&pb_adv_pkt,
+                                    len);
+    if (MESHX_SUCCESS == ret)
+    {
+        if (MESHX_PROV_STATE_LINK_OPENED != prov_self.state)
+        {
+            prov_self.state = MESHX_PROV_STATE_LINK_OPENED;
+            /* TODO: notify app state changed */
+        }
+    }
+
+    return ret;
 }
 #endif
 
@@ -325,11 +327,9 @@ int32_t meshx_pb_adv_link_close(meshx_bearer_t bearer, uint32_t link_id, uint8_t
                              len);
 }
 
-
 int32_t meshx_pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id,
                             meshx_provision_invite_t invite)
 {
-    MESHX_INFO("invite: %d", invite);
     meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(link_id);
     if (NULL == pprov_dev)
     {
@@ -343,16 +343,17 @@ int32_t meshx_pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id,
         MESHX_ERROR("malloc data for retransmit failed!");
         return -MESHX_ERR_NO_MEM;
     }
-    memcpy(pprov_dev->prov_info.pdata, &invite, sizeof(meshx_provision_invite_t));
-    int32_t ret = meshx_pb_adv_send(bearer, link_id, (const uint8_t *)&invite,
-                                    sizeof(meshx_provision_invite_t));
-    if ((MESHX_SUCCESS == ret) || (-MESHX_ERR_BUSY == ret))
-    {
-        ret = MESHX_SUCCESS;
-        meshx_timer_change_interval(pprov_dev->prov_info.timer, MESHX_TRANS_RETRY_PERIOD);
-    }
+    pprov_dev->prov_info.data_len = sizeof(meshx_provision_invite_t);
 
-    return ret;
+    MESHX_INFO("invite: %d", invite);
+    memcpy(pprov_dev->prov_info.pdata, &invite, sizeof(meshx_provision_invite_t));
+    meshx_timer_start(pprov_dev->prov_info.timer, MESHX_TRANS_RETRY_PERIOD);
+    pprov_dev->prov_info.state = MESHX_PROV_STATE_INVITE;
+    /* TODO: notify app state changed */
+    meshx_pb_adv_send(bearer, link_id, (const uint8_t *)&invite,
+                      sizeof(meshx_provision_invite_t));
+
+    return MESHX_SUCCESS;
 }
 
 static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
@@ -366,14 +367,6 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const meshx_pb
         return -MESHX_ERR_DIFF;
     }
 
-    /* check state */
-    if (prov_self.state > MESHX_PROV_STATE_LINK_OPENED)
-    {
-        MESHX_WARN("device is already in provisioning procedure: %d-%d", prov_self.state,
-                   prov_self.link_id);
-        return -MESHX_ERR_BUSY;
-    }
-
     /* check state and link id */
     if ((MESHX_PROV_STATE_LINK_OPENED == prov_self.state) &&
         (prov_self.link_id != ppkt->metadata.link_id))
@@ -382,24 +375,25 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const meshx_pb
         return -MESHX_ERR_DIFF;
     }
 
+    /* check state */
+    if (prov_self.state > MESHX_PROV_STATE_LINK_OPENED)
+    {
+        MESHX_WARN("device is already in provisioning procedure: %d-%d", prov_self.state,
+                   prov_self.link_id);
+        return -MESHX_ERR_BUSY;
+    }
 
     MESHX_INFO("receive link open: %d", ppkt->metadata.link_id);
     prov_self.link_id = ppkt->metadata.link_id;
 
     /* link ack */
-    int32_t ret = meshx_pb_adv_link_ack(bearer, prov_self.link_id);
-    if ((MESHX_SUCCESS == ret) || (-MESHX_ERR_BUSY == ret))
-    {
-        prov_self.state = MESHX_PROV_STATE_LINK_OPENED;
-    }
+    meshx_pb_adv_link_ack(bearer, prov_self.link_id);
 
-    return ret;
+    return MESHX_SUCCESS;
 }
 
 static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
 {
-    int32_t ret = MESHX_SUCCESS;
-
     meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);
     if (NULL == pprov_dev)
     {
@@ -407,21 +401,34 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const meshx_pb_
         return -MESHX_ERR_INVAL;
     }
 
+    /* check state */
+    if (pprov_dev->prov_info.state > MESHX_PROV_STATE_LINK_OPENED)
+    {
+        MESHX_WARN("invalid device state: %d-%d", pprov_dev->prov_info.link_id,
+                   pprov_dev->prov_info.state);
+        return -MESHX_ERR_INVAL_STATE;
+    }
+
     MESHX_INFO("link established with id %d", ppkt->metadata.link_id);
+
+    /* stop timer */
+    meshx_timer_stop(pprov_dev->prov_info.timer);
+    meshx_free(pprov_dev->prov_info.pdata);
+    pprov_dev->prov_info.pdata = NULL;
+    pprov_dev->prov_info.data_len = 0;
+    pprov_dev->prov_info.state = MESHX_PROV_STATE_LINK_OPENED;
+    /* TODO: notify app state changed */
 
     /* start invite */
     meshx_provision_invite_t invite = {0};
     /* TODO: get invite from app */
-    ret = meshx_pb_adv_invite(bearer, ppkt->metadata.link_id, invite);
-    if ((MESHX_SUCCESS == ret) || (-MESHX_ERR_BUSY == ret))
+    int32_t ret = meshx_pb_adv_invite(bearer, ppkt->metadata.link_id, invite);
+    if (MESHX_SUCCESS != ret)
     {
-        ret = MESHX_SUCCESS;
-        pprov_dev->prov_info.state = MESHX_PROV_STATE_INVITE;
-    }
-    else
-    {
+        /* send invite failed */
         meshx_pb_adv_link_close(bearer, ppkt->metadata.link_id, MESHX_LINK_CLOSE_REASON_FAIL);
         meshx_pb_adv_remove_dev(pprov_dev);
+        /* TODO: notify app state changed */
     }
 
     return ret;

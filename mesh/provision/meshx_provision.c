@@ -48,17 +48,6 @@ int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uu
     return meshx_pb_adv_link_open(bearer, dev_uuid);
 }
 
-int32_t meshx_provision_link_ack(meshx_bearer_t bearer, uint32_t link_id)
-{
-    if (MESHX_BEARER_TYPE_ADV != bearer.type)
-    {
-        MESHX_WARN("link ack message can only send on advertising bearer!");
-        return -MESHX_ERR_INVAL_BEARER;
-    }
-
-    return meshx_pb_adv_link_ack(bearer, link_id);
-}
-
 int32_t meshx_provision_link_close(meshx_bearer_t bearer, uint32_t link_id, uint8_t reason)
 {
     if (MESHX_BEARER_TYPE_ADV != bearer.type)
