@@ -53,8 +53,8 @@ typedef struct
 typedef struct
 {
     uint8_t gpcf: 2;
-    uint8_t padding : 8;
-} meshx_pb_adv_trans_ack_metadata_t;
+    uint8_t padding : 6;
+} __PACKED meshx_pb_adv_trans_ack_metadata_t;
 
 typedef struct
 {
@@ -72,7 +72,7 @@ typedef struct
 {
     meshx_pb_adv_trans_continue_metadata_t metadata;
     uint8_t pdu[MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN];
-} __PACKED meshx_pb_adv_trans_continue_t;
+} meshx_pb_adv_trans_continue_t;
 
 typedef struct
 {

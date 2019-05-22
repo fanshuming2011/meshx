@@ -12,6 +12,23 @@
 
 MESHX_BEGIN_DECLS
 
+#define MESHX_PROVISION_TYPE_INVITE                  0x00
+#define MESHX_PROVISION_TYPE_CAPABILITES             0x01
+#define MESHX_PROVISION_TYPE_START                   0x02
+#define MESHX_PROVISION_TYPE_PUBLIC_KEY              0x03
+#define MESHX_PROVISION_TYPE_INPUT_COMPLETE          0x04
+#define MESHX_PROVISION_TYPE_CONFIRMATION            0x05
+#define MESHX_PROVISION_TYPE_RANDOM                  0x06
+#define MESHX_PROVISION_TYPE_DATA                    0x07
+#define MESHX_PROVISION_TYPE_COMPLETE                0x08
+#define MESHX_PROVISION_TYPE_FAILED                  0x09
+
+typedef struct
+{
+    uint8_t type : 6;
+    uint8_t padding : 2;
+} __PACKED meshx_provision_pdu_metadata_t;
+
 typedef struct
 {
     uint8_t attention_duration;
@@ -27,14 +44,23 @@ typedef struct
     uint16_t output_oob_action;
     uint8_t input_oob_size;
     uint8_t input_oob_action;
-} meshx_provision_capabilites_t;
+} __PACKED meshx_provision_capabilites_t;
+
+typedef struct
+{
+    meshx_provision_pdu_metadata_t metadata;
+    union
+    {
+        meshx_provision_invite_t invite;
+        meshx_provision_capabilites_t capabilites;
+    };
+} __PACKED meshx_provision_pdu_t;
 
 typedef bool (*meshx_provision_callback_t)(uint8_t state, void *pargs);
 
 MESHX_EXTERN int32_t meshx_provision_init(void);
 
 MESHX_EXTERN int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid);
-MESHX_EXTERN int32_t meshx_provision_link_ack(meshx_bearer_t bearer, uint32_t link_id);
 MESHX_EXTERN int32_t meshx_provision_link_close(meshx_bearer_t bearer, uint32_t link_id,
                                                 uint8_t reason);
 
