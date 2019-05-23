@@ -36,18 +36,15 @@ typedef struct
 {
     meshx_bearer_t bearer;
     uint16_t state;
-    int8_t trans_num;
     uint32_t link_id;
+    uint8_t tx_trans_num;
+    uint8_t rx_trans_num;
     uint32_t retry_time;
     meshx_timer_t timer;
-    uint8_t *prx_data;
-    uint8_t rx_data_len;
     union
     {
         meshx_provision_invite_t invite;
-    } tx_data;
-
-
+    } prov_pdu;
 } meshx_prov_info_t;
 
 #if MESHX_ROLE_PROVISIONER
@@ -81,36 +78,59 @@ int32_t meshx_pb_adv_init(void)
 }
 
 static int32_t meshx_pb_adv_send(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
-                                 const uint8_t *pdata,
-                                 uint8_t len)
+                                 const uint8_t *pdata, uint8_t len)
 {
-    uint8_t data_len = 0;
     int32_t ret = MESHX_SUCCESS;
+    uint8_t segment_num = 0;
     if (len <= MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN)
     {
-        /* no segment */
-        meshx_pb_adv_pkt_t pb_adv_pkt;
-        pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
-        pb_adv_pkt.metadata.trans_num = trans_num;
-        pb_adv_pkt.trans_start.metadata.gpcf = MESHX_GPCF_TRANS_START;
-        pb_adv_pkt.trans_start.metadata.seg_num = 0;
-        pb_adv_pkt.trans_start.metadata.total_len = MESHX_HOST_TO_BE16(len);
-        pb_adv_pkt.trans_start.metadata.fcs = meshx_3gpp_crc(pdata, len);
-        memcpy(pb_adv_pkt.trans_start.pdu, pdata, len);
-
-        data_len = sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_start_metadata_t) + len;
-        ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                                data_len);
+        segment_num = 1;
     }
     else
     {
-        /* segmented */
-#if 0
-        uint8_t segment_num = ((len - MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN) +
-                               MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN - 1) / MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN + 1;
+        segment_num = ((len - MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN) +
+                       MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN - 1) / MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN + 1;
+        MESHX_ASSERT(segment_num <= 0x3f);
+    }
 
-        ASSERT(segment_num < 0x07);
-#endif
+    meshx_pb_adv_pkt_t pb_adv_pkt;
+    uint8_t segment_len = 0;
+    uint8_t data_offset = 0;
+    for (uint8_t index = 0; index < segment_num; ++index)
+    {
+        if (0 == index)
+        {
+            /* trans start*/
+            pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
+            pb_adv_pkt.metadata.trans_num = trans_num;
+            pb_adv_pkt.trans_start.metadata.gpcf = MESHX_GPCF_TRANS_START;
+            pb_adv_pkt.trans_start.metadata.seg_num = index;
+            pb_adv_pkt.trans_start.metadata.total_len = MESHX_HOST_TO_BE16(len);
+            pb_adv_pkt.trans_start.metadata.fcs = meshx_3gpp_crc(pdata, len);
+            segment_len = (segment_num == 1) ? len : MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN;
+            memcpy(pb_adv_pkt.trans_start.pdu, pdata, segment_len);
+            data_offset += segment_len;
+            segment_len += sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_start_metadata_t);
+        }
+        else
+        {
+            /* trans continue */
+            pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
+            pb_adv_pkt.metadata.trans_num = trans_num;
+            pb_adv_pkt.trans_continue.metadata.gpcf = MESHX_GPCF_TRANS_CONTINUE;
+            pb_adv_pkt.trans_continue.metadata.seg_index = index;
+            segment_len = (segment_num == (index + 1)) ? (len - data_offset) :
+                          MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN;
+            memcpy(pb_adv_pkt.trans_continue.pdu, pdata + data_offset, segment_len);
+            data_offset += segment_len;
+            segment_len += sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_continue_metadata_t);
+        }
+        ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
+                                segment_len);
+        if (MESHX_SUCCESS != ret)
+        {
+            break;
+        }
     }
 
     return ret;
@@ -193,10 +213,6 @@ static void meshx_pb_adv_remove_dev(meshx_prov_dev_t *pdev)
         meshx_timer_delete(pdev->prov_info.timer);
     }
 
-    if (NULL != pdev->prov_info.prx_data)
-    {
-        meshx_free(pdev->prov_info.prx_data);
-    }
     meshx_free(pdev);
 }
 
@@ -218,11 +234,11 @@ static void meshx_pb_adv_devs_timeout_handler(void *pargs)
     case MESHX_PROV_STATE_INVITE:
         MESHX_INFO("invite: ");
         pb_adv_invite(pprov_dev->prov_info.bearer, pprov_dev->prov_info.link_id,
-                      pprov_dev->prov_info.trans_num, pprov_dev->prov_info.tx_data.invite);
+                      pprov_dev->prov_info.tx_trans_num, pprov_dev->prov_info.prov_pdu.invite);
         pprov_dev->prov_info.retry_time += MESHX_TRANS_RETRY_PERIOD;
         if (pprov_dev->prov_info.retry_time > MESHX_TRANS_LOSS_TIME)
         {
-            MESHX_ERROR("provision failed: receive no ack of state(0x%04x)", pprov_dev->prov_info.state);
+            MESHX_ERROR("provision failed: receive no ack of state(%d)", pprov_dev->prov_info.state);
             meshx_pb_adv_link_close(pprov_dev->prov_info.bearer, pprov_dev->prov_info.link_id,
                                     MESHX_LINK_CLOSE_REASON_TIMEOUT);
             meshx_pb_adv_remove_dev(pprov_dev);
@@ -367,8 +383,8 @@ int32_t meshx_pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id,
     meshx_timer_start(pprov_dev->prov_info.timer, MESHX_TRANS_RETRY_PERIOD);
     pprov_dev->prov_info.state = MESHX_PROV_STATE_INVITE;
     /* todo: notify app state changed */
-    pprov_dev->prov_info.trans_num ++;
-    pb_adv_invite(bearer, link_id, pprov_dev->prov_info.trans_num, invite);
+    pprov_dev->prov_info.tx_trans_num ++;
+    pb_adv_invite(bearer, link_id, pprov_dev->prov_info.tx_trans_num, invite);
 
     return MESHX_SUCCESS;
 }
@@ -431,7 +447,7 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const meshx_pb_
     MESHX_INFO("link established with id %d", link_id);
 
     pprov_dev->prov_info.state = MESHX_PROV_STATE_LINK_OPENED;
-    pprov_dev->prov_info.trans_num = -1;
+    pprov_dev->prov_info.tx_trans_num = 0xff;
     /* TODO: notify app state changed */
 
     /* start invite */
@@ -451,6 +467,11 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const meshx_pb_
     }
 
     return ret;
+}
+
+static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
+{
+    return MESHX_SUCCESS;
 }
 
 static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
@@ -475,7 +496,7 @@ static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const meshx_p
         break;
 #endif
     case MESHX_BEARER_LINK_CLOSE:
-        MESHX_INFO("recv link close");
+        ret = meshx_pb_adv_recv_link_close(bearer, ppkt);
         break;
     default:
         MESHX_WARN("invalid bearer opcode: %d", ppkt->bearer_ctl.metadata.bearer_opcode);
@@ -493,7 +514,7 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const meshx_
     /* check link id first */
     if (ppkt->metadata.link_id == prov_self.link_id)
     {
-
+        prov_self.rx_trans_num = ppkt->metadata.trans_num;
     }
 #endif
 
@@ -557,7 +578,6 @@ int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
     switch (ppb_adv_pkt->pdu.gpcf)
     {
     case MESHX_GPCF_TRANS_START:
-        MESHX_INFO("recv trans start");
         ret = meshx_pb_adv_recv_trans_start(bearer, ppb_adv_pkt);
         break;
     case MESHX_GPCF_TRANS_ACK:

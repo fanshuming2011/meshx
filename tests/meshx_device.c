@@ -92,11 +92,10 @@ static void *meshx_receive_thread(void *pargs)
     };
     rx_metadata.bearer_type = MESHX_BEARER_TYPE_ADV;
     rx_metadata.adv_metadata = adv_metadata;
-    sleep(1);
 
     while (1)
     {
-        data_len = read(fd_psdr, adv_recv_data, 32);
+        data_len = read(fd_psdr, adv_recv_data, 31);
         /* data read finished */
         MESHX_DUMP_DEBUG(adv_recv_data, data_len);
         meshx_gap_handle_adv_report(adv_recv_data, data_len, &rx_metadata);

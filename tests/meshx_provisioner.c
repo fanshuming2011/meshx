@@ -92,7 +92,7 @@ static void *meshx_receive_thread(void *pargs)
 
     while (1)
     {
-        data_len = read(fd_dspr, adv_recv_data, 32);
+        data_len = read(fd_dspr, adv_recv_data, 31);
         /* data read finished */
         MESHX_DUMP_DEBUG(adv_recv_data, data_len);
         meshx_gap_handle_adv_report(adv_recv_data, data_len, &rx_metadata);
