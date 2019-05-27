@@ -274,7 +274,7 @@ int32_t meshx_gap_add_action(const meshx_gap_action_t *paction)
     if (!gap_state.enabled)
     {
         MESHX_WARN("add action failed: gap not started!");
-        return -MESHX_ERR_INVAL_STATE;
+        return -MESHX_ERR_STATE;
     }
 
     int32_t ret = MESHX_SUCCESS;

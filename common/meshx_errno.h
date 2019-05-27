@@ -14,7 +14,7 @@
 #define MESHX_ERR_INVAL                3 /* Invalid argument */
 #define MESHX_ERR_INVAL_BEARER         4 /* Invalid bearer */
 #define MESHX_ERR_INVAL_ADTYPE         5 /* Invalid adtype */
-#define MESHX_ERR_INVAL_STATE          6 /* Invalid state */
+#define MESHX_ERR_STATE                6 /* Invalid state */
 #define MESHX_ERR_INVAL_NETWORK_IF     7 /* Invalid network interface */
 #define MESHX_ERR_BUSY                 8 /* Device or resource busy*/
 #define MESHX_ERR_AGAIN                9 /* Try again*/

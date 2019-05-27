@@ -32,6 +32,11 @@
 #define MESHX_PROV_STATE_LINK_OPENED            0x02
 #define MESHX_PROV_STATE_INVITE                 0x03
 
+#define MESHX_BEARER_CTL_METADATA_LEN           (sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_bearer_ctl_metadata_t))
+#define MESHX_LINK_OPEN_PDU_LEN                 (MESHX_BEARER_CTL_METADATA_LEN + sizeof(meshx_pb_adv_link_open_t))
+#define MESHX_LINK_ACK_PDU_LEN                  (MESHX_BEARER_CTL_METADATA_LEN + sizeof(meshx_pb_adv_link_ack_t))
+#define MESHX_LINK_CLOSE_PDU_LEN                (MESHX_BEARER_CTL_METADATA_LEN + sizeof(meshx_pb_adv_link_close_t))
+
 typedef struct
 {
     meshx_bearer_t bearer;
@@ -44,7 +49,15 @@ typedef struct
     union
     {
         meshx_provision_invite_t invite;
-    } prov_pdu;
+    } prov_tx_pdu;
+
+    uint8_t acked_trans_num;
+    struct
+    {
+        uint8_t seg_num;
+        uint8_t *pdata;
+        uint8_t data_len;
+    } prov_rx_pdu;
 } meshx_prov_info_t;
 
 #if MESHX_ROLE_PROVISIONER
@@ -139,56 +152,47 @@ static int32_t meshx_pb_adv_send(meshx_bearer_t bearer, uint32_t link_id, uint8_
 #if MESHX_ROLE_PROVISIONER
 static int32_t pb_adv_link_open(meshx_bearer_t bearer, uint32_t link_id, meshx_dev_uuid_t dev_uuid)
 {
-    uint8_t len = 0;
     meshx_pb_adv_pkt_t pb_adv_pkt;
     pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
     pb_adv_pkt.metadata.trans_num = MESHX_BEARER_CTL_TRANS_NUM;
     pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_OPEN;
     memcpy(pb_adv_pkt.bearer_ctl.link_open.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
-    len = sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_bearer_ctl_metadata_t) + sizeof(
-              meshx_pb_adv_link_open_t);
 
     MESHX_INFO("link opening: %d", link_id);
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
-                             (const uint8_t *)&pb_adv_pkt, len);
+                             (const uint8_t *)&pb_adv_pkt, MESHX_LINK_OPEN_PDU_LEN);
 }
 #endif
 
 #if MESHX_ROLE_DEVICE
 static int32_t pb_adv_link_ack(meshx_bearer_t bearer, uint32_t link_id)
 {
-    uint8_t len = 0;
     meshx_pb_adv_pkt_t pb_adv_pkt;
     pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
     pb_adv_pkt.metadata.trans_num = MESHX_BEARER_CTL_TRANS_NUM;
     pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_ACK;
-    len = sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_bearer_ctl_metadata_t) + sizeof(
-              meshx_pb_adv_link_ack_t);
 
     MESHX_INFO("link ack: %d", link_id);
 
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
-                             (const uint8_t *)&pb_adv_pkt, len);
+                             (const uint8_t *)&pb_adv_pkt, MESHX_LINK_ACK_PDU_LEN);
 }
 #endif
 
 static int32_t pb_adv_link_close(meshx_bearer_t bearer, uint32_t link_id, uint8_t reason)
 {
-    uint8_t len = 0;
     meshx_pb_adv_pkt_t pb_adv_pkt;
     pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
     pb_adv_pkt.metadata.trans_num = MESHX_BEARER_CTL_TRANS_NUM;
     pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_CLOSE;
     pb_adv_pkt.bearer_ctl.link_close.reason = reason;
-    len = sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_bearer_ctl_metadata_t) + sizeof(
-              meshx_pb_adv_link_close_t);
 
     MESHX_INFO("link close: %d", link_id);
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                             len);
+                             MESHX_LINK_CLOSE_PDU_LEN);
 }
 
 #if MESHX_ROLE_PROVISIONER
@@ -234,7 +238,7 @@ static void meshx_pb_adv_devs_timeout_handler(void *pargs)
     case MESHX_PROV_STATE_INVITE:
         MESHX_INFO("invite: ");
         pb_adv_invite(pprov_dev->prov_info.bearer, pprov_dev->prov_info.link_id,
-                      pprov_dev->prov_info.tx_trans_num, pprov_dev->prov_info.prov_pdu.invite);
+                      pprov_dev->prov_info.tx_trans_num, pprov_dev->prov_info.prov_tx_pdu.invite);
         pprov_dev->prov_info.retry_time += MESHX_TRANS_RETRY_PERIOD;
         if (pprov_dev->prov_info.retry_time > MESHX_TRANS_LOSS_TIME)
         {
@@ -389,8 +393,14 @@ int32_t meshx_pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id,
     return MESHX_SUCCESS;
 }
 
-static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
+static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
+    if (len < MESHX_LINK_OPEN_PDU_LEN)
+    {
+        MESHX_WARN("invalid link open pdu length: %d", len);
+        return -MESHX_ERR_LENGTH;
+    }
+    const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
     uint32_t link_id = MESHX_BE32_TO_HOST(ppkt->metadata.link_id);
     /* check uuid */
     meshx_dev_uuid_t dev_uuid;
@@ -420,14 +430,22 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const meshx_pb
     MESHX_INFO("receive link open: %d", link_id);
     prov_self.link_id = link_id;
 
+    /* TODO: start link idle timer */
     /* link ack */
     meshx_pb_adv_link_ack(bearer, prov_self.link_id);
 
     return MESHX_SUCCESS;
 }
 
-static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
+static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
+    if (len < MESHX_LINK_ACK_PDU_LEN)
+    {
+        MESHX_WARN("invalid link open pdu length: %d", len);
+        return -MESHX_ERR_LENGTH;
+    }
+    const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
+
     uint32_t link_id = MESHX_BE32_TO_HOST(ppkt->metadata.link_id);
     meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(link_id);
     if (NULL == pprov_dev)
@@ -441,7 +459,7 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const meshx_pb_
     {
         MESHX_WARN("invalid device state: %d-%d", pprov_dev->prov_info.link_id,
                    pprov_dev->prov_info.state);
-        return -MESHX_ERR_INVAL_STATE;
+        return -MESHX_ERR_STATE;
     }
 
     MESHX_INFO("link established with id %d", link_id);
@@ -469,13 +487,29 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const meshx_pb_
     return ret;
 }
 
-static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
+static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t *pdata,
+                                            uint8_t len)
 {
+    if (len < MESHX_LINK_CLOSE_PDU_LEN)
+    {
+        MESHX_WARN("invalid link open pdu length: %d", len);
+        return -MESHX_ERR_LENGTH;
+    }
+    //const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
+
     return MESHX_SUCCESS;
 }
 
-static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
+static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const uint8_t *pdata,
+                                            uint8_t len)
 {
+    if (len < MESHX_BEARER_CTL_METADATA_LEN)
+    {
+        MESHX_WARN("invalid bearer ctl pdu length: %d", len);
+        return -MESHX_ERR_LENGTH;
+    }
+
+    const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
     if (ppkt->metadata.trans_num != MESHX_BEARER_CTL_TRANS_NUM)
     {
         MESHX_WARN("the transition number of bearer control must be 0: %d", ppkt->metadata.trans_num);
@@ -487,16 +521,16 @@ static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const meshx_p
     {
 #if MESHX_ROLE_DEVICE
     case MESHX_BEARER_LINK_OPEN:
-        ret = meshx_pb_adv_recv_link_open(bearer, ppkt);
+        ret = meshx_pb_adv_recv_link_open(bearer, pdata, len);
         break;
 #endif
 #if MESHX_ROLE_PROVISIONER
     case MESHX_BEARER_LINK_ACK:
-        ret = meshx_pb_adv_recv_link_ack(bearer, ppkt);
+        ret = meshx_pb_adv_recv_link_ack(bearer, pdata, len);
         break;
 #endif
     case MESHX_BEARER_LINK_CLOSE:
-        ret = meshx_pb_adv_recv_link_close(bearer, ppkt);
+        ret = meshx_pb_adv_recv_link_close(bearer, pdata, len);
         break;
     default:
         MESHX_WARN("invalid bearer opcode: %d", ppkt->bearer_ctl.metadata.bearer_opcode);
@@ -507,24 +541,67 @@ static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const meshx_p
     return ret;
 }
 
-static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
+static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_t *pdata,
+                                             uint8_t len)
 {
+    if (len < sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_start_metadata_t))
+    {
+        MESHX_WARN("invalid trans start pdu length: %d", len);
+        return -MESHX_ERR_LENGTH;
+    }
+    const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
+
     int32_t ret = MESHX_SUCCESS;
+    meshx_prov_info_t *pprov_info = NULL;
 #if MESHX_ROLE_DEVICE
     /* check link id first */
     if (ppkt->metadata.link_id == prov_self.link_id)
     {
-        prov_self.rx_trans_num = ppkt->metadata.trans_num;
+        pprov_info = &prov_self;
     }
 #endif
-
-#if MESHX_ROLE_PROVISIONER
-    meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);
-    if (NULL == pprov_dev)
+    else
     {
-
-    }
+#if MESHX_ROLE_PROVISIONER
+        meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);
+        if (NULL == pprov_dev)
+        {
+            pprov_info = &pprov_dev->prov_info;
+        }
 #endif
+    }
+
+    if (NULL == pprov_info)
+    {
+        MESHX_WARN("receive invalid link id: %d", ppkt->metadata.link_id);
+        return -MESHX_ERR_INVAL;
+    }
+
+    if (pprov_info->state < MESHX_PROV_STATE_LINK_OPENED)
+    {
+        MESHX_WARN("invalid provision state: %d", pprov_info->state);
+        return -MESHX_ERR_STATE;
+    }
+
+    if (pprov_info->acked_trans_num == ppkt->metadata.trans_num)
+    {
+        /* TODO: ignore data and acked again */
+        MESHX_INFO("message(%d) has already been acked", ppkt->metadata.trans_num);
+        return MESHX_SUCCESS;
+    }
+
+    if (NULL != pprov_info->prov_rx_pdu.pdata)
+    {
+        meshx_free(pprov_info->prov_rx_pdu.pdata);
+    }
+    pprov_info->prov_rx_pdu.pdata = meshx_malloc(ppkt->trans_start.metadata.total_len);
+    if (NULL == pprov_info->prov_rx_pdu.pdata)
+    {
+        MESHX_WARN("can not allocate memory for data reassembly");
+        return -MESHX_ERR_NO_MEM;
+    }
+    prov_self.rx_trans_num = ppkt->metadata.trans_num;
+    prov_self.prov_rx_pdu.seg_num = ppkt->trans_start.metadata.seg_num;
 
 #if 0
     meshx_pb_adv_pkt_t pb_adv_pkt;
@@ -540,32 +617,85 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const meshx_
     return ret;
 }
 
-static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer,
-                                                const meshx_pb_adv_pkt_t *ppkt)
+static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer, const uint8_t *pdata,
+                                                uint8_t len)
 {
+    if (len < sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_start_metadata_t))
+    {
+        MESHX_WARN("invalid trans continue pdu length: %d", len);
+        return -MESHX_ERR_LENGTH;
+    }
+    const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
+
     int32_t ret = MESHX_SUCCESS;
+    meshx_prov_info_t *pprov_info = NULL;
 #if MESHX_ROLE_DEVICE
     /* check link id first */
     if (ppkt->metadata.link_id == prov_self.link_id)
     {
-
+        pprov_info = &prov_self;
     }
 #endif
     else
     {
+#if MESHX_ROLE_PROVISIONER
         meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);
         if (NULL == pprov_dev)
         {
-
+            pprov_info = &pprov_dev->prov_info;
         }
+#endif
+    }
+
+    if (NULL == pprov_info)
+    {
+        MESHX_WARN("receive invalid link id: %d", ppkt->metadata.link_id);
+        return -MESHX_ERR_INVAL;
+    }
+
+    if (pprov_info->state < MESHX_PROV_STATE_LINK_OPENED)
+    {
+        MESHX_WARN("invalid provision state: %d", pprov_info->state);
+        return -MESHX_ERR_STATE;
     }
 
     return ret;
 }
 
-static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const meshx_pb_adv_pkt_t *ppkt)
+static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
+    if (len < sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_start_metadata_t))
+    {
+        MESHX_WARN("invalid trans continue pdu length: %d", len);
+        return -MESHX_ERR_LENGTH;
+    }
+    const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
+
     int32_t ret = MESHX_SUCCESS;
+    meshx_prov_info_t *pprov_info = NULL;
+#if MESHX_ROLE_DEVICE
+    /* check link id first */
+    if (ppkt->metadata.link_id == prov_self.link_id)
+    {
+        pprov_info = &prov_self;
+    }
+#endif
+    else
+    {
+#if MESHX_ROLE_PROVISIONER
+        meshx_prov_dev_t *pprov_dev = meshx_find_prov_dev_by_link_id(ppkt->metadata.link_id);
+        if (NULL == pprov_dev)
+        {
+            pprov_info = &pprov_dev->prov_info;
+        }
+#endif
+    }
+
+    if (NULL == pprov_info)
+    {
+        MESHX_WARN("receive invalid link id: %d", ppkt->metadata.link_id);
+        return -MESHX_ERR_INVAL;
+    }
 
     return ret;
 }
@@ -578,16 +708,16 @@ int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
     switch (ppb_adv_pkt->pdu.gpcf)
     {
     case MESHX_GPCF_TRANS_START:
-        ret = meshx_pb_adv_recv_trans_start(bearer, ppb_adv_pkt);
+        ret = meshx_pb_adv_recv_trans_start(bearer, pdata, len);
         break;
     case MESHX_GPCF_TRANS_ACK:
-        ret = meshx_pb_adv_recv_trans_ack(bearer, ppb_adv_pkt);
+        ret = meshx_pb_adv_recv_trans_ack(bearer, pdata, len);
         break;
     case MESHX_GPCF_TRANS_CONTINUE:
-        ret = meshx_pb_adv_recv_trans_continue(bearer, ppb_adv_pkt);
+        ret = meshx_pb_adv_recv_trans_continue(bearer, pdata, len);
         break;
     case MESHX_GPCF_BEARER_CTL:
-        ret = meshx_pb_adv_recv_bearer_ctl(bearer, ppb_adv_pkt);
+        ret = meshx_pb_adv_recv_bearer_ctl(bearer, pdata, len);
         break;
     default:
         MESHX_WARN("invalid gpcf: %d", ppb_adv_pkt->pdu.gpcf);
