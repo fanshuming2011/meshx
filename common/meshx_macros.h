@@ -20,17 +20,13 @@
 #define MESHX_END_DECLS
 #endif
 
-#undef  MAX
-#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
+#define MESHX_MAX(a, b)  (((a) > (b)) ? (a) : (b))
 
-#undef  MIN
-#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#define MESHX_MIN(a, b)  (((a) < (b)) ? (a) : (b))
 
-#undef  ABS
-#define ABS(a)     (((a) < 0) ? -(a) : (a))
+#define MESHX_ABS(a)     (((a) < 0) ? -(a) : (a))
 
-#undef  CLAMP
-#define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
+#define MESHX_CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 
 /*
  * Count the number of elements in an array.

@@ -37,7 +37,7 @@ typedef struct
 typedef struct
 {
     uint8_t gpcf: 2;
-    uint8_t seg_num: 6;
+    uint8_t last_seg_num: 6;
     uint16_t total_len;
     uint8_t fcs;
 } __PACKED meshx_pb_adv_trans_start_metadata_t;

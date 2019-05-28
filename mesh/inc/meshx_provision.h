@@ -53,6 +53,7 @@ typedef struct
     {
         meshx_provision_invite_t invite;
         meshx_provision_capabilites_t capabilites;
+        uint8_t data[65];
     };
 } __PACKED meshx_provision_pdu_t;
 
