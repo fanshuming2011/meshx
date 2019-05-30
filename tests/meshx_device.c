@@ -45,6 +45,11 @@ void linux_send_string(const char *pdata, uint32_t len)
     fflush(log_file);
 }
 
+static int32_t meshx_prov_cb(uint8_t type, void *pargs)
+{
+    return MESHX_SUCCESS;
+}
+
 static void *meshx_thread(void *pargs)
 {
     meshx_trace_init(linux_send_string);
@@ -52,7 +57,7 @@ static void *meshx_thread(void *pargs)
     meshx_gap_init();
     meshx_bearer_init();
     meshx_network_init();
-    meshx_provision_init();
+    meshx_provision_init(meshx_prov_cb);
 
     meshx_gap_start();
     meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV, .param_adv.adv_period = 0};

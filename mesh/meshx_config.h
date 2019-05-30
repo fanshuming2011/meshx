@@ -22,6 +22,8 @@
 #define MESHX_GAP_SCAN_WINDOW                      160 /* 100ms */
 #define MESHX_GAP_SCAN_INTERVAL                    160 /* 100ms */
 
+/* network interface */
+#define MESHX_NETWORK_IF_MAX_NUM                   9
 
 
 

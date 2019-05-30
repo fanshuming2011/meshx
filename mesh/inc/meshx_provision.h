@@ -9,6 +9,7 @@
 #define _MESHX_PROVISION_H_
 
 #include "meshx_bearer.h"
+#include "meshx_provision_callback.h"
 
 MESHX_BEGIN_DECLS
 
@@ -53,19 +54,16 @@ typedef struct
     {
         meshx_provision_invite_t invite;
         meshx_provision_capabilites_t capabilites;
-        uint8_t data[65];
     };
 } __PACKED meshx_provision_pdu_t;
 
-typedef bool (*meshx_provision_callback_t)(uint8_t state, void *pargs);
 
-MESHX_EXTERN int32_t meshx_provision_init(void);
+MESHX_EXTERN int32_t meshx_provision_init(meshx_provision_callback_t pcb);
 
 MESHX_EXTERN int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid);
-MESHX_EXTERN int32_t meshx_provision_link_close(meshx_bearer_t bearer, uint32_t link_id,
-                                                uint8_t reason);
+MESHX_EXTERN int32_t meshx_provision_link_close(meshx_dev_uuid_t dev_uuid, uint8_t reason);
 
-MESHX_EXTERN int32_t meshx_provision_invite(meshx_bearer_t bearer, uint32_t link_id,
+MESHX_EXTERN int32_t meshx_provision_invite(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid,
                                             meshx_provision_invite_t invite);
 
 MESHX_END_DECLS

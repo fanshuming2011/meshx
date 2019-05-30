@@ -14,6 +14,7 @@
 MESHX_BEGIN_DECLS
 
 #define MESHX_GAP_ADV_DATA_MAX_LEN               31
+#define MESHX_GAP_ADV_PDU_MAX_LEN                29
 
 #define MESHX_GAP_ADTYPE_PB_ADV                  0x29
 #define MESHX_GAP_ADTYPE_MESH_MSG                0x2A

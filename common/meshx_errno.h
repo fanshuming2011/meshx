@@ -24,7 +24,9 @@
 #define MESHX_ERR_BEARER_CONNECT       13 /* Bearer has not connected to network interface */
 #define MESHX_ERR_FILTER               14 /* Do not pass netwrok interface filter */
 #define MESHX_ERR_DIFF                 15 /* Value is different */
+#define MESHX_ERR_STOP                 16 /* Stop execution */
 
+#if 0
 #define EPERM        1  /* Operation not permitted */
 #define ENOENT       2  /* No such file or directory */
 #define ESRCH        3  /* No such process */
@@ -166,5 +168,6 @@
 #define ERFKILL     132 /* Operation not possible due to RF-kill */
 
 #define EHWPOISON   133 /* Memory page has hardware error */
+#endif
 
 #endif /* _MESHX_ERRNO_H_ */
