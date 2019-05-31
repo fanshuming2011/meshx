@@ -18,7 +18,7 @@ MESHX_BEGIN_DECLS
 #define MESHX_PROVISION_CB_TYPE_SET_INVITE           0x02 /* @ref meshx_provision_invite_t */
 typedef struct
 {
-    meshx_dev_uuid_t uuid;
+    meshx_dev_uuid_t dev_uuid;
     uint8_t new_state;
     uint8_t old_state;
 } meshx_provision_state_changed_t;

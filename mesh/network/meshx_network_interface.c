@@ -100,7 +100,7 @@ meshx_network_if_t meshx_network_if_get(meshx_bearer_t bearer)
         }
     }
 
-    MESHX_WARN("bearer(%d) has not been connected to network interface!", bearer);
+    MESHX_WARN("bearer(%d) has not been connected to network interface!", bearer.bearer);
     return network_if;
 }
 
@@ -119,7 +119,7 @@ meshx_bearer_t meshx_network_if_get_bearer(meshx_network_if_t network_if)
         }
     }
 
-    MESHX_WARN("network interface(%d) has not been connected to bearer!", network_if);
+    MESHX_WARN("network interface(%d) has not been connected to bearer!", network_if.network_if);
     return bearer;
 }
 
@@ -218,8 +218,8 @@ int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t b
         pinterface = MESHX_CONTAINER_OF(pnode, meshx_network_interface_t, node);
         if (pinterface->bearer.bearer == bearer.bearer)
         {
-            MESHX_WARN("bearer(%d) has already been connected to network interface(%d)!", bearer,
-                       pinterface->network_if);
+            MESHX_WARN("bearer(%d) has already been connected to network interface(%d)!", bearer.bearer,
+                       pinterface->network_if.network_if);
             return -MESHX_ERR_ALREADY;
         }
     }
@@ -227,7 +227,7 @@ int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t b
     /* validation bearer */
     if (!meshx_bearer_is_valid(bearer))
     {
-        MESHX_ERROR("connect bearer(%d) failed: invalid bearer", bearer);
+        MESHX_ERROR("connect bearer(%d) failed: invalid bearer", bearer.bearer);
         return -MESHX_ERR_INVAL_BEARER;
     }
 
@@ -235,7 +235,7 @@ int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t b
     pinterface = meshx_network_if_get_by_if(network_if);
     if (NULL == pinterface)
     {
-        MESHX_ERROR("connect bearer(%d) failed: invalid network infterface", bearer);
+        MESHX_ERROR("connect bearer(%d) failed: invalid network infterface", bearer.bearer);
         return -MESHX_ERR_INVAL_NETWORK_IF;
     }
 
@@ -267,8 +267,8 @@ int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t b
         pinterface->output_filter = out_filter;
     }
 
-    MESHX_INFO("connect bearer(%d) to network interface(%d) success", pinterface->bearer,
-               pinterface->network_if);
+    MESHX_INFO("connect bearer(%d) to network interface(%d) success", pinterface->bearer.bearer,
+               pinterface->network_if.network_if);
     return MESHX_SUCCESS;
 }
 

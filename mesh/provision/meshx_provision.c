@@ -13,6 +13,7 @@
 #include "meshx_pb_adv.h"
 #include "meshx_misc.h"
 #include "meshx_config.h"
+#include "meshx_node.h"
 
 static meshx_provision_callback_t prov_cb;
 
@@ -83,17 +84,35 @@ void meshx_provision_state_changed(meshx_dev_uuid_t dev_uuid, uint8_t new_state,
     meshx_provision_state_changed_t state_changed;
     state_changed.new_state = new_state;
     state_changed.old_state = old_state;
-    memcpy(state_changed.uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
+    memcpy(state_changed.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
     int32_t ret = MESHX_SUCCESS;
     if (NULL != prov_cb)
     {
         ret = prov_cb(MESHX_PROVISION_CB_TYPE_STATE_CHANGED, &state_changed);
     }
 
+    bool is_myself = FALSE;
+    meshx_dev_uuid_t uuid_self;
+    meshx_get_device_uuid(uuid_self);
+    if (0 == memcmp(uuid_self, dev_uuid, sizeof(meshx_dev_uuid_t)))
+    {
+        is_myself = TRUE;
+    }
+
     if (-MESHX_ERR_STOP != ret)
     {
         switch (new_state)
         {
+        case MESHX_PROVISION_STATE_LINK_OPENED:
+            if (!is_myself)
+            {
+                if (-MESHX_ERR_STOP != ret)
+                {
+                    meshx_provision_invite_t invite = {0};
+                    meshx_pb_adv_invite(dev_uuid, invite);
+                }
+            }
+            break;
         case MESHX_PROVISION_STATE_INVITE:
             break;
         default:

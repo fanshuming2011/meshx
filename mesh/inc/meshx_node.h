@@ -10,8 +10,12 @@
 
 #include "meshx_common.h"
 
-void meshx_set_device_uuid(const meshx_dev_uuid_t uuid);
-void meshx_get_device_uuid(meshx_dev_uuid_t uuid);
+MESHX_BEGIN_DECLS
+
+MESHX_EXTERN void meshx_set_device_uuid(const meshx_dev_uuid_t uuid);
+MESHX_EXTERN void meshx_get_device_uuid(meshx_dev_uuid_t uuid);
+
+MESHX_END_DECLS
 
 #endif
 

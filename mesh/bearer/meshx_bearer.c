@@ -88,7 +88,7 @@ int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
         ret = meshx_bearer_gatt_send(bearer, pkt_type, pdata, len);
         break;
     default:
-        MESHX_ERROR("invalid bearer: %d", bearer);
+        MESHX_ERROR("invalid bearer: %d", bearer.bearer);
         ret = -MESHX_ERR_INVAL_BEARER;
         break;
     }
@@ -129,7 +129,7 @@ int32_t meshx_bearer_receive(const uint8_t *pdata, uint8_t len,
     meshx_bearer_t bearer = meshx_bearer_get(prx_metadata);
     if (MESHX_BEARER_TYPE_INVALID == bearer.type)
     {
-        MESHX_WARN("invalid bearer: %d-%d", bearer.type, bearer.id);
+        MESHX_WARN("invalid bearer: %d", bearer.bearer);
         return -MESHX_ERR_INVAL_BEARER;
     }
 
