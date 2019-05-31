@@ -21,6 +21,7 @@
 #include "meshx_endianness.h"
 #include "meshx_bit_field.h"
 #include "meshx_provision_internal.h"
+#include "meshx_bearer_internal.h"
 
 
 /* maximum trans segment number */
@@ -347,7 +348,7 @@ int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
         if (NULL == pdev)
         {
             MESHX_ERROR("link open failed: out of memory!");
-            return -MESHX_ERR_NO_MEM;
+            return -MESHX_ERR_MEM;
         }
         memset(pdev, 0, sizeof(meshx_prov_dev_t));
     }
@@ -580,7 +581,7 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
         if (NULL == pdev)
         {
             MESHX_ERROR("can't process link open request: out of memory");
-            return -MESHX_ERR_NO_MEM;
+            return -MESHX_ERR_MEM;
         }
         memset(pdev, 0, sizeof(meshx_prov_dev_t));
 
@@ -984,7 +985,7 @@ static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const uint8_t 
 
 int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
-    MESHX_ASSERT(MESHX_BEARER_TYPE_ADV == bearer.type);
+    MESHX_ASSERT(MESHX_BEARER_TYPE_ADV == bearer->type);
     int32_t ret = MESHX_SUCCESS;
     const meshx_pb_adv_pkt_t *ppb_adv_pkt = (const meshx_pb_adv_pkt_t *)pdata;
     switch (ppb_adv_pkt->pdu.gpcf)

@@ -63,7 +63,7 @@ static void *meshx_thread(void *pargs)
     meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV, .param_adv.adv_period = 0};
     meshx_bearer_t adv_bearer = meshx_bearer_create(adv_param);
 
-    meshx_network_if_t adv_network_if = meshx_network_if_create(MESHX_NETWORK_IF_TYPE_ADV);
+    meshx_network_if_t adv_network_if = meshx_network_if_create();
     meshx_network_if_connect(adv_network_if, adv_bearer, NULL, NULL);
 
     meshx_dev_uuid_t dev_uuid = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};

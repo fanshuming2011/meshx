@@ -42,7 +42,7 @@ int32_t meshx_timer_create(meshx_timer_t *ptimer, meshx_timer_mode_t mode,
     if (NULL == ptimer_wrapper)
     {
         MESHX_ERROR("create timer failed: out of memory");
-        return MESHX_ERR_NO_MEM;
+        return MESHX_ERR_MEM;
     }
 
     evp.sigev_value.sival_ptr = ptimer_wrapper;

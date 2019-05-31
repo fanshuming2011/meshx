@@ -32,7 +32,7 @@ typedef union
 
 typedef struct
 {
-    meshx_bearer_t bearer;
+    struct _meshx_bearer bearer;
     meshx_bearer_param_adv_t param;
 } meshx_bearer_adv_t;
 
@@ -49,38 +49,34 @@ meshx_bearer_t meshx_bearer_adv_create(meshx_bearer_param_adv_t adv_param)
 {
     if (MESHX_BEARER_TYPE_ADV == bearer_adv.bearer.type)
     {
-        MESHX_WARN("bearer adv already exists, delete it first!");
-        meshx_bearer_t bearer = {.bearer = 0};
-        return bearer;
+        MESHX_WARN("bearer adv already exists, only support one adv bearer!");
+        return NULL;
     }
 
     bearer_adv.bearer.type = MESHX_BEARER_TYPE_ADV;
-    bearer_adv.bearer.id = MESHX_BEARER_ADV_ID;
+    bearer_adv.bearer.network_if = NULL;
     bearer_adv.param = adv_param;
-    MESHX_INFO("create adv bearer(%d) success", bearer_adv.bearer.bearer);
-    return bearer_adv.bearer;
+    MESHX_INFO("create adv bearer(0x%08x) success", &bearer_adv);
+    return &bearer_adv.bearer;
 }
 
 void meshx_bearer_adv_delete(meshx_bearer_t bearer)
 {
-    if (bearer.bearer == bearer_adv.bearer.bearer)
-    {
-        MESHX_INFO("deinit adv bearer(%d) success", bearer_adv.bearer.bearer);
-        bearer_adv.bearer.bearer = 0;
-    }
+    MESHX_ASSERT(NULL != bearer);
+    memset(bearer, 0, sizeof(meshx_bearer_adv_t));
+    MESHX_INFO("delete adv bearer(0x%08x) success", bearer);
 }
 
 int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
                               const uint8_t *pdata, uint8_t len)
 {
+    MESHX_ASSERT(NULL != bearer);
+    MESHX_ASSERT(NULL != pdata);
     MESHX_ASSERT(MESHX_IS_BEARER_ADV_PKT_TYPE_VALID(pkt_type));
 
-    if ((bearer.bearer != bearer_adv.bearer.bearer) ||
-        (MESHX_BEARER_TYPE_ADV != bearer.type) ||
-        (MESHX_BEARER_ADV_ID != bearer.id))
-
+    if (MESHX_BEARER_TYPE_ADV != bearer->type)
     {
-        MESHX_WARN("send failed: adv bearer(%d) is invalid", bearer.bearer);
+        MESHX_ERROR("send failed: invalid bearer type(%d)", bearer->type);
         return -MESHX_ERR_INVAL_BEARER;
     }
 
@@ -97,12 +93,13 @@ int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
     MESHX_INFO("send adv data:  ");
     MESHX_DUMP_INFO(adv_data.buffer, len + 2);
 
+    meshx_bearer_adv_t *padv_bearer = (meshx_bearer_adv_t *)bearer;
     meshx_gap_action_t action;
     action.action_type = MESHX_GAP_ACTION_TYPE_ADV;
     action.action_adv_data.adv_type = MESHX_GAP_ADV_TYPE_NONCONN_IND;
     memcpy(action.action_adv_data.data, adv_data.buffer, len + 2);
     action.action_adv_data.data_len = len + 2;
-    action.action_adv_data.period = bearer_adv.param.adv_period;
+    action.action_adv_data.period = padv_bearer->param.adv_period;
 
     return meshx_gap_add_action(&action);
 }
@@ -110,12 +107,18 @@ int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
 int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const uint8_t *pdata,
                                  uint8_t len)
 {
+    MESHX_ASSERT(NULL != bearer);
     int32_t ret = MESHX_SUCCESS;
     switch (adv_type)
     {
     case MESHX_GAP_ADTYPE_MESH_MSG:
-        MESHX_INFO("receive mesh msg");
-        ret = meshx_network_receive(bearer, pdata, len);
+        if (NULL == bearer->network_if)
+        {
+            MESHX_WARN("adv bearer(0x%08x) hasn't connected to any network interface!", bearer);
+            ret = -MESHX_ERR_CONNECT;
+            break;
+        }
+        ret = meshx_network_receive(bearer->network_if, pdata, len);
         break;
     case MESHX_GAP_ADTYPE_PB_ADV:
         ret = meshx_provision_receive(bearer, pdata, len);
@@ -134,11 +137,5 @@ int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const 
 
 meshx_bearer_t meshx_bearer_adv_get(void)
 {
-    return bearer_adv.bearer;
-}
-
-bool meshx_bearer_adv_is_valid(meshx_bearer_t bearer)
-{
-    return ((MESHX_BEARER_TYPE_ADV == bearer_adv.bearer.type) &&
-            (MESHX_BEARER_ADV_ID == bearer_adv.bearer.id));
+    return &bearer_adv.bearer;
 }

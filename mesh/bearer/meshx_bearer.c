@@ -24,7 +24,7 @@ int32_t meshx_bearer_init(void)
 
 meshx_bearer_t meshx_bearer_create(meshx_bearer_param_t bearer_param)
 {
-    meshx_bearer_t bearer = {.bearer = 0};
+    meshx_bearer_t bearer = NULL;
     switch (bearer_param.bearer_type)
     {
     case MESHX_BEARER_TYPE_ADV:
@@ -41,45 +41,41 @@ meshx_bearer_t meshx_bearer_create(meshx_bearer_param_t bearer_param)
     return bearer;
 }
 
-void meshx_bearer_delete(meshx_bearer_t bearer)
+uint8_t meshx_bearer_type_get(meshx_bearer_t bearer)
 {
-    switch (bearer.type)
-    {
-    case MESHX_BEARER_TYPE_ADV:
-        meshx_bearer_adv_delete(bearer);
-        break;
-    case MESHX_BEARER_TYPE_GATT:
-        meshx_bearer_gatt_delete(bearer);
-        break;
-    default:
-        MESHX_WARN("meshx_bearer_delete: invalid bearer %d-%d", bearer.type, bearer.id);
-        break;
-    }
+    return (NULL == bearer) ? MESHX_BEARER_TYPE_INVALID : bearer->type;
 }
 
-bool meshx_bearer_is_valid(meshx_bearer_t bearer)
+void meshx_bearer_delete(meshx_bearer_t bearer)
 {
-    bool ret = FALSE;
-    switch (bearer.type)
+    if (NULL != bearer)
     {
-    case MESHX_BEARER_TYPE_ADV:
-        ret = meshx_bearer_adv_is_valid(bearer);
-        break;
-    case MESHX_BEARER_TYPE_GATT:
-        ret = meshx_bearer_gatt_is_valid(bearer);
-        break;
-    default:
-        break;
+        switch (bearer->type)
+        {
+        case MESHX_BEARER_TYPE_ADV:
+            meshx_bearer_adv_delete(bearer);
+            break;
+        case MESHX_BEARER_TYPE_GATT:
+            meshx_bearer_gatt_delete(bearer);
+            break;
+        default:
+            MESHX_WARN("invalid bearer type: %d", bearer->type);
+            break;
+        }
     }
-
-    return ret;
 }
 
 int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
                           const uint8_t *pdata, uint8_t len)
 {
+    if ((NULL == bearer) || (NULL == pdata))
+    {
+        MESHX_ERROR("bearer or data is NULL: 0x%x-0x%x", bearer, pdata);
+        return -MESHX_ERR_INVAL;
+    }
+
     int32_t ret = MESHX_SUCCESS;
-    switch (bearer.type)
+    switch (bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
         ret = meshx_bearer_adv_send(bearer, pkt_type, pdata, len);
@@ -88,7 +84,7 @@ int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
         ret = meshx_bearer_gatt_send(bearer, pkt_type, pdata, len);
         break;
     default:
-        MESHX_ERROR("invalid bearer: %d", bearer.bearer);
+        MESHX_ERROR("invalid bearer type: %d", bearer->type);
         ret = -MESHX_ERR_INVAL_BEARER;
         break;
     }
@@ -98,8 +94,12 @@ int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
 
 static meshx_bearer_t meshx_bearer_get(const meshx_bearer_rx_metadata_t *prx_metadata)
 {
-    MESHX_ASSERT(NULL != prx_metadata);
-    meshx_bearer_t bearer = {.type = MESHX_BEARER_TYPE_INVALID, .id = 0};
+    if (NULL == prx_metadata)
+    {
+        MESHX_WARN("rx metadta is NULL");
+        return NULL;
+    }
+    meshx_bearer_t bearer = NULL;
 
     switch (prx_metadata->bearer_type)
     {
@@ -120,21 +120,21 @@ static meshx_bearer_t meshx_bearer_get(const meshx_bearer_rx_metadata_t *prx_met
 int32_t meshx_bearer_receive(const uint8_t *pdata, uint8_t len,
                              const meshx_bearer_rx_metadata_t *prx_metadata)
 {
-    if (NULL == prx_metadata)
+    if ((NULL == prx_metadata) || ((NULL == pdata) && (0 != len)))
     {
-        MESHX_WARN("can't handle NULL metadata");
+        MESHX_WARN("can't handle NULL metadata or data");
         return -MESHX_ERR_INVAL;
     }
 
     meshx_bearer_t bearer = meshx_bearer_get(prx_metadata);
-    if (MESHX_BEARER_TYPE_INVALID == bearer.type)
+    if (NULL == bearer)
     {
-        MESHX_WARN("invalid bearer: %d", bearer.bearer);
+        MESHX_WARN("no bearer can handle received data");
         return -MESHX_ERR_INVAL_BEARER;
     }
 
     int32_t ret = MESHX_SUCCESS;
-    switch (bearer.type)
+    switch (bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
         ret = meshx_bearer_adv_receive(bearer, MESHX_GAP_GET_ADV_TYPE(pdata), MESHX_GAP_GET_ADV_PDU(pdata),
@@ -145,7 +145,7 @@ int32_t meshx_bearer_receive(const uint8_t *pdata, uint8_t len,
         break;
     default:
         ret = -MESHX_ERR_INVAL;
-        MESHX_WARN("can't handle bearer type(%d)", prx_metadata->bearer_type);
+        MESHX_WARN("can't handle bearer type: %d", prx_metadata->bearer_type);
         break;
     }
 

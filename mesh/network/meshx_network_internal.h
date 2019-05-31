@@ -10,10 +10,9 @@
 
 #include "meshx_common.h"
 #include "meshx_network.h"
-#include "meshx_list.h"
+#include "meshx_bearer.h"
 
 MESHX_BEGIN_DECLS
-
 
 MESHX_EXTERN int32_t meshx_network_if_init(void);
 MESHX_EXTERN bool meshx_network_if_input_filter(meshx_network_if_t network_if,

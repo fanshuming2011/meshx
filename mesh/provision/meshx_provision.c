@@ -14,6 +14,7 @@
 #include "meshx_misc.h"
 #include "meshx_config.h"
 #include "meshx_node.h"
+#include "meshx_bearer_internal.h"
 
 static meshx_provision_callback_t prov_cb;
 
@@ -27,7 +28,7 @@ int32_t meshx_provision_init(meshx_provision_callback_t pcb)
 int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
     int32_t ret = MESHX_SUCCESS;
-    switch (bearer.type)
+    switch (bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
         ret = meshx_pb_adv_receive(bearer, pdata, len);
@@ -35,7 +36,7 @@ int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uin
     case MESHX_BEARER_TYPE_GATT:
         break;
     default:
-        MESHX_WARN("invalid bearer(%d)", bearer.bearer);
+        MESHX_WARN("invalid bearer type(%d)", bearer->type);
         ret = -MESHX_ERR_INVAL_BEARER;
         break;
     }
@@ -44,7 +45,7 @@ int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uin
 
 int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
 {
-    if (MESHX_BEARER_TYPE_ADV != bearer.type)
+    if (MESHX_BEARER_TYPE_ADV != bearer->type)
     {
         MESHX_WARN("link open message can only send on advertising bearer!");
         return -MESHX_ERR_INVAL_BEARER;
@@ -62,7 +63,7 @@ int32_t meshx_provision_invite(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid,
                                meshx_provision_invite_t invite)
 {
     int32_t ret = MESHX_SUCCESS;
-    switch (bearer.type)
+    switch (bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
         ret = meshx_pb_adv_invite(dev_uuid, invite);

@@ -22,13 +22,12 @@ int32_t meshx_network_init(void)
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_network_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
+int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdata, uint8_t len)
 {
-    meshx_network_if_t network_if = meshx_network_if_get(bearer);
-    if (MESHX_NETWORK_IF_TYPE_INVALID == network_if.type)
+    if (NULL == network_if)
     {
-        MESHX_WARN("bearer(%d) is not connected to network  interface!", bearer.bearer);
-        return -MESHX_ERR_BEARER_CONNECT;
+        MESHX_ERROR("network interface is NULL");
+        return -MESHX_ERR_INVAL;
     }
 
     /* decrypt data */
@@ -49,15 +48,22 @@ int32_t meshx_network_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8
 int32_t meshx_network_send(meshx_network_if_t network_if, const meshx_network_pdu_t *ppdu,
                            uint8_t pdu_len)
 {
+    if (NULL == network_if)
+    {
+        MESHX_ERROR("network interface is NULL");
+        return -MESHX_ERR_INVAL;
+    }
+
     if (pdu_len > MESHX_NETWORK_PDU_MAX_LEN)
     {
         return -MESHX_ERR_LENGTH;
     }
 
     meshx_bearer_t bearer = meshx_network_if_get_bearer(network_if);
-    if (MESHX_BEARER_TYPE_INVALID != bearer.type)
+    if (NULL == bearer)
     {
-        return -MESHX_ERR_BEARER_CONNECT;
+        MESHX_ERROR("network interface(0x%08x) hasn't connected to any bearer", network_if);
+        return -MESHX_ERR_CONNECT;
     }
 
     /* filter data */
@@ -70,7 +76,7 @@ int32_t meshx_network_send(meshx_network_if_t network_if, const meshx_network_pd
 
     /* send data to bearer */
     uint8_t pkt_type;
-    if (MESHX_BEARER_TYPE_ADV == bearer.type)
+    if (MESHX_BEARER_TYPE_ADV == bearer->type)
     {
         pkt_type = MESHX_BEARER_ADV_PKT_TYPE_MESH_MSG;
     }

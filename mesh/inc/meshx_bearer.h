@@ -58,21 +58,12 @@ typedef struct
     };
 } meshx_bearer_param_t;
 
-typedef union
-{
-    struct
-    {
-        uint16_t type : 3;
-        uint16_t id : 13;
-    };
-    uint16_t bearer;
-} meshx_bearer_t;
-
+typedef struct _meshx_bearer *meshx_bearer_t;
 
 MESHX_EXTERN int32_t meshx_bearer_init(void);
 MESHX_EXTERN meshx_bearer_t meshx_bearer_create(meshx_bearer_param_t bearer_param);
 MESHX_EXTERN void meshx_bearer_delete(meshx_bearer_t bearer);
-MESHX_EXTERN bool meshx_bearer_is_valid(meshx_bearer_t bearer);
+MESHX_EXTERN uint8_t meshx_bearer_type_get(meshx_bearer_t bearer);
 
 MESHX_EXTERN int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
                                        const uint8_t *pdata, uint8_t len);

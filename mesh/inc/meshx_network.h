@@ -37,15 +37,7 @@ typedef struct
 #define MESHX_NETWORK_IF_TYPE_GATT         2
 #define MESHX_NETWORK_IF_TYPE_LOOPBACK     3
 
-typedef union
-{
-    struct
-    {
-        uint16_t type : 3;
-        uint16_t id : 13;
-    };
-    uint16_t network_if;
-} meshx_network_if_t;
+typedef void *meshx_network_if_t;
 
 typedef struct
 {
@@ -80,14 +72,13 @@ typedef bool (*meshx_network_if_output_filter_t)(meshx_network_if_t network_if,
 
 MESHX_EXTERN int32_t meshx_network_init(void);
 
-MESHX_EXTERN meshx_network_if_t meshx_network_if_create(uint16_t type);
+MESHX_EXTERN meshx_network_if_t meshx_network_if_create(void);
 MESHX_EXTERN void meshx_network_if_delete(meshx_network_if_t network_if);
 MESHX_EXTERN int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t bearer,
                                               meshx_network_if_input_filter_t in_filter, meshx_network_if_output_filter_t out_filter);
 MESHX_EXTERN void meshx_network_if_disconnect(meshx_network_if_t network_if);
-MESHX_EXTERN void meshx_network_if_disconnect_bearer(meshx_bearer_t bearer);
 
-MESHX_EXTERN int32_t meshx_network_receive(meshx_bearer_t bearer, const uint8_t *pdata,
+MESHX_EXTERN int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdata,
                                            uint8_t len);
 MESHX_EXTERN int32_t meshx_network_send(meshx_network_if_t network_if,
                                         const meshx_network_pdu_t *ppdu, uint8_t pdu_len);

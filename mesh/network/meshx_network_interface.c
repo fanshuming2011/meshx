@@ -12,11 +12,12 @@
 #include "meshx_errno.h"
 #include "meshx_mem.h"
 #include "meshx_network_internal.h"
+#include "meshx_bearer_internal.h"
+#include "meshx_list.h"
 
 typedef struct
 {
-    bool valid;
-    meshx_network_if_t network_if;
+    uint8_t type;
     meshx_bearer_t bearer;
     meshx_network_if_input_filter_t input_filter;
     meshx_network_if_output_filter_t output_filter;
@@ -40,16 +41,10 @@ static bool meshx_network_default_output_filter(meshx_network_if_t network_if,
 
 static meshx_network_interface_t *meshx_request_network_interface(void)
 {
-    meshx_list_t *pnode = NULL;
-    meshx_network_interface_t *pinterface;
-
-    meshx_list_foreach(pnode, &network_if_list)
+    if (meshx_list_length(&network_if_list) >= MESHX_NETWORK_IF_MAX_NUM)
     {
-        pinterface = MESHX_CONTAINER_OF(pnode, meshx_network_interface_t, node);
-        if (!pinterface->valid)
-        {
-            return pinterface;
-        }
+        MESHX_ERROR("network interface reached maximum number: %d", MESHX_NETWORK_IF_MAX_NUM);
+        return NULL;
     }
 
     return meshx_malloc(sizeof(meshx_network_interface_t));
@@ -57,7 +52,12 @@ static meshx_network_interface_t *meshx_request_network_interface(void)
 
 static void meshx_release_network_interface(meshx_network_interface_t *pinterface)
 {
-    pinterface->valid = FALSE;
+    meshx_list_remove(&pinterface->node);
+    if (NULL != pinterface->bearer)
+    {
+        pinterface->bearer->network_if = NULL;
+    }
+    meshx_free(pinterface);
 }
 
 static int32_t meshx_network_if_create_loopback(void)
@@ -67,14 +67,14 @@ static int32_t meshx_network_if_create_loopback(void)
     if (NULL == pinterface)
     {
         MESHX_ERROR("create network loopback interface failed: out of memeory");
-        return -MESHX_ERR_NO_MEM;
+        return -MESHX_ERR_MEM;
     }
     memset(pinterface, 0, sizeof(meshx_network_interface_t));
-    pinterface->valid = TRUE;
-    pinterface->network_if.type = MESHX_NETWORK_IF_TYPE_LOOPBACK;
+    pinterface->type = MESHX_NETWORK_IF_TYPE_LOOPBACK;
+    pinterface->input_filter = meshx_network_default_input_filter;
+    pinterface->output_filter = meshx_network_default_output_filter;
     meshx_list_append(&network_if_list, &pinterface->node);
-    pinterface->network_if.id = meshx_list_index(&network_if_list, &pinterface->node);
-    MESHX_INFO("create network loopback interface(%d) success", pinterface->network_if.network_if);
+    MESHX_INFO("create network loopback interface(0x%08x) success", pinterface);
     return MESHX_SUCCESS;
 }
 
@@ -85,170 +85,68 @@ int32_t meshx_network_if_init(void)
     return meshx_network_if_create_loopback();
 }
 
-meshx_network_if_t meshx_network_if_get(meshx_bearer_t bearer)
+meshx_network_if_t meshx_network_if_create(void)
 {
-    meshx_list_t *pnode = NULL;
-    meshx_network_interface_t *pinterface;
-    meshx_network_if_t network_if = {.network_if = 0};
-
-    meshx_list_foreach(pnode, &network_if_list)
-    {
-        pinterface = MESHX_CONTAINER_OF(pnode, meshx_network_interface_t, node);
-        if (pinterface->bearer.bearer == bearer.bearer)
-        {
-            return pinterface->network_if;
-        }
-    }
-
-    MESHX_WARN("bearer(%d) has not been connected to network interface!", bearer.bearer);
-    return network_if;
-}
-
-meshx_bearer_t meshx_network_if_get_bearer(meshx_network_if_t network_if)
-{
-    meshx_list_t *pnode = NULL;
-    meshx_network_interface_t *pinterface;
-    meshx_bearer_t bearer = {.bearer = 0};
-
-    meshx_list_foreach(pnode, &network_if_list)
-    {
-        pinterface = MESHX_CONTAINER_OF(pnode, meshx_network_interface_t, node);
-        if (pinterface->network_if.network_if == network_if.network_if)
-        {
-            return pinterface->bearer;
-        }
-    }
-
-    MESHX_WARN("network interface(%d) has not been connected to bearer!", network_if.network_if);
-    return bearer;
-}
-
-static meshx_network_interface_t *meshx_network_if_get_by_bearer(meshx_bearer_t bearer)
-{
-    meshx_list_t *pnode = NULL;
-    meshx_network_interface_t *pinterface;
-
-    meshx_list_foreach(pnode, &network_if_list)
-    {
-        pinterface = MESHX_CONTAINER_OF(pnode, meshx_network_interface_t, node);
-        if (pinterface->bearer.bearer == bearer.bearer)
-        {
-            return pinterface;
-        }
-    }
-
-    MESHX_WARN("can not find network interface(%d)", bearer.bearer);
-    return NULL;
-}
-
-static meshx_network_interface_t *meshx_network_if_get_by_if(meshx_network_if_t network_if)
-{
-    meshx_list_t *pnode = NULL;
-    meshx_network_interface_t *pinterface;
-
-    meshx_list_foreach(pnode, &network_if_list)
-    {
-        pinterface = MESHX_CONTAINER_OF(pnode, meshx_network_interface_t, node);
-        if (pinterface->network_if.network_if == network_if.network_if)
-        {
-            return pinterface;
-        }
-    }
-
-    MESHX_WARN("can not find network interface(%d)", network_if.network_if);
-    return NULL;
-}
-
-meshx_network_if_t meshx_network_if_create(uint16_t type)
-{
-    meshx_network_if_t network_if = {.network_if = 0};
     /* create new interface */
     meshx_network_interface_t *pinterface = meshx_request_network_interface();
     if (NULL == pinterface)
     {
-        MESHX_ERROR("create network interface failed: out of memory");
-        return network_if;
+        MESHX_ERROR("create network interface failed");
+        return NULL;
     }
     memset(pinterface, 0, sizeof(meshx_network_interface_t));
-    pinterface->valid = TRUE;
     meshx_list_append(&network_if_list, &pinterface->node);
-    pinterface->network_if.type = type;
-    pinterface->network_if.id = meshx_list_index(&network_if_list, &pinterface->node);
 
-    MESHX_INFO("create network interface(%d) success", pinterface->network_if.network_if);
-    return pinterface->network_if;
+    MESHX_INFO("create network interface(0x%08x) success", pinterface);
+    return pinterface;
 }
 
 void meshx_network_if_delete(meshx_network_if_t network_if)
 {
-    meshx_list_t *pnode = NULL;
-    meshx_network_interface_t *pinterface;
-
-    meshx_list_foreach(pnode, &network_if_list)
+    if (NULL != network_if)
     {
-        pinterface = MESHX_CONTAINER_OF(pnode, meshx_network_interface_t, node);
-        if (pinterface->network_if.network_if == network_if.network_if)
-        {
-            meshx_release_network_interface(pinterface);
-            MESHX_INFO("delete network interface(%d) success", network_if.network_if);
-            return ;
-        }
+        meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
+        meshx_release_network_interface(pinterface);
+        MESHX_INFO("delete network interface(0x%08x) success", network_if);
     }
-
-    MESHX_WARN("delete network interface(%d) failed: not found", network_if.network_if);
 }
 
 int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t bearer,
                                  meshx_network_if_input_filter_t in_filter, meshx_network_if_output_filter_t out_filter)
 {
-    /* check network interface and bearer type */
-    if (((network_if.type == MESHX_NETWORK_IF_TYPE_ADV) && (bearer.type != MESHX_BEARER_TYPE_ADV)) ||
-        ((network_if.type == MESHX_NETWORK_IF_TYPE_ADV) && (bearer.type != MESHX_BEARER_TYPE_ADV)))
+    if ((NULL == network_if) || (NULL == bearer))
     {
-        MESHX_ERROR("network interface type(%d) does not match bearer type(%d)", network_if.type,
-                    bearer.type);
+        MESHX_ERROR("invalid network interface or bearer: 0x%08x-0x%08x", network_if, bearer);
         return -MESHX_ERR_INVAL;
     }
 
-    /* find exists */
-    meshx_list_t *pnode = NULL;
-    meshx_network_interface_t *pinterface;
-    meshx_list_foreach(pnode, &network_if_list)
+    meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
+    if (NULL != pinterface->bearer)
     {
-        pinterface = MESHX_CONTAINER_OF(pnode, meshx_network_interface_t, node);
-        if (pinterface->bearer.bearer == bearer.bearer)
-        {
-            MESHX_WARN("bearer(%d) has already been connected to network interface(%d)!", bearer.bearer,
-                       pinterface->network_if.network_if);
-            return -MESHX_ERR_ALREADY;
-        }
+        MESHX_WARN("network interface(0x%08x) has already been connected to bearer(0x%08x)!", pinterface,
+                   pinterface->bearer);
+        return -MESHX_ERR_ALREADY;
     }
 
-    /* validation bearer */
-    if (!meshx_bearer_is_valid(bearer))
+    if (NULL != bearer->network_if)
     {
-        MESHX_ERROR("connect bearer(%d) failed: invalid bearer", bearer.bearer);
-        return -MESHX_ERR_INVAL_BEARER;
+        MESHX_WARN("bearer(0x%08x) has already been connected to network interface(0x%08x)!", bearer,
+                   bearer->network_if);
+
+        return -MESHX_ERR_ALREADY;
     }
 
-    /* validation network interface */
-    pinterface = meshx_network_if_get_by_if(network_if);
-    if (NULL == pinterface)
+    if (MESHX_BEARER_TYPE_ADV == bearer->type)
     {
-        MESHX_ERROR("connect bearer(%d) failed: invalid network infterface", bearer.bearer);
-        return -MESHX_ERR_INVAL_NETWORK_IF;
-    }
-
-    if (MESHX_BEARER_TYPE_ADV == bearer.type)
-    {
-        pinterface->network_if.type = MESHX_NETWORK_IF_TYPE_ADV;
+        pinterface->type = MESHX_NETWORK_IF_TYPE_ADV;
     }
     else
     {
-        pinterface->network_if.type = MESHX_NETWORK_IF_TYPE_GATT;
+        pinterface->type = MESHX_NETWORK_IF_TYPE_GATT;
     }
 
     pinterface->bearer = bearer;
+    bearer->network_if = pinterface;
     if (NULL == in_filter)
     {
         pinterface->input_filter = meshx_network_default_input_filter;
@@ -267,54 +165,41 @@ int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t b
         pinterface->output_filter = out_filter;
     }
 
-    MESHX_INFO("connect bearer(%d) to network interface(%d) success", pinterface->bearer.bearer,
-               pinterface->network_if.network_if);
+    MESHX_INFO("connect bearer(0x%08x) to network interface(0x%08x) success", bearer,
+               pinterface);
     return MESHX_SUCCESS;
 }
 
-static void meshx_network_if_disconnect_intern(meshx_network_interface_t *pinterface)
+void meshx_network_if_disconnect(meshx_network_if_t network_if)
 {
-    pinterface->bearer.bearer = 0;
+    if (NULL == network_if)
+    {
+        MESHX_ERROR("invalid network interface: 0x%08x", network_if);
+        return ;
+    }
+
+    meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
+    pinterface->type = MESHX_NETWORK_IF_TYPE_INVALID;
+    if (NULL != pinterface->bearer)
+    {
+        pinterface->bearer->network_if = NULL;
+    }
+    pinterface->bearer = NULL;
     memset(&pinterface->filter_info, 0, sizeof(meshx_network_if_filter_info_t));
     pinterface->input_filter = NULL;
     pinterface->output_filter = NULL;
 }
 
-void meshx_network_if_disconnect(meshx_network_if_t network_if)
-{
-    /* validation network interface */
-    meshx_network_interface_t *pinterface = meshx_network_if_get_by_if(network_if);
-    if (NULL == pinterface)
-    {
-        MESHX_ERROR("disconnect(%d) failed: invalid network interface", network_if.network_if);
-        return ;
-    }
-    meshx_network_if_disconnect_intern(pinterface);
-}
-
-void meshx_network_if_disconnect_bearer(meshx_bearer_t bearer)
-{
-    /* validation bearer */
-    if (!meshx_bearer_is_valid(bearer))
-    {
-        MESHX_ERROR("disconnect(%d) failed: invalid bearer", bearer.bearer);
-        return ;
-    }
-
-    meshx_network_interface_t *pinterface = meshx_network_if_get_by_bearer(bearer);
-    MESHX_ASSERT(NULL != pinterface);
-    meshx_network_if_disconnect_intern(pinterface);
-}
-
 bool meshx_network_if_input_filter(meshx_network_if_t network_if, const meshx_network_pdu_t *ppdu,
                                    uint8_t pdu_len)
 {
-    meshx_network_interface_t *pinterface = meshx_network_if_get_by_if(network_if);
-    MESHX_ASSERT(NULL != pinterface);
+    MESHX_ASSERT(NULL != network_if);
+    meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
+
     meshx_network_if_input_metadata_t input_metadata;
     memset(&input_metadata, 0, sizeof(meshx_network_if_input_metadata_t));
     pinterface->filter_info.total_receive ++;
-    if (!pinterface->input_filter(pinterface->network_if, &input_metadata))
+    if (!pinterface->input_filter(pinterface, &input_metadata))
     {
         pinterface->filter_info.filtered_receive ++;
         return FALSE;
@@ -326,14 +211,14 @@ bool meshx_network_if_input_filter(meshx_network_if_t network_if, const meshx_ne
 bool meshx_network_if_output_filter(meshx_network_if_t network_if, const meshx_network_pdu_t *ppdu,
                                     uint8_t pdu_len)
 {
-    meshx_network_interface_t *pinterface = meshx_network_if_get_by_if(network_if);
-    MESHX_ASSERT(NULL != pinterface);
+    MESHX_ASSERT(NULL != network_if);
+    meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
 
     meshx_network_if_output_metadata_t output_metadata;
     output_metadata.src_addr = ppdu->net_metadata.src;
     output_metadata.dst_addr = ppdu->net_metadata.dst;
     pinterface->filter_info.total_send ++;
-    if (!pinterface->output_filter(pinterface->network_if, &output_metadata))
+    if (!pinterface->output_filter(pinterface, &output_metadata))
     {
         pinterface->filter_info.filtered_send ++;
         return FALSE;
@@ -346,11 +231,21 @@ meshx_network_if_filter_info_t meshx_network_if_get_filter_info(meshx_network_if
 {
     meshx_network_if_filter_info_t filter_info;
     memset(&filter_info, 0, sizeof(meshx_network_if_filter_info_t));
-    meshx_network_interface_t *pinterface = meshx_network_if_get_by_if(network_if);
-    if (NULL != pinterface)
+    meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
+    if (NULL == pinterface)
     {
-        filter_info = pinterface->filter_info;
+        return filter_info;
     }
 
-    return filter_info;
+    return pinterface->filter_info;
+}
+
+meshx_bearer_t meshx_network_if_get_bearer(meshx_network_if_t network_if)
+{
+    if (NULL == network_if)
+    {
+        return NULL;
+    }
+
+    return ((meshx_network_interface_t *)network_if)->bearer;
 }
