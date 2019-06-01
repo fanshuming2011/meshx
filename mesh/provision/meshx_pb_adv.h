@@ -128,13 +128,17 @@ typedef struct
 
 MESHX_EXTERN int32_t meshx_pb_adv_init(void);
 
+MESHX_EXTERN meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer,
+                                                              meshx_dev_uuid_t dev_uuid);
+MESHX_EXTERN void meshx_pb_adv_delete_device(meshx_provision_dev_t prov_dev);
+
 MESHX_EXTERN int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len);
 
-MESHX_EXTERN int32_t meshx_pb_adv_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid);
-MESHX_EXTERN int32_t meshx_pb_adv_link_ack(meshx_dev_uuid_t dev_uuid);
-MESHX_EXTERN int32_t meshx_pb_adv_link_close(meshx_dev_uuid_t dev_uuid, uint8_t reason);
-MESHX_EXTERN int32_t meshx_pb_adv_trans_ack(meshx_dev_uuid_t dev_uuid);
-MESHX_EXTERN int32_t meshx_pb_adv_invite(meshx_dev_uuid_t dev_uuid,
+MESHX_EXTERN int32_t meshx_pb_adv_link_open(meshx_provision_dev_t prov_dev);
+MESHX_EXTERN int32_t meshx_pb_adv_link_ack(meshx_provision_dev_t prov_dev);
+MESHX_EXTERN int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uint8_t reason);
+MESHX_EXTERN int32_t meshx_pb_adv_trans_ack(meshx_provision_dev_t prov_dev);
+MESHX_EXTERN int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
                                          meshx_provision_invite_t invite);
 
 MESHX_END_DECLS

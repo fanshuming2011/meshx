@@ -13,13 +13,18 @@
 
 MESHX_BEGIN_DECLS
 
+struct _meshx_provision_dev
+{
+    meshx_dev_uuid_t dev_uuid;
+    meshx_bearer_t bearer;
+    uint8_t state;
+};
+
+
 MESHX_EXTERN int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata,
                                              uint8_t len);
-MESHX_EXTERN int32_t meshx_provision_pdu_process(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid,
+MESHX_EXTERN int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
                                                  const uint8_t *pdata, uint8_t len);
-MESHX_EXTERN void meshx_provision_state_changed(meshx_dev_uuid_t dev_uuid, uint8_t new_state,
-                                                uint8_t old_state);
-
 MESHX_END_DECLS
 
 #endif

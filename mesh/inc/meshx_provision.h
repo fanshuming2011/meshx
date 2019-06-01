@@ -57,14 +57,18 @@ typedef struct
     };
 } __PACKED meshx_provision_pdu_t;
 
+typedef struct _meshx_provision_dev *meshx_provision_dev_t;
 
 MESHX_EXTERN int32_t meshx_provision_init(meshx_provision_callback_t pcb);
 
-MESHX_EXTERN int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid);
-MESHX_EXTERN int32_t meshx_provision_link_close(meshx_dev_uuid_t dev_uuid, uint8_t reason);
+MESHX_EXTERN meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
+                                                                 meshx_dev_uuid_t dev_uuid);
+MESHX_EXTERN void meshx_provision_delete_device(meshx_provision_dev_t prov_dev);
 
-MESHX_EXTERN int32_t meshx_provision_invite(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid,
-                                            meshx_provision_invite_t invite);
+MESHX_EXTERN int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev);
+MESHX_EXTERN int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev);
+
+MESHX_EXTERN int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev);
 
 MESHX_END_DECLS
 

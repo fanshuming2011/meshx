@@ -9,12 +9,14 @@
 #define TRACE_MODULE "MEHSX_PROVISION"
 #include "meshx_trace.h"
 #include "meshx_provision.h"
+#include "meshx_provision_internal.h"
 #include "meshx_errno.h"
 #include "meshx_pb_adv.h"
 #include "meshx_misc.h"
 #include "meshx_config.h"
 #include "meshx_node.h"
 #include "meshx_bearer_internal.h"
+#include "meshx_list.h"
 
 static meshx_provision_callback_t prov_cb;
 
@@ -43,7 +45,50 @@ int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uin
     return ret;
 }
 
-int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
+meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
+                                                    meshx_dev_uuid_t dev_uuid)
+{
+    if (NULL == bearer)
+    {
+        MESHX_ERROR("bearer value is NULL!");
+        return NULL;
+    }
+
+    meshx_provision_dev_t prov_dev = NULL;
+    switch (bearer->type)
+    {
+    case MESHX_BEARER_TYPE_ADV:
+        prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid);
+        break;
+    case MESHX_BEARER_TYPE_GATT:
+        break;
+    default:
+        MESHX_WARN("invalid bearer type(%d)", bearer->type);
+        break;
+    }
+
+    return prov_dev;
+}
+
+void meshx_provision_delete_device(meshx_provision_dev_t prov_dev)
+{
+    if (NULL != prov_dev)
+    {
+        switch (prov_dev->bearer->type)
+        {
+        case MESHX_BEARER_TYPE_ADV:
+            prov_dev = meshx_pb_adv_delete_device(prov_dev);
+            break;
+        case MESHX_BEARER_TYPE_GATT:
+            break;
+        default:
+            MESHX_WARN("invalid bearer type(%d)", prov_dev->bearer->type);
+            break;
+        }
+    }
+}
+
+int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev)
 {
     if (NULL == bearer)
     {
@@ -60,12 +105,12 @@ int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uu
     return meshx_pb_adv_link_open(bearer, dev_uuid);
 }
 
-int32_t meshx_provision_link_close(meshx_dev_uuid_t dev_uuid, uint8_t reason)
+int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev)
 {
     return meshx_pb_adv_link_close(dev_uuid, reason);
 }
 
-int32_t meshx_provision_invite(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid,
+int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
                                meshx_provision_invite_t invite)
 {
     if (NULL == bearer)
@@ -134,7 +179,7 @@ void meshx_provision_state_changed(meshx_dev_uuid_t dev_uuid, uint8_t new_state,
     }
 }
 
-int32_t meshx_provision_pdu_process(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid,
+int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
                                     const uint8_t *pdata, uint8_t len)
 {
     const meshx_provision_pdu_t *pprov_pdu = (const meshx_provision_pdu_t *)pdata;
