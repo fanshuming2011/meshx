@@ -145,7 +145,7 @@ static void meshx_trace_vsprintf(const char *fmt, va_list args)
                 char hex[HEX_MAX_LEN];
                 memset(hex, 0, HEX_MAX_LEN);
                 uint8_t count = 0;
-                while (num & 0x0f)
+                while (num)
                 {
                     hex[count] = ("0123456789ABCDEF"[num & 0x0f] | lower_case);
                     count ++;

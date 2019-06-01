@@ -37,7 +37,7 @@ int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uin
         break;
     default:
         MESHX_WARN("invalid bearer type(%d)", bearer->type);
-        ret = -MESHX_ERR_INVAL_BEARER;
+        ret = -MESHX_ERR_INVAL;
         break;
     }
     return ret;
@@ -45,10 +45,16 @@ int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uin
 
 int32_t meshx_provision_link_open(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
 {
+    if (NULL == bearer)
+    {
+        MESHX_ERROR("bearer value is NULL");
+        return -MESHX_ERR_INVAL;
+    }
+
     if (MESHX_BEARER_TYPE_ADV != bearer->type)
     {
         MESHX_WARN("link open message can only send on advertising bearer!");
-        return -MESHX_ERR_INVAL_BEARER;
+        return -MESHX_ERR_INVAL;
     }
 
     return meshx_pb_adv_link_open(bearer, dev_uuid);
@@ -62,6 +68,12 @@ int32_t meshx_provision_link_close(meshx_dev_uuid_t dev_uuid, uint8_t reason)
 int32_t meshx_provision_invite(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid,
                                meshx_provision_invite_t invite)
 {
+    if (NULL == bearer)
+    {
+        MESHX_ERROR("bearer value is NULL");
+        return -MESHX_ERR_INVAL;
+    }
+
     int32_t ret = MESHX_SUCCESS;
     switch (bearer->type)
     {
@@ -71,8 +83,8 @@ int32_t meshx_provision_invite(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid,
     case MESHX_BEARER_TYPE_GATT:
         break;
     default:
-        MESHX_WARN("invalid bearer: bearer");
-        ret = -MESHX_ERR_INVAL_BEARER;
+        MESHX_WARN("invalid bearer type: %d", bearer->type);
+        ret = -MESHX_ERR_INVAL;
         break;
     }
 

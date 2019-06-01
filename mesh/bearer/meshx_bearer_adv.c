@@ -77,7 +77,7 @@ int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
     if (MESHX_BEARER_TYPE_ADV != bearer->type)
     {
         MESHX_ERROR("send failed: invalid bearer type(%d)", bearer->type);
-        return -MESHX_ERR_INVAL_BEARER;
+        return -MESHX_ERR_INVAL;
     }
 
     if (len > MESHX_GAP_ADV_DATA_MAX_LEN - 2)
@@ -137,5 +137,5 @@ int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const 
 
 meshx_bearer_t meshx_bearer_adv_get(void)
 {
-    return &bearer_adv.bearer;
+    return (MESHX_BEARER_TYPE_INVALID == bearer_adv.bearer.type) ? NULL : &bearer_adv.bearer;
 }
