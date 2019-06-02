@@ -9,28 +9,30 @@
 #define _MESHX_PROVISION_CALLBACK_H_
 
 #include "meshx_types.h"
-#include "meshx_gap.h"
 
 MESHX_BEGIN_DECLS
 
-#define MESHX_PROVISION_CB_TYPE_STATE_CHANGED        0x00 /* @ref meshx_provision_state_changed_t*/
-#define MESHX_PROVISION_CB_TYPE_GET_INVITE           0x01 /* @ref meshx_provision_invite_t */
-#define MESHX_PROVISION_CB_TYPE_SET_INVITE           0x02 /* @ref meshx_provision_invite_t */
-typedef struct
+typedef enum
 {
-    meshx_dev_uuid_t dev_uuid;
-    uint8_t new_state;
-    uint8_t old_state;
-} meshx_provision_state_changed_t;
+    MESHX_PROVISION_LINK_CLOSE_SUCCESS,
+    MESHX_PROVISION_LINK_CLOSE_TIMEOUT,
+    MESHX_PROVISION_LINK_CLOSE_FAIL,
+    MESHX_PROVISION_LINK_CLOSE_LINK_LOSS,
+} meshx_provision_link_close_t;
 
+typedef enum
+{
+    MESHX_PROVISION_LINK_OPEN_SUCCESS,
+    MESHX_PROVISION_LINK_OPEN_TIMEOUT,
+} meshx_provision_link_open_t;
 
-#define MESHX_PROVISION_STATE_IDLE                   0
-#define MESHX_PROVISION_STATE_LINK_OPENING           0x01
-#define MESHX_PROVISION_STATE_LINK_OPENED            0x02
-#define MESHX_PROVISION_STATE_INVITE                 0x03
-#define MESHX_PROVISION_STATE_CAPABILITES            0x04
+#define MESHX_PROVISION_CB_TYPE_LINK_OPEN            0x00 /* @ref meshx_provision_link_open_t */
+#define MESHX_PROVISION_CB_TYPE_LINK_CLOSE           0x01 /* @ref meshx_provision_link_close_t */
+#define MESHX_PROVISION_CB_TYPE_GET_INVITE           0x02 /* @ref meshx_provision_invite_t */
+#define MESHX_PROVISION_CB_TYPE_SET_INVITE           0x03 /* @ref meshx_provision_invite_t */
+#define MESHX_PROVISION_CB_TYPE_FAILED               0x04 /* @ref meshx provisison failed error code macros */
+#define MESHX_PROVISION_CB_TYPE_COMPLETE             0x05 /* @ref NULL */
 
-typedef int32_t (*meshx_provision_callback_t)(uint8_t type, void *pargs);
 
 MESHX_END_DECLS
 

@@ -22,6 +22,14 @@ struct _meshx_provision_dev
 };
 
 
+#define MESHX_PROVISION_STATE_IDLE                   0
+#define MESHX_PROVISION_STATE_LINK_OPENING           0x01
+#define MESHX_PROVISION_STATE_LINK_OPENED            0x02
+#define MESHX_PROVISION_STATE_INVITE                 0x03
+#define MESHX_PROVISION_STATE_CAPABILITES            0x04
+#define MESHX_PROVISION_STATE_COMPLETE               0xff
+
+
 MESHX_EXTERN int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata,
                                              uint8_t len);
 MESHX_EXTERN int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,

@@ -67,7 +67,7 @@ static int32_t meshx_network_if_create_loopback(void)
     if (NULL == pinterface)
     {
         MESHX_ERROR("create network loopback interface failed: out of memeory");
-        return -MESHX_ERR_MEM;
+        return MESHX_ERR_MEM;
     }
     memset(pinterface, 0, sizeof(meshx_network_interface_t));
     pinterface->type = MESHX_NETWORK_IF_TYPE_LOOPBACK;
@@ -117,7 +117,7 @@ int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t b
     if ((NULL == network_if) || (NULL == bearer))
     {
         MESHX_ERROR("invalid network interface or bearer: 0x%08x-0x%08x", network_if, bearer);
-        return -MESHX_ERR_INVAL;
+        return MESHX_ERR_INVAL;
     }
 
     meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
@@ -125,7 +125,7 @@ int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t b
     {
         MESHX_WARN("network interface(0x%08x) has already been connected to bearer(0x%08x)!", pinterface,
                    pinterface->bearer);
-        return -MESHX_ERR_ALREADY;
+        return MESHX_ERR_ALREADY;
     }
 
     if (NULL != bearer->network_if)
@@ -133,7 +133,7 @@ int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t b
         MESHX_WARN("bearer(0x%08x) has already been connected to network interface(0x%08x)!", bearer,
                    bearer->network_if);
 
-        return -MESHX_ERR_ALREADY;
+        return MESHX_ERR_ALREADY;
     }
 
     if (MESHX_BEARER_TYPE_ADV == bearer->type)

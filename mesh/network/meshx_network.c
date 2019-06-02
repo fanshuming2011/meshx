@@ -27,7 +27,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     if (NULL == network_if)
     {
         MESHX_ERROR("network interface is NULL");
-        return -MESHX_ERR_INVAL;
+        return MESHX_ERR_INVAL;
     }
 
     /* decrypt data */
@@ -37,7 +37,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     /* filter data */
     if (!meshx_network_if_input_filter(network_if, &net_pdu, pdu_len))
     {
-        return -MESHX_ERR_FILTER;
+        return MESHX_ERR_FILTER;
     }
 
 
@@ -51,25 +51,25 @@ int32_t meshx_network_send(meshx_network_if_t network_if, const meshx_network_pd
     if (NULL == network_if)
     {
         MESHX_ERROR("network interface is NULL");
-        return -MESHX_ERR_INVAL;
+        return MESHX_ERR_INVAL;
     }
 
     if (pdu_len > MESHX_NETWORK_PDU_MAX_LEN)
     {
-        return -MESHX_ERR_LENGTH;
+        return MESHX_ERR_LENGTH;
     }
 
     meshx_bearer_t bearer = meshx_network_if_get_bearer(network_if);
     if (NULL == bearer)
     {
         MESHX_ERROR("network interface(0x%08x) hasn't connected to any bearer", network_if);
-        return -MESHX_ERR_CONNECT;
+        return MESHX_ERR_CONNECT;
     }
 
     /* filter data */
     if (!meshx_network_if_output_filter(network_if, ppdu, pdu_len))
     {
-        return -MESHX_ERR_FILTER;
+        return MESHX_ERR_FILTER;
     }
 
     /* encrypt data */

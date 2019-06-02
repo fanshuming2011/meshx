@@ -45,7 +45,7 @@ void linux_send_string(const char *pdata, uint32_t len)
     fflush(log_file);
 }
 
-static int32_t meshx_prov_cb(uint8_t type, void *pargs)
+static int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *pargs)
 {
     return MESHX_SUCCESS;
 }

@@ -22,7 +22,7 @@ static meshx_provision_callback_t prov_cb;
 
 int32_t meshx_provision_init(meshx_provision_callback_t pcb)
 {
-    meshx_pb_adv_init();
+    meshx_pb_adv_init(pcb);
     prov_cb = pcb;
     return MESHX_SUCCESS;
 }
@@ -39,7 +39,7 @@ int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uin
         break;
     default:
         MESHX_WARN("invalid bearer type(%d)", bearer->type);
-        ret = -MESHX_ERR_INVAL;
+        ret = MESHX_ERR_INVAL;
         break;
     }
     return ret;
@@ -70,45 +70,21 @@ meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
     return prov_dev;
 }
 
-void meshx_provision_delete_device(meshx_provision_dev_t prov_dev)
-{
-    if (NULL != prov_dev)
-    {
-        switch (prov_dev->bearer->type)
-        {
-        case MESHX_BEARER_TYPE_ADV:
-            meshx_pb_adv_delete_device(prov_dev);
-            break;
-        case MESHX_BEARER_TYPE_GATT:
-            break;
-        default:
-            MESHX_WARN("invalid bearer type(%d)", prov_dev->bearer->type);
-            break;
-        }
-    }
-}
-
 int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev)
 {
     if (NULL == prov_dev)
     {
         MESHX_ERROR("provision device value is NULL");
-        return -MESHX_ERR_INVAL;
+        return MESHX_ERR_INVAL;
     }
 
     if (MESHX_BEARER_TYPE_ADV != prov_dev->bearer->type)
     {
         MESHX_WARN("link open message can only send on advertising bearer!");
-        return -MESHX_ERR_INVAL;
+        return MESHX_ERR_INVAL;
     }
 
-    int32_t ret = meshx_pb_adv_link_open(prov_dev);
-    if (MESHX_SUCCESS == ret)
-    {
-        prov_dev->state = MESHX_PROVISION_STATE_LINK_OPENING;
-    }
-
-    return ret;
+    return meshx_pb_adv_link_open(prov_dev);
 }
 
 int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
@@ -116,7 +92,7 @@ int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reaso
     if (NULL == prov_dev)
     {
         MESHX_ERROR("provision device value is NULL");
-        return -MESHX_ERR_INVAL;
+        return MESHX_ERR_INVAL;
     }
     return meshx_pb_adv_link_close(prov_dev, reason);
 }
@@ -127,20 +103,20 @@ int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
     if (NULL == prov_dev)
     {
         MESHX_ERROR("provision device value is NULL");
-        return -MESHX_ERR_INVAL;
+        return MESHX_ERR_INVAL;
     }
 
     if ((prov_dev->state < MESHX_PROVISION_STATE_LINK_OPENED) ||
         (prov_dev->state > MESHX_PROVISION_STATE_INVITE))
     {
         MESHX_ERROR("invalid state: %d", prov_dev->state);
-        return -MESHX_ERR_STATE;
+        return MESHX_ERR_STATE;
     }
 
     if (MESHX_PROVISION_STATE_INVITE == prov_dev->state)
     {
         MESHX_WARN("already in invite procedure");
-        return -MESHX_ERR_ALREADY;
+        return MESHX_ERR_ALREADY;
     }
 
     int32_t ret = MESHX_SUCCESS;
@@ -153,56 +129,11 @@ int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
         break;
     default:
         MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
-        ret = -MESHX_ERR_INVAL;
+        ret = MESHX_ERR_INVAL;
         break;
     }
 
     return ret;
-}
-
-void meshx_provision_state_changed(meshx_dev_uuid_t dev_uuid, uint8_t new_state, uint8_t old_state)
-{
-#if 0
-    /* notify app state changed */
-    meshx_provision_state_changed_t state_changed;
-    state_changed.new_state = new_state;
-    state_changed.old_state = old_state;
-    memcpy(state_changed.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
-    int32_t ret = MESHX_SUCCESS;
-    if (NULL != prov_cb)
-    {
-        ret = prov_cb(MESHX_PROVISION_CB_TYPE_STATE_CHANGED, &state_changed);
-    }
-
-    bool is_myself = FALSE;
-    meshx_dev_uuid_t uuid_self;
-    meshx_get_device_uuid(uuid_self);
-    if (0 == memcmp(uuid_self, dev_uuid, sizeof(meshx_dev_uuid_t)))
-    {
-        is_myself = TRUE;
-    }
-
-    if (-MESHX_ERR_STOP != ret)
-    {
-        switch (new_state)
-        {
-        case MESHX_PROVISION_STATE_LINK_OPENED:
-            if (!is_myself)
-            {
-                if (-MESHX_ERR_STOP != ret)
-                {
-                    meshx_provision_invite_t invite = {0};
-                    meshx_pb_adv_invite(dev_uuid, invite);
-                }
-            }
-            break;
-        case MESHX_PROVISION_STATE_INVITE:
-            break;
-        default:
-            break;
-        }
-    }
-#endif
 }
 
 int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
@@ -216,8 +147,9 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
     case MESHX_PROVISION_TYPE_INVITE:
         if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_invite_t))
         {
+            /* TODO: provision failed: invalid format */
             MESHX_ERROR("invalid ivnvite pdu length: %d", len);
-            ret = -MESHX_ERR_LENGTH;
+            ret = MESHX_ERR_LENGTH;
         }
         else
         {
@@ -225,7 +157,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_provision_invite_t invite = pprov_pdu->invite;
             if (NULL != prov_cb)
             {
-                prov_cb(MESHX_PROVISION_CB_TYPE_SET_INVITE, &invite);
+                prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_SET_INVITE, &invite);
             }
         }
         break;
@@ -233,6 +165,8 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
 #if MESHX_ROLE_PROVISIONER
     case MESHX_PROVISION_TYPE_CAPABILITES:
         break;
+#endif
+#if MESHX_ROLE_DEVICE
     case MESHX_PROVISION_TYPE_START:
         break;
 #endif
@@ -244,16 +178,22 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         break;
     case MESHX_PROVISION_TYPE_RANDOM:
         break;
+#if MESHX_ROLE_DEVICE
     case MESHX_PROVISION_TYPE_DATA:
         break;
+#endif
     case MESHX_PROVISION_TYPE_COMPLETE:
         break;
     case MESHX_PROVISION_TYPE_FAILED:
         break;
     default:
+        /* TODO: provision failed: invalid pdu */
+
         break;
     }
 
     /* notify app state changed */
     return ret;
 }
+
+

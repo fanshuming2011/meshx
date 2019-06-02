@@ -72,7 +72,7 @@ int32_t meshx_timer_start(meshx_timer_t timer, uint32_t interval)
     if (NULL == ptimer_wrapper)
     {
         MESHX_ERROR("invalid timer: 0x%x", timer);
-        return -MESHX_ERR_INVAL;
+        return MESHX_ERR_INVAL;
     }
 
     struct itimerspec it;
@@ -94,7 +94,7 @@ int32_t meshx_timer_start(meshx_timer_t timer, uint32_t interval)
     if (timer_settime(ptimer_wrapper->timer, 0, &it, NULL) == -1)
     {
         MESHX_ERROR("failed to set timer");
-        return -MESHX_ERR_FAIL;
+        return MESHX_ERR_FAIL;
     }
 
     return MESHX_SUCCESS;
