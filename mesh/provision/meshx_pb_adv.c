@@ -564,13 +564,24 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *
     pdev->acked_trans_num = 0x00;
     pdev->dev.state = MESHX_PROVISION_STATE_LINK_OPENED;
 
+    int32_t ret = MESHX_SUCCESS;
     if (NULL != prov_cb)
     {
         /* notify app link opened */
         meshx_provision_link_open_t link_open = {MESHX_PROVISION_LINK_OPEN_SUCCESS};
-        prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_OPEN, &link_open);
+        ret = prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_OPEN, &link_open);
     }
 
+    if (MESHX_SUCCESS == ret)
+    {
+        meshx_provision_invite_t invite = {0x00};
+        if (NULL != prov_cb)
+        {
+            prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_GET_INVITE, &invite);
+        }
+        /* start invite */
+        meshx_pb_adv_invite(&pdev->dev, invite);
+    }
     return MESHX_SUCCESS;
 }
 
@@ -652,7 +663,7 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
 
     int32_t ret = meshx_provision_pdu_process(&pdev->dev, pdev->prov_rx_pdu.data,
                                               pdev->trans_data_len);
-    if (MESHX_SUCCESS != ret)
+    if (ret < 0)
     {
         pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                           MESHX_LINK_CLOSE_REASON_FAIL);

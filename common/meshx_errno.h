@@ -8,7 +8,6 @@
 #ifndef _MESHX_ERRNO_H_
 #define _MESHX_ERRNO_H_
 
-#define MESHX_SUCCESS_STOP             1
 #define MESHX_SUCCESS                  0 /* Operation success */
 #define MESHX_ERR_FAIL                 -1 /* Operation failed */
 #define MESHX_ERR_MEM                  -2 /* Out of memory */

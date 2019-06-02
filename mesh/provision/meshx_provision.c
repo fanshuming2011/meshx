@@ -157,7 +157,12 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_provision_invite_t invite = pprov_pdu->invite;
             if (NULL != prov_cb)
             {
-                prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_SET_INVITE, &invite);
+                ret = prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_SET_INVITE, &invite);
+            }
+
+            if (MESHX_SUCCESS == ret)
+            {
+                /* send capabilites */
             }
         }
         break;
