@@ -67,7 +67,8 @@ static void *meshx_thread(void *pargs)
     meshx_network_if_connect(adv_network_if, adv_bearer, NULL, NULL);
 
     meshx_dev_uuid_t dev_uuid = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-    meshx_provision_link_open(adv_bearer, dev_uuid);
+    meshx_provision_dev_t prov_dev = meshx_provision_create_device(adv_bearer, dev_uuid);
+    meshx_provision_link_open(prov_dev);
 
     //uint8_t test_data[] = {1, 2, 3, 4, 5, 6};
 

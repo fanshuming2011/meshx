@@ -66,9 +66,10 @@ MESHX_EXTERN meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t 
 MESHX_EXTERN void meshx_provision_delete_device(meshx_provision_dev_t prov_dev);
 
 MESHX_EXTERN int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev);
-MESHX_EXTERN int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev);
+MESHX_EXTERN int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reason);
 
-MESHX_EXTERN int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev);
+MESHX_EXTERN int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
+                                            meshx_provision_invite_t invite);
 
 MESHX_END_DECLS
 

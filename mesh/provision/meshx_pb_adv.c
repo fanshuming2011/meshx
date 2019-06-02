@@ -227,7 +227,7 @@ static int32_t pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id, uint8_t tr
     prov_pdu.metadata.type = MESHX_PROVISION_TYPE_INVITE;
     prov_pdu.metadata.padding = 0;
     prov_pdu.invite = invite;
-    return meshx_pb_adv_send(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
+    return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
                              sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_invite_t));
 }
 #endif
@@ -294,22 +294,6 @@ static meshx_pb_adv_dev_t *meshx_find_prov_dev_by_link_id(uint32_t link_id)
 int32_t meshx_pb_adv_link_open(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
-
-    /* check whether is myself */
-    meshx_dev_uuid_t uuid_self;
-    meshx_get_device_uuid(uuid_self);
-    if (0 == memcmp(uuid_self, prov_dev->dev_uuid, sizeof(meshx_dev_uuid_t)))
-    {
-        MESHX_ERROR("can't not provision myself");
-        return -MESHX_ERR_INVAL;
-    }
-
-    /* check device state */
-    if (prov_dev->state > MESHX_PROV_STATE_IDLE)
-    {
-        MESHX_WARN("device is already in provision procedure");
-        return -MESHX_ERR_BUSY;
-    }
 
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
 
@@ -390,29 +374,10 @@ int32_t meshx_pb_adv_trans_ack(meshx_provision_dev_t prov_dev)
     return ret;
 }
 
-static int32_t meshx_pb_adv_invite_internal(meshx_provision_dev_t *pdev,
-                                            meshx_provision_invite_t invite)
-{
-}
-
-
 int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
                             meshx_provision_invite_t invite)
 {
     MESHX_ASSERT(NULL != prov_dev);
-    if ((prov_dev->state < MESHX_PROV_STATE_LINK_OPENED) ||
-        (prov_dev->state > MESHX_PROV_STATE_INVITE))
-    {
-        MESHX_ERROR("invalid state: %d", prov_dev->state);
-        return -MESHX_ERR_STATE;
-    }
-
-    if (MESHX_PROV_STATE_INVITE == prov_dev->state)
-    {
-        MESHX_WARN("already in invite procedure");
-        return -MESHX_ERR_ALREADY;
-    }
-
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     pb_adv_invite(prov_dev->bearer, pdev->link_id, meshx_prov_require_trans_num(pdev), invite);
 
@@ -867,7 +832,7 @@ meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_de
     {
         MESHX_ERROR("create pb adv device failed: create link timer failed!");
         meshx_free(pdev);
-        return ret;
+        return NULL;
     }
 
     ret = meshx_timer_create(&pdev->retry_timer, MESHX_TIMER_MODE_REPEATED,
@@ -877,8 +842,12 @@ meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_de
         MESHX_ERROR("create pb adv device failed: create trans timer failed!");
         meshx_timer_delete(pdev->link_loss_timer);
         meshx_free(pdev);
-        return ret;
+        return NULL;
     }
+
+    /* copy data */
+    pdev->dev.bearer = bearer;
+    memcpy(pdev->dev.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
 
     meshx_list_append(&pb_adv_devs, &pdev->node);
 

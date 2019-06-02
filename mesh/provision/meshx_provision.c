@@ -77,7 +77,7 @@ void meshx_provision_delete_device(meshx_provision_dev_t prov_dev)
         switch (prov_dev->bearer->type)
         {
         case MESHX_BEARER_TYPE_ADV:
-            prov_dev = meshx_pb_adv_delete_device(prov_dev);
+            meshx_pb_adv_delete_device(prov_dev);
             break;
         case MESHX_BEARER_TYPE_GATT:
             break;
@@ -90,45 +90,93 @@ void meshx_provision_delete_device(meshx_provision_dev_t prov_dev)
 
 int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev)
 {
-    if (NULL == bearer)
+    if (NULL == prov_dev)
     {
-        MESHX_ERROR("bearer value is NULL");
+        MESHX_ERROR("provision device value is NULL");
         return -MESHX_ERR_INVAL;
     }
 
-    if (MESHX_BEARER_TYPE_ADV != bearer->type)
+    if (MESHX_BEARER_TYPE_ADV != prov_dev->bearer->type)
     {
         MESHX_WARN("link open message can only send on advertising bearer!");
         return -MESHX_ERR_INVAL;
     }
 
-    return meshx_pb_adv_link_open(bearer, dev_uuid);
+    /* check whether is myself */
+    meshx_dev_uuid_t uuid_self;
+    meshx_get_device_uuid(uuid_self);
+    if (0 == memcmp(uuid_self, prov_dev->dev_uuid, sizeof(meshx_dev_uuid_t)))
+    {
+        MESHX_ERROR("can't not provision myself");
+        return -MESHX_ERR_INVAL;
+    }
+
+    /* check device state */
+    if (prov_dev->state > MESHX_PROVISION_STATE_IDLE)
+    {
+        MESHX_WARN("device is already in provision procedure: %d", prov_dev->state);
+        return -MESHX_ERR_BUSY;
+    }
+
+    int32_t ret = meshx_pb_adv_link_open(prov_dev);
+    if (MESHX_SUCCESS == ret)
+    {
+        prov_dev->state = MESHX_PROVISION_STATE_LINK_OPENING;
+    }
+
+    return ret;
 }
 
-int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev)
+int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
 {
-    return meshx_pb_adv_link_close(dev_uuid, reason);
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("provision device value is NULL");
+        return -MESHX_ERR_INVAL;
+    }
+
+    /* check device state */
+    if (prov_dev->state <= MESHX_PROVISION_STATE_LINK_OPENING)
+    {
+        MESHX_WARN("device is not in provision procedure: %d", prov_dev->state);
+        return -MESHX_ERR_BUSY;
+    }
+
+    return meshx_pb_adv_link_close(prov_dev, reason);
 }
 
 int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
                                meshx_provision_invite_t invite)
 {
-    if (NULL == bearer)
+    if (NULL == prov_dev)
     {
-        MESHX_ERROR("bearer value is NULL");
+        MESHX_ERROR("provision device value is NULL");
         return -MESHX_ERR_INVAL;
     }
 
+    if ((prov_dev->state < MESHX_PROVISION_STATE_LINK_OPENED) ||
+        (prov_dev->state > MESHX_PROVISION_STATE_INVITE))
+    {
+        MESHX_ERROR("invalid state: %d", prov_dev->state);
+        return -MESHX_ERR_STATE;
+    }
+
+    if (MESHX_PROVISION_STATE_INVITE == prov_dev->state)
+    {
+        MESHX_WARN("already in invite procedure");
+        return -MESHX_ERR_ALREADY;
+    }
+
     int32_t ret = MESHX_SUCCESS;
-    switch (bearer->type)
+    switch (prov_dev->bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
-        ret = meshx_pb_adv_invite(dev_uuid, invite);
+        ret = meshx_pb_adv_invite(prov_dev, invite);
         break;
     case MESHX_BEARER_TYPE_GATT:
         break;
     default:
-        MESHX_WARN("invalid bearer type: %d", bearer->type);
+        MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
         ret = -MESHX_ERR_INVAL;
         break;
     }
@@ -138,6 +186,7 @@ int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
 
 void meshx_provision_state_changed(meshx_dev_uuid_t dev_uuid, uint8_t new_state, uint8_t old_state)
 {
+#if 0
     /* notify app state changed */
     meshx_provision_state_changed_t state_changed;
     state_changed.new_state = new_state;
@@ -177,6 +226,7 @@ void meshx_provision_state_changed(meshx_dev_uuid_t dev_uuid, uint8_t new_state,
             break;
         }
     }
+#endif
 }
 
 int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,

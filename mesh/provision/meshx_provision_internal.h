@@ -10,6 +10,7 @@
 #define _MESHX_PROVISION_INTERNAL_H_
 
 #include "meshx_bearer.h"
+#include "meshx_provision.h"
 
 MESHX_BEGIN_DECLS
 
