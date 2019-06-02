@@ -102,22 +102,6 @@ int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev)
         return -MESHX_ERR_INVAL;
     }
 
-    /* check whether is myself */
-    meshx_dev_uuid_t uuid_self;
-    meshx_get_device_uuid(uuid_self);
-    if (0 == memcmp(uuid_self, prov_dev->dev_uuid, sizeof(meshx_dev_uuid_t)))
-    {
-        MESHX_ERROR("can't not provision myself");
-        return -MESHX_ERR_INVAL;
-    }
-
-    /* check device state */
-    if (prov_dev->state > MESHX_PROVISION_STATE_IDLE)
-    {
-        MESHX_WARN("device is already in provision procedure: %d", prov_dev->state);
-        return -MESHX_ERR_BUSY;
-    }
-
     int32_t ret = meshx_pb_adv_link_open(prov_dev);
     if (MESHX_SUCCESS == ret)
     {
@@ -134,14 +118,6 @@ int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reaso
         MESHX_ERROR("provision device value is NULL");
         return -MESHX_ERR_INVAL;
     }
-
-    /* check device state */
-    if (prov_dev->state <= MESHX_PROVISION_STATE_LINK_OPENING)
-    {
-        MESHX_WARN("device is not in provision procedure: %d", prov_dev->state);
-        return -MESHX_ERR_BUSY;
-    }
-
     return meshx_pb_adv_link_close(prov_dev, reason);
 }
 
