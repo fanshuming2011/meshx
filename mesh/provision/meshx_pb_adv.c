@@ -71,8 +71,9 @@ typedef struct
     } prov_tx_pdu;
 
     uint8_t last_seg_num;
+    uint8_t fcs;
     uint8_t recv_seg[MESHX_TRANS_SEG_NUM_MAX / 8];
-    uint16_t trans_data_len;
+    uint16_t trans_data_len; /* 0: no trans data has been received >0: trans data length */
     union
     {
         meshx_provision_pdu_t pdu;
@@ -283,7 +284,6 @@ static void meshx_retry_timeout_handler(void *pargs)
             meshx_pb_adv_delete_device(pdev);
         }
         break;
-
     case MESHX_PROVISION_STATE_INVITE:
         pb_adv_invite(pdev->dev.bearer, pdev->link_id,
                       pdev->tx_trans_num, pdev->prov_tx_pdu.invite);
@@ -467,6 +467,8 @@ int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     pb_adv_invite(prov_dev->bearer, pdev->link_id, meshx_prov_require_trans_num(pdev), invite);
+    pdev->dev.state = MESHX_PROVISION_STATE_INVITE;
+    pdev->prov_tx_pdu.invite = invite;
 
     /* start retry timer */
     pdev->retry_time = 0;
@@ -525,6 +527,8 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
 
     pdev->link_id = link_id;
     pdev->dev.state = MESHX_PROVISION_STATE_LINK_OPENING;
+    pdev->acked_trans_num = 0xff;
+    pdev->trans_data_len = 0;
     MESHX_INFO("receive link open: %d", link_id);
 
     return meshx_pb_adv_link_ack(prov_dev);
@@ -603,6 +607,7 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
         return MESHX_ERR_RESOURCE;
     }
 
+    MESHX_INFO("link closed: %d", link_id);
     if (NULL != prov_cb)
     {
         /* notify app link closed */
@@ -661,8 +666,21 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
     MESHX_DEBUG("receive provision data: ");
     MESHX_DUMP_DEBUG(pdev->prov_rx_pdu.data, pdev->trans_data_len);
 
+    uint8_t fcs = meshx_3gpp_crc(pdev->prov_rx_pdu.data, pdev->trans_data_len);
+    if (fcs != pdev->fcs)
+    {
+        MESHX_ERROR("calculated fcs(%d) doesn't match received fcs(%d)", fcs, pdev->fcs);
+        /* clear trans data to enable receive new trans packet */
+        pdev->trans_data_len = 0;
+        return MESHX_ERR_FAIL;
+    }
+
+    meshx_pb_adv_trans_ack(&pdev->dev);
+    uint16_t data_len = pdev->trans_data_len;
+    /* clear trans data to enable receive new trans packet */
+    pdev->trans_data_len = 0;
     int32_t ret = meshx_provision_pdu_process(&pdev->dev, pdev->prov_rx_pdu.data,
-                                              pdev->trans_data_len);
+                                              data_len);
     if (ret < 0)
     {
         pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
@@ -724,13 +742,6 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
         return MESHX_SUCCESS;
     }
 
-    if (!MESHX_IS_BIT_FIELD_SET(pdev->recv_seg, 0))
-    {
-        /* receive another trans start */
-        MESHX_WARN("trans start has already been successfully received!");
-        return MESHX_ERR_ALREADY;
-    }
-
     uint16_t total_len = MESHX_BE16_TO_HOST(ppkt->trans_start.metadata.total_len);
     if ((0 == total_len) || (total_len > MESHX_TRANS_DATA_VALID_MAX_LEN))
     {
@@ -746,17 +757,30 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
         return MESHX_ERR_LENGTH;
     }
 
+    if (0 == pdev->trans_data_len)
+    {
+        /* receive trans start first time */
+        for (uint8_t i = 0; i < MESHX_TRANS_SEG_NUM_MAX / 8; ++i)
+        {
+            pdev->recv_seg[i] = 0;
+        }
+        for (uint8_t i = 0; i <= ppkt->trans_start.metadata.last_seg_num; ++i)
+        {
+            MESHX_BIT_FIELD_SET(pdev->recv_seg, i);
+        }
+    }
+
+    if (!MESHX_IS_BIT_FIELD_SET(pdev->recv_seg, 0))
+    {
+        /* receive another trans start */
+        MESHX_WARN("trans start has already been successfully received!");
+        return MESHX_ERR_ALREADY;
+    }
+
     pdev->trans_data_len = total_len;
     pdev->rx_trans_num = ppkt->metadata.trans_num;
-    for (uint8_t i = 0; i < MESHX_TRANS_SEG_NUM_MAX / 8; ++i)
-    {
-        pdev->recv_seg[i] = 0;
-    }
-    for (uint8_t i = 0; i <= ppkt->trans_start.metadata.last_seg_num; ++i)
-    {
-        MESHX_BIT_FIELD_SET(pdev->recv_seg, i);
-    }
     pdev->last_seg_num = ppkt->trans_start.metadata.last_seg_num;
+    pdev->fcs = ppkt->trans_start.metadata.fcs;
 
     uint8_t recv_data_len = len - MESHX_TRANS_START_METADATA_LEN;
     if (0 == ppkt->trans_start.metadata.last_seg_num)
@@ -826,14 +850,14 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer, const uin
     {
         MESHX_WARN("receive dismatched trans num:%d-%d", pdev->rx_trans_num,
                    ppkt->metadata.trans_num);
-        return MESHX_ERR_FAIL;
+        return MESHX_ERR_DIFF;
     }
 
     if (0 == pdev->trans_data_len)
     {
         /* receive trans continue message before trans start message */
         MESHX_WARN("receive trans continue message before trans start message!");
-        return MESHX_ERR_FAIL;
+        return MESHX_ERR_TIMING;
     }
 
     if (ppkt->trans_continue.metadata.seg_index > pdev->last_seg_num)
@@ -888,7 +912,7 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer, const uin
 
 static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
-    if (len < sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_start_metadata_t))
+    if (len < sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_ack_metadata_t))
     {
         MESHX_WARN("invalid trans continue pdu length: %d", len);
         return MESHX_ERR_LENGTH;
@@ -902,11 +926,13 @@ static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const uint8_t 
         return MESHX_ERR_INVAL;
     }
 
+    MESHX_INFO("link(%d) receive trans ack(%d)", link_id, ppkt->metadata.trans_num);
+
     /* stop retry timer */
     meshx_timer_stop(pdev->retry_timer);
     pdev->retry_time = 0;
 
-    return -MESHX_SUCCESS;
+    return MESHX_SUCCESS;
 }
 
 int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)

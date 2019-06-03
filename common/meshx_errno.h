@@ -25,6 +25,7 @@
 #define MESHX_ERR_DIFF                 -15 /* Value is different */
 #define MESHX_ERR_STOP                 -16 /* Stop execution */
 #define MESHX_ERR_RESOURCE             -17 /* No resource */
+#define MESHX_ERR_TIMING               -18 /* Error timing */
 
 #if 0
 #define EPERM        1  /* Operation not permitted */
