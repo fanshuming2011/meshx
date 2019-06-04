@@ -47,6 +47,26 @@ void linux_send_string(const char *pdata, uint32_t len)
 
 int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *pargs)
 {
+    switch (type)
+    {
+    case MESHX_PROVISION_CB_TYPE_LINK_OPEN:
+        //meshx_provision_link_open_t *pdata = pargs;
+        break;
+    case MESHX_PROVISION_CB_TYPE_LINK_CLOSE:
+        //meshx_provision_link_close_t *pdata = pargs;
+        break;
+    case MESHX_PROVISION_CB_TYPE_GET_INVITE:
+        //meshx_provision_invite_t *pdata = pargs;
+        break;
+    case MESHX_PROVISION_CB_TYPE_SET_INVITE:
+        //meshx_provision_invite_t *pdata = pargs;
+        break;
+    case MESHX_PROVISION_CB_TYPE_FAILED:
+        /* @ref meshx provisison failed error code macros */
+        break;
+    case MESHX_PROVISION_CB_TYPE_COMPLETE:
+        break;
+    }
     return MESHX_SUCCESS;
 }
 

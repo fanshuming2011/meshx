@@ -29,6 +29,7 @@
 
 #define MESHX_LINK_LOSS_TIME                    60000 /* unit is ms */
 #define MESHX_LINK_RETRY_PERIOD                 200 /* unit is ms */
+#define MESHX_LINK_MONITOR_PERIOD               1000 /* unit is ms */
 
 #define MESHX_TRANS_LOSS_TIME                   30000 /* unit is ms */
 #define MESHX_TRANS_RETRY_PERIOD                500 /* unit is ms */
@@ -62,6 +63,7 @@ typedef struct
     uint8_t acked_trans_num;
 
     uint32_t retry_time;
+    uint32_t link_monitor_time;
     meshx_timer_t link_loss_timer;
     meshx_timer_t retry_timer;
 
@@ -251,16 +253,20 @@ static int32_t pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id, uint8_t tr
 static void meshx_link_loss_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
-    MESHX_ERROR("link loss in state: %d", pdev->dev.state);
-    pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
-                      MESHX_LINK_CLOSE_REASON_TIMEOUT);
-    if (NULL != prov_cb)
+    pdev->link_monitor_time += MESHX_LINK_MONITOR_PERIOD;
+    if (pdev->link_monitor_time > MESHX_LINK_LOSS_TIME)
     {
-        /* notify app link loss */
-        meshx_provision_link_close_t link_close = {MESHX_PROVISION_LINK_CLOSE_LINK_LOSS};
-        prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
+        MESHX_ERROR("link loss in state: %d", pdev->dev.state);
+        pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
+                          MESHX_LINK_CLOSE_REASON_TIMEOUT);
+        if (NULL != prov_cb)
+        {
+            /* notify app link loss */
+            meshx_provision_link_close_t link_close = {MESHX_PROVISION_LINK_CLOSE_LINK_LOSS};
+            prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
+        }
+        meshx_pb_adv_delete_device(pdev);
     }
-    meshx_pb_adv_delete_device(pdev);
 }
 
 static void meshx_retry_timeout_handler(void *pargs)
@@ -383,7 +389,8 @@ int32_t meshx_pb_adv_link_ack(meshx_provision_dev_t prov_dev)
         }
 
         /* start link loss timer */
-        meshx_timer_start(pdev->link_loss_timer, MESHX_LINK_LOSS_TIME);
+        pdev->link_monitor_time = 0;
+        meshx_timer_start(pdev->link_loss_timer, MESHX_LINK_MONITOR_PERIOD);
     }
 
     return ret;
@@ -576,6 +583,9 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *
         ret = prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_OPEN, &link_open);
     }
 
+    /* start link loss timer */
+    pdev->link_monitor_time = 0;
+    meshx_timer_start(pdev->link_loss_timer, MESHX_LINK_MONITOR_PERIOD);
     if (MESHX_SUCCESS == ret)
     {
         meshx_provision_invite_t invite = {0x00};
@@ -679,6 +689,8 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
     uint16_t data_len = pdev->trans_data_len;
     /* clear trans data to enable receive new trans packet */
     pdev->trans_data_len = 0;
+    /* reset link loss timer */
+    pdev->link_monitor_time = 0;
     int32_t ret = meshx_provision_pdu_process(&pdev->dev, pdev->prov_rx_pdu.data,
                                               data_len);
     if (ret < 0)
@@ -931,6 +943,8 @@ static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const uint8_t 
     /* stop retry timer */
     meshx_timer_stop(pdev->retry_timer);
     pdev->retry_time = 0;
+    /* reset link loss timer */
+    pdev->link_monitor_time = 0;
 
     return MESHX_SUCCESS;
 }
