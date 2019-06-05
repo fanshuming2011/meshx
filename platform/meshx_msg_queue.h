@@ -14,9 +14,6 @@ MESHX_BEGIN_DECLS
 
 typedef void *meshx_msg_queue_t;
 
-MESHX_EXTERN int32_t meshx_msg_queue_create(meshx_msg_queue_t *pmsg_queue, uint32_t msg_num,
-                                            uint32_t msg_size);
-MESHX_EXTERN void meshx_msg_queue_delete(meshx_msg_queue_t msg_queue);
 MESHX_EXTERN int32_t meshx_msg_queue_receive(meshx_msg_queue_t msg_queue, void *pmsg,
                                              uint32_t wait_ms);
 MESHX_EXTERN int32_t meshx_msg_queue_send(meshx_msg_queue_t msg_queue, void *pmsg);

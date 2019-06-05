@@ -11,7 +11,7 @@ set(COMMON_SRC_LIST
     ../platform/linux/meshx_system.c
     ../platform/linux/meshx_timer.c
     ../platform/linux/meshx_misc.c
-    ../platform/linux/meshx_msg_queue.c
+    ../platform/linux/msg_queue.c
     ../common/meshx_trace.c
     ../common/meshx_assert.c
     ../common/meshx_list.c
