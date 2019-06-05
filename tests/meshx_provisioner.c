@@ -15,11 +15,11 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include "meshx.h"
+#include "msg_queue.h"
 //#include "meshx_mem.h"
 
 #define FIFO_DSPR  "/tmp/fifo_dspr"
 #define FIFO_PSDR  "/tmp/fifo_psdr"
-
 
 static pthread_t meshx_tid;
 static pthread_t meshx_receive;
@@ -72,6 +72,8 @@ int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *
 
 static void *meshx_thread(void *pargs)
 {
+    meshx_msg_queue_t msg_queue = NULL;
+    msg_queue_create(&msg_queue, 10, 1);
     meshx_trace_init(linux_send_string);
     meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
     meshx_gap_init();
@@ -90,12 +92,13 @@ static void *meshx_thread(void *pargs)
     meshx_provision_dev_t prov_dev = meshx_provision_create_device(adv_bearer, dev_uuid);
     meshx_provision_link_open(prov_dev);
 
-    //uint8_t test_data[] = {1, 2, 3, 4, 5, 6};
-
     while (1)
     {
-        //write(fd_psdr, test_data, 6);
-        sleep(1);
+        uint8_t event;
+        if (msg_queue_receive(msg_queue, &event, -1))
+        {
+            MESHX_INFO("event come: %d", event);
+        }
     }
     pthread_exit((void *)0);
 }

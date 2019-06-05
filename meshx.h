@@ -11,6 +11,7 @@
 #include "meshx_types.h"
 #include "meshx_errno.h"
 #include "meshx_trace.h"
+#include "meshx_msg_queue.h"
 #include "meshx_gap.h"
 #include "meshx_bearer.h"
 #include "meshx_network.h"
