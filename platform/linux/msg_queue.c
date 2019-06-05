@@ -21,8 +21,7 @@ typedef struct
     uint32_t msg_size;
 } meshx_msg_queue_wrapper_t;
 
-
-int32_t meshx_msg_queue_create(meshx_msg_queue_t *pmsg_queue, uint32_t msg_num, uint32_t msg_size)
+int32_t msg_queue_create(meshx_msg_queue_t *pmsg_queue, uint32_t msg_num, uint32_t msg_size)
 {
     meshx_msg_queue_wrapper_t *pmsg = meshx_malloc(sizeof(meshx_msg_queue_wrapper_t));
     if (NULL == pmsg)
@@ -48,24 +47,34 @@ int32_t meshx_msg_queue_create(meshx_msg_queue_t *pmsg_queue, uint32_t msg_num, 
     return MESHX_SUCCESS;
 }
 
-void meshx_msg_queue_delete(meshx_msg_queue_t msg_queue)
+void msg_queue_delete(meshx_msg_queue_t msg_queue)
 {
     meshx_msg_queue_wrapper_t *pmsg = msg_queue;
     close(pmsg->fd_read);
     close(pmsg->fd_write);
 }
 
-int32_t meshx_msg_queue_receive(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait_ms)
+int32_t msg_queue_receive(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait_ms)
 {
     meshx_msg_queue_wrapper_t *pmsg_queue = (meshx_msg_queue_wrapper_t *)msg_queue;
     read(pmsg_queue->fd_read, pmsg, pmsg_queue->msg_size);
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_msg_queue_send(meshx_msg_queue_t msg_queue, void *pmsg)
+int32_t msg_queue_send(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait_ms)
 {
     meshx_msg_queue_wrapper_t *pmsg_queue = (meshx_msg_queue_wrapper_t *)msg_queue;
     write(pmsg_queue->fd_read, pmsg, pmsg_queue->msg_size);
     return MESHX_SUCCESS;
+}
+
+int32_t meshx_msg_queue_receive(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait_ms)
+{
+    return msg_queue_receive(msg_queue, pmsg, wait_ms);
+}
+
+int32_t meshx_msg_queue_send(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait_ms)
+{
+    return msg_queue_send(msg_queue, pmsg, wait_ms);
 }
 
