@@ -19,8 +19,6 @@ MESHX_EXTERN int32_t meshx_msg_queue_create(meshx_msg_queue_t *pmsg_queue, uint3
 MESHX_EXTERN void meshx_msg_queue_delete(meshx_msg_queue_t msg_queue);
 MESHX_EXTERN int32_t meshx_msg_queue_receive(meshx_msg_queue_t msg_queue, void *pmsg,
                                              uint32_t wait_ms);
-MESHX_EXTERN int32_t meshx_msg_queue_peek(meshx_msg_queue_t msg_queue, void *pmsg,
-                                          uint32_t wait_ms);
 MESHX_EXTERN int32_t meshx_msg_queue_send(meshx_msg_queue_t msg_queue, void *pmsg);
 
 MESHX_END_DECLS
