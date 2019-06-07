@@ -4,7 +4,9 @@ include_directories(../common
                     ../mesh/provision
                     ../mesh/inc
                     ../mesh/gap
+                    ../mesh/common
                     ../platform
+                    ../platform/linux
                     ../)
 set(COMMON_SRC_LIST
     ../platform/linux/meshx_mem.c
@@ -16,7 +18,8 @@ set(COMMON_SRC_LIST
     ../common/meshx_assert.c
     ../common/meshx_list.c
     ../common/meshx_3gpp_crc.c
-    ../mesh/node/meshx_node.c
+    ../mesh/common/meshx_node.c
+    ../mesh/common/meshx_async.c
     ../mesh/gap/meshx_gap.c
     ../mesh/bearer/meshx_bearer.c
     ../mesh/bearer/meshx_bearer_adv.c

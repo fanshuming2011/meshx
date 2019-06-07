@@ -8,9 +8,12 @@
 #ifndef _MSG_QUEUE_H_
 #define _MSG_QUEUE_H_
 
-#include "meshx_msg_queue.h"
+#include "meshx_types.h"
+
 
 MESHX_BEGIN_DECLS
+
+typedef void *meshx_msg_queue_t;
 
 MESHX_EXTERN int32_t msg_queue_create(meshx_msg_queue_t *pmsg_queue, uint32_t msg_num,
                                       uint32_t msg_size);

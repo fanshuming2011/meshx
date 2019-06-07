@@ -11,6 +11,7 @@
 
 #include "meshx_bearer.h"
 #include "meshx_provision.h"
+#include "meshx_async.h"
 
 MESHX_BEGIN_DECLS
 
@@ -34,6 +35,9 @@ MESHX_EXTERN int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_
                                              uint8_t len);
 MESHX_EXTERN int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
                                                  const uint8_t *pdata, uint8_t len);
+
+MESHX_EXTERN void meshx_pb_adv_async_handle_timeout(meshx_async_msg_t *pmsg);
+
 MESHX_END_DECLS
 
 #endif

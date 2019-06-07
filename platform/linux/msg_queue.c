@@ -6,10 +6,10 @@
  *
  * See the LICENSE file for the terms of usage and distribution.
  */
+#include "msg_queue.h"
 #include <unistd.h>
 #define TRACE_MOULE "MSG_QUEUE"
 #include "meshx_trace.h"
-#include "meshx_msg_queue.h"
 #include "meshx_errno.h"
 #include "meshx_mem.h"
 
@@ -64,17 +64,7 @@ int32_t msg_queue_receive(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait
 int32_t msg_queue_send(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait_ms)
 {
     meshx_msg_queue_wrapper_t *pmsg_queue = (meshx_msg_queue_wrapper_t *)msg_queue;
-    write(pmsg_queue->fd_read, pmsg, pmsg_queue->msg_size);
+    write(pmsg_queue->fd_write, pmsg, pmsg_queue->msg_size);
     return MESHX_SUCCESS;
-}
-
-int32_t meshx_msg_queue_receive(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait_ms)
-{
-    return msg_queue_receive(msg_queue, pmsg, wait_ms);
-}
-
-int32_t meshx_msg_queue_send(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait_ms)
-{
-    return msg_queue_send(msg_queue, pmsg, wait_ms);
 }
 

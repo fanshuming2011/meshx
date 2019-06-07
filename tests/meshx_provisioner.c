@@ -18,6 +18,8 @@
 #include "msg_queue.h"
 //#include "meshx_mem.h"
 
+meshx_msg_queue_t msg_queue = NULL;
+
 #define FIFO_DSPR  "/tmp/fifo_dspr"
 #define FIFO_PSDR  "/tmp/fifo_psdr"
 
@@ -70,10 +72,20 @@ int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *
     return MESHX_SUCCESS;
 }
 
+static int32_t meshx_async_msg_notify_handler(const meshx_async_msg_t *pmsg)
+{
+    uint64_t data = (uint64_t)pmsg;
+    msg_queue_send(msg_queue, &data, 0);
+
+    return MESHX_SUCCESS;
+}
+
 static void *meshx_thread(void *pargs)
 {
-    meshx_msg_queue_t msg_queue = NULL;
-    msg_queue_create(&msg_queue, 10, 1);
+    msg_queue_create(&msg_queue, 10, 8);
+    meshx_async_msg_set_notify(meshx_async_msg_notify_handler);
+
+
     meshx_trace_init(linux_send_string);
     meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
     meshx_gap_init();
@@ -94,10 +106,12 @@ static void *meshx_thread(void *pargs)
 
     while (1)
     {
-        uint8_t event;
-        if (msg_queue_receive(msg_queue, &event, -1))
+        uint64_t data;
+        if (MESHX_SUCCESS == msg_queue_receive(msg_queue, &data, -1))
         {
-            MESHX_INFO("event come: %d", event);
+            meshx_async_msg_t *pmsg = (meshx_async_msg_t *)data;
+            MESHX_INFO("msg come: 0x%08x", pmsg);
+            meshx_async_msg_process(pmsg);
         }
     }
     pthread_exit((void *)0);

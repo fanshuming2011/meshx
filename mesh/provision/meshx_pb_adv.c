@@ -22,12 +22,13 @@
 #include "meshx_bit_field.h"
 #include "meshx_provision_internal.h"
 #include "meshx_bearer_internal.h"
+#include "meshx_async_internal.h"
 
 
 /* maximum trans segment number */
 #define MESHX_TRANS_SEG_NUM_MAX                 0x40
 
-#define MESHX_LINK_LOSS_TIME                    60000 /* unit is ms */
+#define MESHX_LINK_LOSS_TIME                    6000 /* unit is ms */
 #define MESHX_LINK_RETRY_PERIOD                 200 /* unit is ms */
 #define MESHX_LINK_MONITOR_PERIOD               1000 /* unit is ms */
 
@@ -250,26 +251,45 @@ static int32_t pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id, uint8_t tr
 }
 #endif
 
+
+static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
+{
+    meshx_pb_adv_dev_t *pdev = pargs;
+    MESHX_ERROR("link loss in state: %d", pdev->dev.state);
+    pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
+                      MESHX_LINK_CLOSE_REASON_TIMEOUT);
+    if (NULL != prov_cb)
+    {
+        /* notify app link loss */
+        meshx_provision_link_close_t link_close = {MESHX_PROVISION_LINK_CLOSE_LINK_LOSS};
+        prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
+    }
+    meshx_pb_adv_delete_device(pdev);
+}
+
 static void meshx_link_loss_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
     pdev->link_monitor_time += MESHX_LINK_MONITOR_PERIOD;
     if (pdev->link_monitor_time > MESHX_LINK_LOSS_TIME)
     {
-        MESHX_ERROR("link loss in state: %d", pdev->dev.state);
-        pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
-                          MESHX_LINK_CLOSE_REASON_TIMEOUT);
-        if (NULL != prov_cb)
+        if (NULL != meshx_async_msg_notify)
         {
-            /* notify app link loss */
-            meshx_provision_link_close_t link_close = {MESHX_PROVISION_LINK_CLOSE_LINK_LOSS};
-            prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
+            meshx_async_msg_t *pmsg = meshx_malloc(sizeof(meshx_async_msg_t));
+            if (NULL == pmsg)
+            {
+                MESHX_ERROR("handle link loss timeout failed: out of memory");
+                return ;
+            }
+            pmsg->type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_LINK_LOSS;
+            pmsg->pdata = pargs;
+            pmsg->data_len = 0;
+            meshx_async_msg_notify(pmsg);
         }
-        meshx_pb_adv_delete_device(pdev);
     }
 }
 
-static void meshx_retry_timeout_handler(void *pargs)
+static void meshx_pb_adv_retry_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
     switch (pdev->dev.state)
@@ -307,6 +327,41 @@ static void meshx_retry_timeout_handler(void *pargs)
             }
             meshx_pb_adv_delete_device(pdev);
         }
+        break;
+    default:
+        break;
+    }
+
+}
+
+static void meshx_retry_timeout_handler(void *pargs)
+{
+    if (NULL != meshx_async_msg_notify)
+    {
+        meshx_async_msg_t *pmsg = meshx_malloc(sizeof(meshx_async_msg_t));
+        if (NULL == pmsg)
+        {
+            MESHX_ERROR("handle link loss timeout failed: out of memory");
+            return ;
+        }
+        pmsg->type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY;
+        pmsg->pdata = pargs;
+        pmsg->data_len = 0;
+        meshx_async_msg_notify(pmsg);
+    }
+}
+
+void meshx_pb_adv_async_handle_timeout(meshx_async_msg_t *pmsg)
+{
+    switch (pmsg->type)
+    {
+    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_LINK_LOSS:
+        meshx_pb_adv_link_loss_timeout_handler(pmsg->pdata);
+        meshx_free(pmsg);
+        break;
+    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY:
+        meshx_pb_adv_retry_timeout_handler(pmsg->pdata);
+        meshx_free(pmsg);
         break;
     default:
         break;
