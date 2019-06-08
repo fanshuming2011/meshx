@@ -265,7 +265,7 @@ void meshx_trace(const char *module, uint16_t level, const char *func, const cha
 }
 #endif
 
-void meshx_trace_dump(const char *module, uint16_t level, const char *func, const uint8_t *pdata,
+void meshx_trace_dump(const char *module, uint16_t level, const char *func, const void *pdata,
                       uint32_t len)
 {
     if (NULL != psend_func)
@@ -306,9 +306,9 @@ void meshx_trace_dump(const char *module, uint16_t level, const char *func, cons
 
             for (uint32_t index = 0; index < len; ++ index)
             {
-                char data = "0123456789ABCDEF"[pdata[index] >> 4];
+                char data = "0123456789ABCDEF"[((const uint8_t *)pdata)[index] >> 4];
                 psend_func(&data, 1);
-                data = "0123456789ABCDEF"[pdata[index] & 0x0f];
+                data = "0123456789ABCDEF"[((const uint8_t *)pdata)[index] & 0x0f];
                 psend_func(&data, 1);
                 /* output seperator */
                 psend_func(" ", 1);

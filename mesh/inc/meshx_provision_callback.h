@@ -28,8 +28,8 @@ typedef enum
 
 #define MESHX_PROVISION_CB_TYPE_LINK_OPEN            0x00 /* @ref meshx_provision_link_open_t */
 #define MESHX_PROVISION_CB_TYPE_LINK_CLOSE           0x01 /* @ref meshx_provision_link_close_t */
-#define MESHX_PROVISION_CB_TYPE_GET_INVITE           0x02 /* @ref meshx_provision_invite_t */
-#define MESHX_PROVISION_CB_TYPE_SET_INVITE           0x03 /* @ref meshx_provision_invite_t */
+#define MESHX_PROVISION_CB_TYPE_SET_INVITE           0x02 /* @ref meshx_provision_invite_t */
+#define MESHX_PROVISION_CB_TYPE_SET_CAPABILITES      0x03 /* @ref meshx_provision_capabilites_t */
 #define MESHX_PROVISION_CB_TYPE_FAILED               0x04 /* @ref meshx provisison failed error code macros */
 #define MESHX_PROVISION_CB_TYPE_COMPLETE             0x05 /* @ref NULL */
 

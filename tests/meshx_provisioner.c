@@ -66,6 +66,8 @@ int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *
         {
             meshx_provision_link_open_t *pdata = pargs;
             MESHX_DEBUG("link opened, result: %d", *pdata);
+            meshx_provision_invite_t invite = {0};
+            meshx_provision_invite(prov_dev, invite);
         }
         break;
     case MESHX_PROVISION_CB_TYPE_LINK_CLOSE:
@@ -74,16 +76,16 @@ int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *
             MESHX_DEBUG("link closed, result: %d", *pdata);
         }
         break;
-    case MESHX_PROVISION_CB_TYPE_GET_INVITE:
-        //meshx_provision_invite_t *pdata = pargs;
-        break;
-    case MESHX_PROVISION_CB_TYPE_SET_INVITE:
-        //meshx_provision_invite_t *pdata = pargs;
-        break;
     case MESHX_PROVISION_CB_TYPE_FAILED:
-        /* @ref meshx provisison failed error code macros */
+        {
+            /* @ref meshx provisison failed error code macros */
+            MESHX_DEBUG("provision failed");
+        }
         break;
     case MESHX_PROVISION_CB_TYPE_COMPLETE:
+        {
+            MESHX_DEBUG("provision complete");
+        }
         break;
     }
     return MESHX_SUCCESS;

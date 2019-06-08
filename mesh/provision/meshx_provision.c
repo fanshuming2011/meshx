@@ -19,12 +19,18 @@
 #include "meshx_list.h"
 
 static meshx_provision_callback_t prov_cb;
+static meshx_provision_capabilites_t prov_capabilites;
 
 int32_t meshx_provision_init(meshx_provision_callback_t pcb)
 {
     meshx_pb_adv_init(pcb);
     prov_cb = pcb;
     return MESHX_SUCCESS;
+}
+
+void meshx_provision_set_capabilites(const meshx_provision_capabilites_t *pcap)
+{
+    prov_capabilites = *pcap;
 }
 
 int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
@@ -136,6 +142,46 @@ int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
     return ret;
 }
 
+int32_t meshx_provision_capabilites(meshx_provision_dev_t prov_dev,
+                                    const meshx_provision_capabilites_t *pcap)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("provision device value is NULL");
+        return MESHX_ERR_INVAL;
+    }
+
+    if ((prov_dev->state < MESHX_PROVISION_STATE_LINK_OPENED) ||
+        (prov_dev->state > MESHX_PROVISION_STATE_CAPABILITES))
+    {
+        MESHX_ERROR("invalid state: %d", prov_dev->state);
+        return MESHX_ERR_STATE;
+    }
+
+    if (MESHX_PROVISION_STATE_CAPABILITES == prov_dev->state)
+    {
+        MESHX_WARN("already in capabilites procedure");
+        return MESHX_ERR_ALREADY;
+    }
+
+    int32_t ret = MESHX_SUCCESS;
+    switch (prov_dev->bearer->type)
+    {
+    case MESHX_BEARER_TYPE_ADV:
+        ret = meshx_pb_adv_capabilites(prov_dev, pcap);
+        break;
+    case MESHX_BEARER_TYPE_GATT:
+        break;
+    default:
+        MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
+        ret = MESHX_ERR_INVAL;
+        break;
+    }
+
+    return ret;
+
+}
+
 int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
                                     const uint8_t *pdata, uint8_t len)
 {
@@ -147,7 +193,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
     case MESHX_PROVISION_TYPE_INVITE:
         if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_invite_t))
         {
-            /* TODO: provision failed: invalid format */
+            /* provision failed: invalid format */
             MESHX_ERROR("invalid ivnvite pdu length: %d", len);
             ret = MESHX_ERR_LENGTH;
         }
@@ -163,12 +209,34 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             if (MESHX_SUCCESS == ret)
             {
                 /* send capabilites */
+                meshx_provision_capabilites(prov_dev, &prov_capabilites);
             }
         }
         break;
 #endif
 #if MESHX_ROLE_PROVISIONER
     case MESHX_PROVISION_TYPE_CAPABILITES:
+        if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_capabilites_t))
+        {
+            /* provision failed: invalid format */
+            MESHX_ERROR("invalid capabilites pdu length: %d", len);
+            ret = MESHX_ERR_LENGTH;
+        }
+        else
+        {
+            /* notify app invite value */
+            meshx_provision_capabilites_t cap = pprov_pdu->capabilites;
+            if (NULL != prov_cb)
+            {
+                ret = prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_SET_CAPABILITES, &cap);
+            }
+
+            if (MESHX_SUCCESS == ret)
+            {
+                /* send start */
+                //meshx_provision_capabilites(prov_dev, &prov_capabilites);
+            }
+        }
         break;
 #endif
 #if MESHX_ROLE_DEVICE

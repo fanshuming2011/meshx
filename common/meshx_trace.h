@@ -34,7 +34,7 @@ MESHX_EXTERN int32_t meshx_trace_init(trace_send psend);
 MESHX_EXTERN void meshx_trace(const char *module, uint16_t level, const char *func, const char *fmt,
                               ...);
 MESHX_EXTERN void meshx_trace_dump(const char *module, uint16_t level, const char *func,
-                                   const uint8_t *pdata, uint32_t len);
+                                   const void *pdata, uint32_t len);
 MESHX_EXTERN void meshx_trace_level_enable(uint16_t levels);
 MESHX_EXTERN void meshx_trace_level_disable(uint16_t levels);
 

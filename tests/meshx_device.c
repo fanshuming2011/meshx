@@ -76,16 +76,22 @@ static int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type,
             MESHX_DEBUG("link closed, result: %d", *pdata);
         }
         break;
-    case MESHX_PROVISION_CB_TYPE_GET_INVITE:
-        //meshx_provision_invite_t *pdata = pargs;
-        break;
     case MESHX_PROVISION_CB_TYPE_SET_INVITE:
-        //meshx_provision_invite_t *pdata = pargs;
+        {
+            meshx_provision_invite_t *pdata = pargs;
+            MESHX_DEBUG("set invite: %d", pdata->attention_duration);
+        }
         break;
     case MESHX_PROVISION_CB_TYPE_FAILED:
-        /* @ref meshx provisison failed error code macros */
+        {
+            /* @ref meshx provisison failed error code macros */
+            MESHX_DEBUG("provision failed");
+        }
         break;
     case MESHX_PROVISION_CB_TYPE_COMPLETE:
+        {
+            MESHX_DEBUG("provision complete");
+        }
         break;
     }
     return MESHX_SUCCESS;

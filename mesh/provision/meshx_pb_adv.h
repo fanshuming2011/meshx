@@ -139,6 +139,9 @@ MESHX_EXTERN int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uin
 MESHX_EXTERN int32_t meshx_pb_adv_trans_ack(meshx_provision_dev_t prov_dev);
 MESHX_EXTERN int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
                                          meshx_provision_invite_t invite);
+MESHX_EXTERN int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
+                                              const meshx_provision_capabilites_t *pcap);
+
 
 MESHX_END_DECLS
 

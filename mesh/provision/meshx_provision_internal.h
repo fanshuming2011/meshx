@@ -28,7 +28,7 @@ struct _meshx_provision_dev
 #define MESHX_PROVISION_STATE_LINK_OPENED            0x02
 #define MESHX_PROVISION_STATE_INVITE                 0x03
 #define MESHX_PROVISION_STATE_CAPABILITES            0x04
-#define MESHX_PROVISION_STATE_COMPLETE               0xff
+#define MESHX_PROVISION_STATE_COMPLETE               0x0a
 
 
 MESHX_EXTERN int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata,
