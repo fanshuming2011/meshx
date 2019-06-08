@@ -6,6 +6,7 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #define TRACE_MODULE "DEVICE"
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -16,9 +17,20 @@
 #include <fcntl.h>
 #include "meshx.h"
 #include "msg_queue.h"
+#include "meshx_async_internal.h"
 //#include "meshx_mem.h"
 
 meshx_msg_queue_t msg_queue = NULL;
+
+#define ASYNC_DATA_TYPE_ADV_DATA   0
+#define ASYNC_DATA_TYPE_MESH_DATA  1
+typedef struct
+{
+    uint8_t type;
+    uint8_t data[32];
+    uint8_t data_len;
+} async_data_t;
+
 
 #define FIFO_DSPR  "/tmp/fifo_dspr"
 #define FIFO_PSDR  "/tmp/fifo_psdr"
@@ -75,15 +87,18 @@ static int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type,
 
 static int32_t meshx_async_msg_notify_handler(const meshx_async_msg_t *pmsg)
 {
-    uint64_t data = (uint64_t)pmsg;
-    msg_queue_send(msg_queue, &data, 0);
+    async_data_t async_data;
+    async_data.type = ASYNC_DATA_TYPE_MESH_DATA;
+    *((uint64_t *)async_data.data) = (uint64_t)pmsg;
+    async_data.data_len = 8;
+    msg_queue_send(msg_queue, &async_data, sizeof(async_data_t));
 
     return MESHX_SUCCESS;
 }
 
 static void *meshx_thread(void *pargs)
 {
-    msg_queue_create(&msg_queue, 10, 8);
+    msg_queue_create(&msg_queue, 10, sizeof(async_data_t));
     meshx_async_msg_set_notify(meshx_async_msg_notify_handler);
 
 
@@ -108,24 +123,6 @@ static void *meshx_thread(void *pargs)
     }
     meshx_set_device_uuid(uuid);
 
-    //uint8_t test_data[] = {6, 5, 4, 3, 2, 1};
-    while (1)
-    {
-        uint64_t data;
-        if (MESHX_SUCCESS == msg_queue_receive(msg_queue, &data, -1))
-        {
-            meshx_async_msg_t *pmsg = (meshx_async_msg_t *)data;
-            MESHX_INFO("msg come: 0x%08x", pmsg);
-            meshx_async_msg_process(pmsg);
-        }
-    }
-    pthread_exit((void *)0);
-}
-
-static void *meshx_receive_thread(void *pargs)
-{
-    int data_len = 0;
-    uint8_t adv_recv_data[64];
     meshx_bearer_rx_metadata_t rx_metadata;
     meshx_bearer_rx_metadata_adv_t adv_metadata =
     {
@@ -140,10 +137,47 @@ static void *meshx_receive_thread(void *pargs)
 
     while (1)
     {
+        async_data_t async_data;
+        if (MESHX_SUCCESS == msg_queue_receive(msg_queue, &async_data, -1))
+        {
+            switch (async_data.type)
+            {
+            case ASYNC_DATA_TYPE_ADV_DATA:
+                /* data read finished */
+                MESHX_DEBUG("receive adv data:");
+                MESHX_DUMP_DEBUG(async_data.data, async_data.data_len);
+                meshx_gap_handle_adv_report(async_data.data, async_data.data_len, &rx_metadata);
+                break;
+            case ASYNC_DATA_TYPE_MESH_DATA:
+                {
+                    uint64_t address = *((uint64_t *)async_data.data);
+                    meshx_async_msg_t *pmsg = (meshx_async_msg_t *)address;
+                    MESHX_DEBUG("receive mesh inner msg: %d", pmsg->type);
+                    meshx_async_msg_process(pmsg);
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    pthread_exit((void *)0);
+}
+
+static void *meshx_receive_thread(void *pargs)
+{
+    int data_len = 0;
+    uint8_t adv_recv_data[64];
+
+    while (1)
+    {
         data_len = read(fd_psdr, adv_recv_data, 31);
-        /* data read finished */
-        MESHX_DUMP_DEBUG(adv_recv_data, data_len);
-        meshx_gap_handle_adv_report(adv_recv_data, data_len, &rx_metadata);
+        async_data_t async_data;
+        async_data.type = ASYNC_DATA_TYPE_ADV_DATA;
+        memcpy(async_data.data, adv_recv_data, data_len);
+        async_data.data_len = data_len;
+        msg_queue_send(msg_queue, &async_data, sizeof(async_data_t));
+
     }
     pthread_exit((void *)0);
 }

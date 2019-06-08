@@ -28,7 +28,7 @@
 /* maximum trans segment number */
 #define MESHX_TRANS_SEG_NUM_MAX                 0x40
 
-#define MESHX_LINK_LOSS_TIME                    6000 /* unit is ms */
+#define MESHX_LINK_LOSS_TIME                    60000 /* unit is ms */
 #define MESHX_LINK_RETRY_PERIOD                 200 /* unit is ms */
 #define MESHX_LINK_MONITOR_PERIOD               1000 /* unit is ms */
 
@@ -255,7 +255,7 @@ static int32_t pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id, uint8_t tr
 static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
-    MESHX_ERROR("link loss in state: %d", pdev->dev.state);
+    MESHX_WARN("link loss in state: %d", pdev->dev.state);
     pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                       MESHX_LINK_CLOSE_REASON_TIMEOUT);
     if (NULL != prov_cb)
@@ -299,7 +299,7 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
         pdev->retry_time += MESHX_LINK_RETRY_PERIOD;
         if (pdev->retry_time > MESHX_LINK_LOSS_TIME)
         {
-            MESHX_ERROR("provision failed: receive no link ack from device uuid:");
+            MESHX_WARN("provision failed: receive no link ack from device uuid:");
             MESHX_DUMP_ERROR(pdev->dev.dev_uuid, sizeof(meshx_dev_uuid_t));
             if (NULL != prov_cb)
             {
@@ -316,7 +316,7 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
         pdev->retry_time += MESHX_TRANS_RETRY_PERIOD;
         if (pdev->retry_time > MESHX_TRANS_LOSS_TIME)
         {
-            MESHX_ERROR("provision failed: receive no ack of state(%d)", pdev->dev.state);
+            MESHX_WARN("provision failed: receive no ack of state(%d)", pdev->dev.state);
             pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                               MESHX_LINK_CLOSE_REASON_TIMEOUT);
             if (NULL != prov_cb)
