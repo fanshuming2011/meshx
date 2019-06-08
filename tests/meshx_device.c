@@ -76,10 +76,14 @@ static int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type,
             MESHX_DEBUG("link closed, result: %d", *pdata);
         }
         break;
-    case MESHX_PROVISION_CB_TYPE_SET_INVITE:
+    case MESHX_PROVISION_CB_TYPE_INVITE:
         {
             meshx_provision_invite_t *pdata = pargs;
-            MESHX_DEBUG("set invite: %d", pdata->attention_duration);
+            MESHX_DEBUG("invite: %d", pdata->attention_duration);
+            /* send capabilites */
+            meshx_provision_capabilites_t cap;
+            memset(&cap, 0, sizeof(meshx_provision_capabilites_t));
+            meshx_provision_capabilites(prov_dev, &cap);
         }
         break;
     case MESHX_PROVISION_CB_TYPE_FAILED:

@@ -74,7 +74,6 @@ typedef int32_t (*meshx_provision_callback_t)(const meshx_provision_dev_t prov_d
                                               void *pargs);
 
 MESHX_EXTERN int32_t meshx_provision_init(meshx_provision_callback_t pcb);
-MESHX_EXTERN void meshx_provision_set_capabilites(const meshx_provision_capabilites_t *pcap);
 
 MESHX_EXTERN meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
                                                                  meshx_dev_uuid_t dev_uuid);

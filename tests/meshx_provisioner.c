@@ -66,6 +66,7 @@ int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *
         {
             meshx_provision_link_open_t *pdata = pargs;
             MESHX_DEBUG("link opened, result: %d", *pdata);
+            /* send invite */
             meshx_provision_invite_t invite = {0};
             meshx_provision_invite(prov_dev, invite);
         }
@@ -74,6 +75,19 @@ int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *
         {
             meshx_provision_link_close_t *pdata = pargs;
             MESHX_DEBUG("link closed, result: %d", *pdata);
+        }
+        break;
+    case MESHX_PROVISION_CB_TYPE_CAPABILITES:
+        {
+            meshx_provision_capabilites_t *pdata = pargs;
+            MESHX_DEBUG("capabilites:");
+            MESHX_DUMP_DEBUG(pdata, sizeof(meshx_provision_capabilites_t));
+            /* send start*/
+            /*
+            meshx_provision_capabilites_t cap;
+            memset(&cap, 0, sizeof(meshx_provision_capabilites_t));
+            meshx_provision_capabilites(prov_dev, &cap);
+            */
         }
         break;
     case MESHX_PROVISION_CB_TYPE_FAILED:

@@ -19,18 +19,12 @@
 #include "meshx_list.h"
 
 static meshx_provision_callback_t prov_cb;
-static meshx_provision_capabilites_t prov_capabilites;
 
 int32_t meshx_provision_init(meshx_provision_callback_t pcb)
 {
     meshx_pb_adv_init(pcb);
     prov_cb = pcb;
     return MESHX_SUCCESS;
-}
-
-void meshx_provision_set_capabilites(const meshx_provision_capabilites_t *pcap)
-{
-    prov_capabilites = *pcap;
 }
 
 int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
@@ -203,13 +197,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_provision_invite_t invite = pprov_pdu->invite;
             if (NULL != prov_cb)
             {
-                ret = prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_SET_INVITE, &invite);
-            }
-
-            if (MESHX_SUCCESS == ret)
-            {
-                /* send capabilites */
-                meshx_provision_capabilites(prov_dev, &prov_capabilites);
+                ret = prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_INVITE, &invite);
             }
         }
         break;
@@ -224,17 +212,11 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         }
         else
         {
-            /* notify app invite value */
+            /* notify app capabilites value */
             meshx_provision_capabilites_t cap = pprov_pdu->capabilites;
             if (NULL != prov_cb)
             {
-                ret = prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_SET_CAPABILITES, &cap);
-            }
-
-            if (MESHX_SUCCESS == ret)
-            {
-                /* send start */
-                //meshx_provision_capabilites(prov_dev, &prov_capabilites);
+                ret = prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_CAPABILITES, &cap);
             }
         }
         break;
