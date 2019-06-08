@@ -261,7 +261,7 @@ static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
     if (NULL != prov_cb)
     {
         /* notify app link loss */
-        meshx_provision_link_close_t link_close = {MESHX_PROVISION_LINK_CLOSE_LINK_LOSS};
+        meshx_provision_link_close_t link_close = MESHX_PROVISION_LINK_CLOSE_LINK_LOSS;
         prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
     }
     meshx_pb_adv_delete_device(pdev);
@@ -304,7 +304,7 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
             if (NULL != prov_cb)
             {
                 /* notify app link open failed, timeout */
-                meshx_provision_link_open_t link_open = {MESHX_PROVISION_LINK_OPEN_TIMEOUT};
+                meshx_provision_link_open_t link_open = MESHX_PROVISION_LINK_OPEN_TIMEOUT;
                 prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_OPEN, &link_open);
             }
             meshx_pb_adv_delete_device(pdev);
@@ -322,7 +322,7 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
             if (NULL != prov_cb)
             {
                 /* notify app link close */
-                meshx_provision_link_close_t link_close = {MESHX_PROVISION_LINK_CLOSE_TIMEOUT};
+                meshx_provision_link_close_t link_close = MESHX_PROVISION_LINK_CLOSE_TIMEOUT;
                 prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
             }
             meshx_pb_adv_delete_device(pdev);
@@ -439,8 +439,8 @@ int32_t meshx_pb_adv_link_ack(meshx_provision_dev_t prov_dev)
         if (NULL != prov_cb)
         {
             /* notify app link opened */
-            meshx_provision_link_open_t link_open = {MESHX_PROVISION_LINK_OPEN_SUCCESS};
-            prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_open);
+            meshx_provision_link_open_t link_open = MESHX_PROVISION_LINK_OPEN_SUCCESS;
+            prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_OPEN, &link_open);
         }
 
         /* start link loss timer */
@@ -472,7 +472,7 @@ int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
             if (NULL != prov_cb)
             {
                 /* notify app link close */
-                meshx_provision_link_close_t link_close = {MESHX_PROVISION_LINK_CLOSE_FAIL};
+                meshx_provision_link_close_t link_close = MESHX_PROVISION_LINK_CLOSE_FAIL;
                 prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
             }
             meshx_pb_adv_delete_device(pdev);
@@ -634,7 +634,7 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *
     if (NULL != prov_cb)
     {
         /* notify app link opened */
-        meshx_provision_link_open_t link_open = {MESHX_PROVISION_LINK_OPEN_SUCCESS};
+        meshx_provision_link_open_t link_open = MESHX_PROVISION_LINK_OPEN_SUCCESS;
         ret = prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_OPEN, &link_open);
     }
 
@@ -676,8 +676,9 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
     if (NULL != prov_cb)
     {
         /* notify app link closed */
-        meshx_provision_link_close_t link_close = {ppkt->bearer_ctl.link_close.reason};
-        prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_OPEN, &link_close);
+        meshx_provision_link_close_t link_close = (meshx_provision_link_close_t)(
+                                                      ppkt->bearer_ctl.link_close.reason);
+        prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
     }
 
     meshx_pb_adv_delete_device(pdev);
@@ -755,7 +756,7 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
         if (NULL != prov_cb)
         {
             /* notify app link close */
-            meshx_provision_link_close_t link_close = {MESHX_PROVISION_LINK_CLOSE_FAIL};
+            meshx_provision_link_close_t link_close = MESHX_PROVISION_LINK_CLOSE_FAIL;
             prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
         }
         meshx_pb_adv_delete_device(pdev);

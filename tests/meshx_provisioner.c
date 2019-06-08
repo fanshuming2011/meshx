@@ -63,10 +63,16 @@ int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *
     switch (type)
     {
     case MESHX_PROVISION_CB_TYPE_LINK_OPEN:
-        //meshx_provision_link_open_t *pdata = pargs;
+        {
+            meshx_provision_link_open_t *pdata = pargs;
+            MESHX_DEBUG("link opened, result: %d", *pdata);
+        }
         break;
     case MESHX_PROVISION_CB_TYPE_LINK_CLOSE:
-        //meshx_provision_link_close_t *pdata = pargs;
+        {
+            meshx_provision_link_close_t *pdata = pargs;
+            MESHX_DEBUG("link closed, result: %d", *pdata);
+        }
         break;
     case MESHX_PROVISION_CB_TYPE_GET_INVITE:
         //meshx_provision_invite_t *pdata = pargs;
