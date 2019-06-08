@@ -72,6 +72,7 @@ typedef struct
     {
         meshx_provision_invite_t invite;
         meshx_provision_capabilites_t capabilites;
+        meshx_provision_start_t start;
     } prov_tx_pdu;
 
     uint8_t last_seg_num;
@@ -267,6 +268,20 @@ static int32_t pb_adv_capabilites(meshx_bearer_t bearer, uint32_t link_id, uint8
 }
 #endif
 
+#if MESHX_ROLE_PROVISIONER
+static int32_t pb_adv_start(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
+                            const meshx_provision_start_t *pstart)
+{
+    MESHX_INFO("start:");
+    MESHX_DUMP_DEBUG(pstart, sizeof(meshx_provision_start_t));
+    meshx_provision_pdu_t prov_pdu;
+    prov_pdu.metadata.type = MESHX_PROVISION_TYPE_START;
+    prov_pdu.metadata.padding = 0;
+    prov_pdu.start = *pstart;
+    return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
+                             sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_start_t));
+}
+#endif
 
 static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
 {
@@ -337,6 +352,10 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
         case MESHX_PROVISION_STATE_CAPABILITES:
             pb_adv_capabilites(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
                                &pdev->prov_tx_pdu.capabilites);
+            break;
+        case MESHX_PROVISION_STATE_START:
+            pb_adv_start(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
+                         &pdev->prov_tx_pdu.start);
             break;
         default:
             /* should never reach here */
@@ -553,6 +572,7 @@ int32_t meshx_pb_adv_trans_ack(meshx_provision_dev_t prov_dev)
     return ret;
 }
 
+#if MESHX_ROLE_PROVISIONER
 int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
                             meshx_provision_invite_t invite)
 {
@@ -568,7 +588,9 @@ int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
 
     return MESHX_SUCCESS;
 }
+#endif
 
+#if MESHX_ROLE_DEVICE
 int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
                                  const meshx_provision_capabilites_t *pcap)
 {
@@ -583,9 +605,26 @@ int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
     meshx_timer_start(pdev->retry_timer, MESHX_TRANS_RETRY_PERIOD);
 
     return MESHX_SUCCESS;
-
 }
+#endif
 
+#if MESHX_ROLE_PROVISIONER
+int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
+                           const meshx_provision_start_t *pstart)
+{
+    MESHX_ASSERT(NULL != prov_dev);
+    meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
+    pb_adv_start(prov_dev->bearer, pdev->link_id, meshx_dev_require_trans_num(pdev), pstart);
+    pdev->dev.state = MESHX_PROVISION_STATE_START;
+    pdev->prov_tx_pdu.start = *pstart;
+
+    /* start retry timer */
+    pdev->retry_time = 0;
+    meshx_timer_start(pdev->retry_timer, MESHX_TRANS_RETRY_PERIOD);
+
+    return MESHX_SUCCESS;
+}
+#endif
 
 static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {

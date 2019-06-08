@@ -141,6 +141,9 @@ MESHX_EXTERN int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
                                          meshx_provision_invite_t invite);
 MESHX_EXTERN int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
                                               const meshx_provision_capabilites_t *pcap);
+MESHX_EXTERN int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
+                                        const meshx_provision_start_t *pstart);
+
 
 
 MESHX_END_DECLS

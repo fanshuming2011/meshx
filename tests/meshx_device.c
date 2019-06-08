@@ -86,6 +86,19 @@ static int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type,
             meshx_provision_capabilites(prov_dev, &cap);
         }
         break;
+    case MESHX_PROVISION_CB_TYPE_START:
+        {
+            meshx_provision_start_t *pdata = pargs;
+            MESHX_DEBUG("start:");
+            MESHX_DUMP_DEBUG(pdata, sizeof(meshx_provision_start_t));
+            /* send capabilites */
+            /*
+            meshx_provision_capabilites_t cap;
+            memset(&cap, 0, sizeof(meshx_provision_capabilites_t));
+            meshx_provision_capabilites(prov_dev, &cap);
+            */
+        }
+        break;
     case MESHX_PROVISION_CB_TYPE_FAILED:
         {
             /* @ref meshx provisison failed error code macros */

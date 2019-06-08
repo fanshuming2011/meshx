@@ -82,12 +82,10 @@ int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *
             meshx_provision_capabilites_t *pdata = pargs;
             MESHX_DEBUG("capabilites:");
             MESHX_DUMP_DEBUG(pdata, sizeof(meshx_provision_capabilites_t));
-            /* send start*/
-            /*
-            meshx_provision_capabilites_t cap;
-            memset(&cap, 0, sizeof(meshx_provision_capabilites_t));
-            meshx_provision_capabilites(prov_dev, &cap);
-            */
+            /* send start */
+            meshx_provision_start_t start;
+            memset(&start, 0, sizeof(meshx_provision_start_t));
+            meshx_provision_start(prov_dev, &start);
         }
         break;
     case MESHX_PROVISION_CB_TYPE_FAILED:

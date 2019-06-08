@@ -173,7 +173,45 @@ int32_t meshx_provision_capabilites(meshx_provision_dev_t prov_dev,
     }
 
     return ret;
+}
 
+int32_t meshx_provision_start(meshx_provision_dev_t prov_dev,
+                              const meshx_provision_start_t *pstart)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("provision device value is NULL");
+        return MESHX_ERR_INVAL;
+    }
+
+    if ((prov_dev->state < MESHX_PROVISION_STATE_LINK_OPENED) ||
+        (prov_dev->state > MESHX_PROVISION_STATE_START))
+    {
+        MESHX_ERROR("invalid state: %d", prov_dev->state);
+        return MESHX_ERR_STATE;
+    }
+
+    if (MESHX_PROVISION_STATE_START == prov_dev->state)
+    {
+        MESHX_WARN("already in start procedure");
+        return MESHX_ERR_ALREADY;
+    }
+
+    int32_t ret = MESHX_SUCCESS;
+    switch (prov_dev->bearer->type)
+    {
+    case MESHX_BEARER_TYPE_ADV:
+        ret = meshx_pb_adv_start(prov_dev, pstart);
+        break;
+    case MESHX_BEARER_TYPE_GATT:
+        break;
+    default:
+        MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
+        ret = MESHX_ERR_INVAL;
+        break;
+    }
+
+    return ret;
 }
 
 int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
@@ -223,6 +261,21 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
 #endif
 #if MESHX_ROLE_DEVICE
     case MESHX_PROVISION_TYPE_START:
+        if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_start_t))
+        {
+            /* provision failed: invalid format */
+            MESHX_ERROR("invalid start pdu length: %d", len);
+            ret = MESHX_ERR_LENGTH;
+        }
+        else
+        {
+            /* notify app start value */
+            meshx_provision_start_t start = pprov_pdu->start;
+            if (NULL != prov_cb)
+            {
+                ret = prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_START, &start);
+            }
+        }
         break;
 #endif
     case MESHX_PROVISION_TYPE_PUBLIC_KEY:

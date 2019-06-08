@@ -60,11 +60,21 @@ typedef struct
 
 typedef struct
 {
+    uint8_t algorithm;
+    uint8_t public_key;
+    uint8_t auth_method;
+    uint8_t auth_action;
+    uint8_t auth_size;
+} __PACKED meshx_provision_start_t;
+
+typedef struct
+{
     meshx_provision_pdu_metadata_t metadata;
     union
     {
         meshx_provision_invite_t invite;
         meshx_provision_capabilites_t capabilites;
+        meshx_provision_start_t start;
     };
 } __PACKED meshx_provision_pdu_t;
 
@@ -85,6 +95,9 @@ MESHX_EXTERN int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
                                             meshx_provision_invite_t invite);
 MESHX_EXTERN int32_t meshx_provision_capabilites(meshx_provision_dev_t prov_dev,
                                                  const meshx_provision_capabilites_t *pcap);
+MESHX_EXTERN int32_t meshx_provision_start(meshx_provision_dev_t prov_dev,
+                                           const meshx_provision_start_t *pstart);
+
 
 MESHX_END_DECLS
 

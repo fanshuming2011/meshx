@@ -30,31 +30,31 @@ static adv_data_t adv_data;
 
 int32_t meshx_gap_scan_set_param(const meshx_gap_scan_param_t *pscan_param)
 {
-    MESHX_INFO("set scan param");
+    //MESHX_INFO("set scan param");
     return MESHX_SUCCESS;
 }
 
 int32_t meshx_gap_scan_start(void)
 {
-    MESHX_INFO("scan start");
+    //MESHX_INFO("scan start");
     return MESHX_SUCCESS;
 }
 
 int32_t meshx_gap_scan_stop(void)
 {
-    MESHX_INFO("scan stop");
+    //MESHX_INFO("scan stop");
     return MESHX_SUCCESS;
 }
 
 int32_t meshx_gap_adv_set_param(const meshx_gap_adv_param_t *padv_param)
 {
-    MESHX_INFO("set adv param");
+    //MESHX_INFO("set adv param");
     return MESHX_SUCCESS;
 }
 
 int32_t meshx_gap_adv_set_data(const uint8_t *pdata, uint8_t len)
 {
-    MESHX_INFO("set adv data");
+    //MESHX_INFO("set adv data");
     memcpy(adv_data.data, pdata, len);
     adv_data.len = len;
     return MESHX_SUCCESS;
@@ -62,19 +62,19 @@ int32_t meshx_gap_adv_set_data(const uint8_t *pdata, uint8_t len)
 
 int32_t meshx_gap_adv_set_scan_rsp_data(const uint8_t *pdata, uint8_t len)
 {
-    MESHX_INFO("set adv scan rsp data");
+    //MESHX_INFO("set adv scan rsp data");
     return MESHX_SUCCESS;
 }
 
 int32_t meshx_gap_adv_start(void)
 {
-    MESHX_INFO("adv start");
+    //MESHX_INFO("adv start");
     write(fd_psdr, adv_data.data, adv_data.len);
     return MESHX_SUCCESS;
 }
 
 int32_t meshx_gap_adv_stop(void)
 {
-    MESHX_INFO("adv stop");
+    //MESHX_INFO("adv stop");
     return MESHX_SUCCESS;
 }

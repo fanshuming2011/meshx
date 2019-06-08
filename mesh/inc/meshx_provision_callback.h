@@ -30,8 +30,9 @@ typedef enum
 #define MESHX_PROVISION_CB_TYPE_LINK_CLOSE           0x01 /* @ref meshx_provision_link_close_t */
 #define MESHX_PROVISION_CB_TYPE_INVITE               0x02 /* @ref meshx_provision_invite_t */
 #define MESHX_PROVISION_CB_TYPE_CAPABILITES          0x03 /* @ref meshx_provision_capabilites_t */
-#define MESHX_PROVISION_CB_TYPE_FAILED               0x04 /* @ref meshx provisison failed error code macros */
-#define MESHX_PROVISION_CB_TYPE_COMPLETE             0x05 /* @ref NULL */
+#define MESHX_PROVISION_CB_TYPE_START                0x04 /* @ref meshx_provision_start_t */
+#define MESHX_PROVISION_CB_TYPE_FAILED               0xfe /* @ref meshx provisison failed error code macros */
+#define MESHX_PROVISION_CB_TYPE_COMPLETE             0xff /* @ref NULL */
 
 
 MESHX_END_DECLS
