@@ -18,6 +18,7 @@ set(COMMON_SRC_LIST
     ../common/meshx_assert.c
     ../common/meshx_list.c
     ../common/meshx_3gpp_crc.c
+    ../common/meshx_cmd.c
     ../mesh/common/meshx_node.c
     ../mesh/common/meshx_async.c
     ../mesh/gap/meshx_gap.c
