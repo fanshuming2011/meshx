@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <termios.h>
 #include "meshx.h"
 #include "msg_queue.h"
 #include "meshx_async_internal.h"
@@ -38,12 +39,38 @@ typedef struct
 
 static pthread_t meshx_tid;
 static pthread_t meshx_receive;
+static pthread_t console_receive;
 int fd_dspr;
 int fd_psdr;
 
 typedef void (*trace_send)(const char *pdata, uint32_t len);
 
 static FILE *log_file;
+
+static struct termios stored_settings;
+
+void set_keypress(void)
+{
+    struct termios new_settings;
+
+    tcgetattr(0, &stored_settings);
+
+    new_settings = stored_settings;
+
+    /* Disable canonical mode, and set buffer size to 1 byte */
+    new_settings.c_lflag &= (~ICANON);
+    new_settings.c_cc[VTIME] = 0;
+    new_settings.c_cc[VMIN] = 1;
+
+    tcsetattr(0, TCSANOW, &new_settings);
+    return;
+}
+
+void reset_keypress(void)
+{
+    tcsetattr(0, TCSANOW, &stored_settings);
+    return;
+}
 
 void system_init(void)
 {
@@ -52,6 +79,7 @@ void system_init(void)
     fd_psdr = open(FIFO_PSDR, O_RDONLY);
     fd_dspr = open(FIFO_DSPR, O_WRONLY);
     log_file = fopen("./log_dev", "w");
+    set_keypress();
 }
 
 void linux_send_string(const char *pdata, uint32_t len)
@@ -211,6 +239,18 @@ static void *meshx_receive_thread(void *pargs)
     pthread_exit((void *)0);
 }
 
+static void *console_receive_thread(void *pargs)
+{
+    char data = 0;
+
+    while (1)
+    {
+        data = getchar();
+        putchar(data);
+    }
+    pthread_exit((void *)0);
+}
+
 int main(int argc, char **argv)
 {
     system_init();
@@ -218,8 +258,10 @@ int main(int argc, char **argv)
 
     pthread_create(&meshx_tid, NULL, meshx_thread, NULL);
     pthread_create(&meshx_receive, NULL, meshx_receive_thread, NULL);
+    pthread_create(&console_receive, NULL, console_receive_thread, NULL);
     pthread_join(meshx_tid, NULL);
     pthread_join(meshx_receive, NULL);
+    pthread_join(console_receive, NULL);
 
     return 0;
 }

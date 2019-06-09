@@ -131,6 +131,22 @@ static void meshx_pb_adv_delete_device(meshx_pb_adv_dev_t *pdev)
     meshx_free(pdev);
 }
 
+static bool meshx_pb_adv_is_device_valid(meshx_pb_adv_dev_t *pdev)
+{
+    meshx_list_t *pnode;
+    meshx_pb_adv_dev_t *ptmp_dev = NULL;
+    meshx_list_foreach(pnode, &pb_adv_devs)
+    {
+        ptmp_dev = MESHX_CONTAINER_OF(pnode, meshx_pb_adv_dev_t, node);
+        if (ptmp_dev == pdev)
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 static int32_t pb_adv_send_trans(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
                                  const uint8_t *pdata, uint16_t len)
 {
@@ -301,6 +317,12 @@ static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
 static void meshx_link_loss_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
+    if (!meshx_pb_adv_is_device_valid(pdev))
+    {
+        MESHX_WARN("handle link loss timeout failed: device may be deleted!");
+        return;
+    }
+
     pdev->link_monitor_time += MESHX_LINK_MONITOR_PERIOD;
     if (pdev->link_monitor_time > MESHX_LINK_LOSS_TIME)
     {
@@ -385,6 +407,13 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
 
 static void meshx_retry_timeout_handler(void *pargs)
 {
+    meshx_pb_adv_dev_t *pdev = pargs;
+    /* valid device */
+    if (!meshx_pb_adv_is_device_valid(pdev))
+    {
+        MESHX_WARN("handle retry timeout failed: device may be deleted!");
+        return;
+    }
     if (NULL != meshx_async_msg_notify)
     {
         meshx_async_msg_t *pmsg = meshx_malloc(sizeof(meshx_async_msg_t));

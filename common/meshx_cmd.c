@@ -12,16 +12,16 @@
 
 typedef struct
 {
-    char      cmd_line[MESHX_CMD_MAX_CMD_LEN + 2];
-    uint8_t   cmd_len;
-    uint8_t   cmd_cur;
-    uint8_t   cmd_history[MESHX_CMD_MAX_HISTORY_SIZE][MESHX_CMD_MAX_CMD_LEN + 2];
-    uint8_t   cmd_history_len[MESHX_CMD_MAX_HISTORY_SIZE];
-    uint8_t   history_head;
-    uint8_t   history_tail;
-    uint8_t   history_cur;
-    char      cmd_prompt[2];
-    char      cmd_crlf[3];
+    char cmd_line[MESHX_CMD_MAX_CMD_LEN + 2];
+    uint8_t cmd_len;
+    uint8_t cmd_cur;
+    uint8_t cmd_history[MESHX_CMD_MAX_HISTORY_SIZE][MESHX_CMD_MAX_CMD_LEN + 2];
+    uint8_t cmd_history_len[MESHX_CMD_MAX_HISTORY_SIZE];
+    uint8_t history_head;
+    uint8_t history_tail;
+    uint8_t history_cur;
+    char cmd_prompt[2];
+    char cmd_crlf[3];
 } user_cmd_if_t;
 
 int32_t meshx_cmd_init(const meshx_cmd_t *pcmds, uint32_t num_cmds)
@@ -36,9 +36,17 @@ void meshx_cmd_parse(const uint8_t *pdata, uint8_t len)
         switch (pdata[i])
         {
         case '\r':
-        case '\n':
+        case '\n': /* command input finished */
             break;
         case 0x08: /* backspace */
+            break;
+        case '[': /* cursor move left */
+            break;
+        case ']': /* cursor move right */
+            break;
+        case ',': /* history previous command */
+            break;
+        case '.': /* history next command */
             break;
         default:
             break;
