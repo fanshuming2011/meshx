@@ -12,6 +12,8 @@
 #include "meshx_errno.h"
 #include "meshx_trace.h"
 #include "meshx_async.h"
+#include "meshx_tty.h"
+#include "meshx_cmd.h"
 #include "meshx_gap.h"
 #include "meshx_bearer.h"
 #include "meshx_network.h"

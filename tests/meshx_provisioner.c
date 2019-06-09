@@ -45,31 +45,6 @@ typedef void (*trace_send)(const char *pdata, uint32_t len);
 
 static FILE *log_file;
 
-static struct termios stored_settings;
-
-void set_keypress(void)
-{
-    struct termios new_settings;
-
-    tcgetattr(0, &stored_settings);
-
-    new_settings = stored_settings;
-
-    /* Disable canonical mode, and set buffer size to 1 byte */
-    new_settings.c_lflag &= (~ICANON);
-    new_settings.c_cc[VTIME] = 0;
-    new_settings.c_cc[VMIN] = 1;
-
-    tcsetattr(0, TCSANOW, &new_settings);
-    return;
-}
-
-void reset_keypress(void)
-{
-    tcsetattr(0, TCSANOW, &stored_settings);
-    return;
-}
-
 void system_init(void)
 {
     mkfifo(FIFO_DSPR, 0777);
@@ -77,7 +52,7 @@ void system_init(void)
     fd_psdr = open(FIFO_PSDR, O_WRONLY);
     fd_dspr = open(FIFO_DSPR, O_RDONLY);
     log_file = fopen("./log_prov", "w");
-    set_keypress();
+    meshx_tty_init();
 }
 
 void linux_send_string(const char *pdata, uint32_t len)

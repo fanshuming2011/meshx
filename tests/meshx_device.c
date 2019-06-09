@@ -25,6 +25,8 @@ meshx_msg_queue_t msg_queue = NULL;
 
 #define ASYNC_DATA_TYPE_ADV_DATA   0
 #define ASYNC_DATA_TYPE_MESH_DATA  1
+#define ASYNC_DATA_TYPE_TTY        2
+
 typedef struct
 {
     uint8_t type;
@@ -47,31 +49,6 @@ typedef void (*trace_send)(const char *pdata, uint32_t len);
 
 static FILE *log_file;
 
-static struct termios stored_settings;
-
-void set_keypress(void)
-{
-    struct termios new_settings;
-
-    tcgetattr(0, &stored_settings);
-
-    new_settings = stored_settings;
-
-    /* Disable canonical mode, and set buffer size to 1 byte */
-    new_settings.c_lflag &= (~ICANON);
-    new_settings.c_cc[VTIME] = 0;
-    new_settings.c_cc[VMIN] = 1;
-
-    tcsetattr(0, TCSANOW, &new_settings);
-    return;
-}
-
-void reset_keypress(void)
-{
-    tcsetattr(0, TCSANOW, &stored_settings);
-    return;
-}
-
 void system_init(void)
 {
     mkfifo(FIFO_DSPR, 0777);
@@ -79,7 +56,7 @@ void system_init(void)
     fd_psdr = open(FIFO_PSDR, O_RDONLY);
     fd_dspr = open(FIFO_DSPR, O_WRONLY);
     log_file = fopen("./log_dev", "w");
-    set_keypress();
+    meshx_tty_init();
 }
 
 void linux_send_string(const char *pdata, uint32_t len)
@@ -213,6 +190,11 @@ static void *meshx_thread(void *pargs)
                     meshx_async_msg_process(pmsg);
                 }
                 break;
+            case ASYNC_DATA_TYPE_TTY:
+                {
+                    meshx_cmd_parse(async_data.data, 1);
+                }
+                break;
             default:
                 break;
             }
@@ -241,12 +223,19 @@ static void *meshx_receive_thread(void *pargs)
 
 static void *console_receive_thread(void *pargs)
 {
-    char data = 0;
+    int data = 0;
 
     while (1)
     {
-        data = getchar();
-        putchar(data);
+        data = getc(stdin);
+        if (data != EOF)
+        {
+            async_data_t async_data;
+            async_data.type = ASYNC_DATA_TYPE_TTY;
+            async_data.data[0] = data;
+            async_data.data_len = 1;
+            msg_queue_send(msg_queue, &async_data, sizeof(async_data_t));
+        }
     }
     pthread_exit((void *)0);
 }
