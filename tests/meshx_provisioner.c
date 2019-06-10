@@ -53,6 +53,7 @@ void system_init(void)
     fd_dspr = open(FIFO_DSPR, O_RDONLY);
     log_file = fopen("./log_prov", "w");
     meshx_tty_init();
+    meshx_cmd_init(NULL, 0);
 }
 
 void linux_send_string(const char *pdata, uint32_t len)

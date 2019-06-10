@@ -5,6 +5,8 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
+#include <stdio.h>
+#include <string.h>
 #define TRACE_MODULE "MESHX_CMD"
 #include "meshx_trace.h"
 #include "meshx_errno.h"
@@ -15,16 +17,15 @@
 
 typedef struct
 {
-    char cmd[MESHX_CMD_MAX_CMD_LEN + 2];
+    char cmd[MESHX_CMD_MAX_LEN + 2];
     uint8_t cmd_len;
     uint8_t cursor_pos;
-    uint8_t cmd_history[MESHX_CMD_MAX_HISTORY_SIZE][MESHX_CMD_MAX_CMD_LEN + 2];
+    char cmd_history[MESHX_CMD_MAX_HISTORY_SIZE][MESHX_CMD_MAX_LEN + 2];
     uint8_t cmd_history_len[MESHX_CMD_MAX_HISTORY_SIZE];
-    uint8_t history_head;
-    uint8_t history_tail;
-    uint8_t history_cur;
-    char cmd_prompt[2];
-    char cmd_crlf[3];
+    uint8_t history_tail_index;
+    uint8_t history_cur_index;
+    char cmd_prompt;
+    char cmd_crlf[2];
 } meshx_user_cmd_info_t;
 
 static meshx_user_cmd_info_t *pcmd_info;
@@ -37,11 +38,39 @@ int32_t meshx_cmd_init(const meshx_cmd_t *pcmds, uint32_t num_cmds)
         MESHX_ERROR("initialize user command failed: out of memory!");
         return MESHX_ERR_MEM;
     }
-    pcmd_info->cmd_prompt[0] = '$';
-    pcmd_info->cmd_prompt[1] = 0;
-    pcmd_info->cmd_crlf[0] = '\n';
-    pcmd_info->cmd_crlf[1] = 0;
+    memset(pcmd_info, 0, sizeof(meshx_user_cmd_info_t));
+    pcmd_info->cmd_prompt = '$';
+    pcmd_info->cmd_crlf[0] = '\r';
+    pcmd_info->cmd_crlf[1] = '\n';
+    meshx_tty_send(&pcmd_info->cmd_prompt, 1);
     return MESHX_SUCCESS;
+}
+
+static void meshx_cmd_move_forward(void)
+{
+    for (uint8_t i = 0; i <= pcmd_info->cmd_len - pcmd_info->cursor_pos; ++i)
+    {
+        pcmd_info->cmd[pcmd_info->cursor_pos + i - 1] = pcmd_info->cmd[pcmd_info->cursor_pos + i];
+    }
+    /* '\0' does not output anything on linux, so use ' ' instead */
+    pcmd_info->cmd[pcmd_info->cmd_len - 1] = ' ';
+    meshx_tty_send("\b", 1);
+}
+
+static void meshx_cmd_move_back(void)
+{
+    for (uint8_t i = 0; i < pcmd_info->cmd_len - pcmd_info->cursor_pos; ++i)
+    {
+        pcmd_info->cmd[pcmd_info->cmd_len - i] = pcmd_info->cmd[pcmd_info->cmd_len - i - 1];
+    }
+}
+
+static void meshx_cmd_cursor_move_back(void)
+{
+    for (uint8_t i = 0; i < pcmd_info->cmd_len - pcmd_info->cursor_pos; ++i)
+    {
+        meshx_tty_send("\b", 1);
+    }
 }
 
 void meshx_cmd_parse(const uint8_t *pdata, uint8_t len)
@@ -53,21 +82,57 @@ void meshx_cmd_parse(const uint8_t *pdata, uint8_t len)
         {
         case '\r':
         case '\n': /* command input finished */
+            {
+                if (pcmd_info->cmd_len > 0)
+                {
+                    /* save command */
+                }
+
+                meshx_tty_send(pcmd_info->cmd_crlf, 2);
+                meshx_tty_send(&pcmd_info->cmd_prompt, 1);
+            }
             break;
+        case 127: /* backspace */
         case '\b': /* backspace */
+            if ((pcmd_info->cursor_pos > 0) && (pcmd_info->cmd_len > 0))
+            {
+                meshx_cmd_move_forward();
+                pcmd_info->cursor_pos --;
+                meshx_tty_send(pcmd_info->cmd + pcmd_info->cursor_pos, pcmd_info->cmd_len - pcmd_info->cursor_pos);
+                pcmd_info->cmd[pcmd_info->cmd_len - 1] = '\0';
+                meshx_cmd_cursor_move_back();
+                pcmd_info->cmd_len --;
+            }
             break;
         case '[': /* cursor move left */
-            meshx_tty_send("\b", 1);
+            if (pcmd_info->cursor_pos > 0)
+            {
+                meshx_tty_send("\b", 1);
+                pcmd_info->cursor_pos --;
+            }
             break;
         case ']': /* cursor move right */
+            if (pcmd_info->cursor_pos < pcmd_info->cmd_len)
+            {
+                meshx_tty_send(&pcmd_info->cmd[pcmd_info->cursor_pos], 1);
+                pcmd_info->cursor_pos ++;
+            }
             break;
         case ',': /* history previous command */
             break;
         case '.': /* history next command */
             break;
         default:
-            pcmd_info->cmd[pcmd_info->cursor_pos] = pdata[i];
-            meshx_tty_send((const char *)pdata, 1);
+            if (pcmd_info->cmd_len < MESHX_CMD_MAX_LEN)
+            {
+                meshx_cmd_move_back();
+                pcmd_info->cmd[pcmd_info->cursor_pos] = pdata[i];
+                pcmd_info->cmd_len ++;
+                pcmd_info->cursor_pos ++;
+                meshx_tty_send(pcmd_info->cmd + pcmd_info->cursor_pos - 1,
+                               pcmd_info->cmd_len - pcmd_info->cursor_pos + 1);
+                meshx_cmd_cursor_move_back();
+            }
             break;
         }
     }
