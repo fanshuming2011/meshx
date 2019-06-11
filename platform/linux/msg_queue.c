@@ -6,8 +6,9 @@
  *
  * See the LICENSE file for the terms of usage and distribution.
  */
-#include "msg_queue.h"
+#include <pthread.h>
 #include <unistd.h>
+#include "msg_queue.h"
 #define TRACE_MOULE "MSG_QUEUE"
 #include "meshx_trace.h"
 #include "meshx_errno.h"
@@ -20,6 +21,13 @@ typedef struct
     uint32_t msg_num;
     uint32_t msg_size;
 } meshx_msg_queue_wrapper_t;
+
+static pthread_mutex_t mutex;
+
+void msg_queue_init(void)
+{
+    pthread_mutex_init(&mutex, NULL);
+}
 
 int32_t msg_queue_create(meshx_msg_queue_t *pmsg_queue, uint32_t msg_num, uint32_t msg_size)
 {
@@ -64,7 +72,9 @@ int32_t msg_queue_receive(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait
 int32_t msg_queue_send(meshx_msg_queue_t msg_queue, void *pmsg, uint32_t wait_ms)
 {
     meshx_msg_queue_wrapper_t *pmsg_queue = (meshx_msg_queue_wrapper_t *)msg_queue;
+    pthread_mutex_lock(&mutex);
     write(pmsg_queue->fd_write, pmsg, pmsg_queue->msg_size);
+    pthread_mutex_unlock(&mutex);
     return MESHX_SUCCESS;
 }
 

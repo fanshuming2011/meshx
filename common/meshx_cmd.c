@@ -22,6 +22,7 @@ typedef struct
     uint8_t cursor_pos;
     char cmd_history[MESHX_CMD_MAX_HISTORY_SIZE][MESHX_CMD_MAX_LEN + 2];
     uint8_t cmd_history_len[MESHX_CMD_MAX_HISTORY_SIZE];
+    uint8_t history_head_index;
     uint8_t history_tail_index;
     uint8_t history_cur_index;
     char cmd_prompt;
@@ -44,6 +45,21 @@ int32_t meshx_cmd_init(const meshx_cmd_t *pcmds, uint32_t num_cmds)
     pcmd_info->cmd_crlf[1] = '\n';
     meshx_tty_send(&pcmd_info->cmd_prompt, 1);
     return MESHX_SUCCESS;
+}
+
+static void meshx_cmd_clear(void)
+{
+    for (uint8_t i = 0; i < pcmd_info->cmd_len; ++i)
+    {
+        pcmd_info->cmd[i] = ' ';
+        meshx_tty_send("\b", 1);
+    }
+    meshx_tty_send(pcmd_info->cmd, pcmd_info->cmd_len);
+    for (uint8_t i = 0; i < pcmd_info->cmd_len; ++i)
+    {
+        meshx_tty_send("\b", 1);
+    }
+    pcmd_info->cmd_len = 0;
 }
 
 static void meshx_cmd_move_forward(void)
@@ -82,15 +98,26 @@ void meshx_cmd_parse(const uint8_t *pdata, uint8_t len)
         {
         case '\r':
         case '\n': /* command input finished */
+            if (pcmd_info->cmd_len > 0)
             {
-                if (pcmd_info->cmd_len > 0)
-                {
-                    /* save command */
-                }
+                /* save command */
+                memcpy(pcmd_info->cmd_history[pcmd_info->history_tail_index], pcmd_info->cmd, pcmd_info->cmd_len);
+                pcmd_info->cmd_history_len[pcmd_info->history_tail_index] = pcmd_info->cmd_len;
+                /* adjust head and tail */
+                pcmd_info->history_tail_index = (pcmd_info->history_tail_index + 1) % MESHX_CMD_MAX_HISTORY_SIZE;
 
-                meshx_tty_send(pcmd_info->cmd_crlf, 2);
-                meshx_tty_send(&pcmd_info->cmd_prompt, 1);
+                if (pcmd_info->history_tail_index == pcmd_info->history_head_index)
+                {
+                    pcmd_info->history_head_index = (pcmd_info->history_head_index + 1) % MESHX_CMD_MAX_HISTORY_SIZE;
+                    pcmd_info->history_cur_index = pcmd_info->history_head_index;
+                }
+                /* clear cmd */
+                pcmd_info->cmd_len = 0;
+                pcmd_info->cursor_pos = 0;
             }
+
+            meshx_tty_send(pcmd_info->cmd_crlf, 2);
+            meshx_tty_send(&pcmd_info->cmd_prompt, 1);
             break;
         case 127: /* backspace */
         case '\b': /* backspace */
@@ -119,8 +146,19 @@ void meshx_cmd_parse(const uint8_t *pdata, uint8_t len)
             }
             break;
         case ',': /* history previous command */
+            if (pcmd_info->history_head_index != pcmd_info->history_tail_index)
+            {
+                /* has valid history */
+                /* clear current cmd */
+                meshx_cmd_clear();
+                meshx_tty_send(&pcmd_info->cmd_prompt, 1);
+            }
             break;
         case '.': /* history next command */
+            if (pcmd_info->history_head_index != pcmd_info->history_tail_index)
+            {
+                /* has valid history */
+            }
             break;
         default:
             if (pcmd_info->cmd_len < MESHX_CMD_MAX_LEN)

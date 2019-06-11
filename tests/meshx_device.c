@@ -133,6 +133,7 @@ static int32_t meshx_async_msg_notify_handler(const meshx_async_msg_t *pmsg)
 
 static void *meshx_thread(void *pargs)
 {
+    msg_queue_init();
     msg_queue_create(&msg_queue, 10, sizeof(async_data_t));
     meshx_async_msg_set_notify(meshx_async_msg_notify_handler);
 
