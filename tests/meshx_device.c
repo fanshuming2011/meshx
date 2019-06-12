@@ -245,7 +245,6 @@ static void *console_receive_thread(void *pargs)
 int main(int argc, char **argv)
 {
     system_init();
-    printf("device system initialized success!\r\n");
 
     pthread_create(&meshx_tid, NULL, meshx_thread, NULL);
     pthread_create(&meshx_receive, NULL, meshx_receive_thread, NULL);

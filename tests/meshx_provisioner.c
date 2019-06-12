@@ -25,6 +25,8 @@ meshx_msg_queue_t msg_queue = NULL;
 
 #define ASYNC_DATA_TYPE_ADV_DATA   0
 #define ASYNC_DATA_TYPE_MESH_DATA  1
+#define ASYNC_DATA_TYPE_TTY        2
+
 typedef struct
 {
     uint8_t type;
@@ -177,6 +179,11 @@ static void *meshx_thread(void *pargs)
                     meshx_async_msg_process(pmsg);
                 }
                 break;
+            case ASYNC_DATA_TYPE_TTY:
+                {
+                    meshx_cmd_parse(async_data.data, 1);
+                }
+                break;
             default:
                 break;
             }
@@ -204,12 +211,19 @@ static void *meshx_receive_thread(void *pargs)
 
 static void *console_receive_thread(void *pargs)
 {
-    char data = 0;
+    int32_t data = 0;
 
     while (1)
     {
-        data = getchar();
-        putchar(data);
+        data = getc(stdin);
+        if (data != EOF)
+        {
+            async_data_t async_data;
+            async_data.type = ASYNC_DATA_TYPE_TTY;
+            async_data.data[0] = data;
+            async_data.data_len = 1;
+            msg_queue_send(msg_queue, &async_data, sizeof(async_data_t));
+        }
     }
     pthread_exit((void *)0);
 }
@@ -217,7 +231,6 @@ static void *console_receive_thread(void *pargs)
 int main(int argc, char **argv)
 {
     system_init();
-    printf("provisioner system initialized success!\r\n");
 
     pthread_create(&meshx_tid, NULL, meshx_thread, NULL);
     pthread_create(&meshx_receive, NULL, meshx_receive_thread, NULL);

@@ -20,12 +20,21 @@ int32_t meshx_tty_init(void)
     struct termios new_settings;
     tcgetattr(STDIN_FILENO, &default_settings);
 
+#if 0
     /* Disable canonical mode, and set buffer size to 1 byte */
     new_settings.c_lflag &= ~(ECHO | ICANON);
     new_settings.c_cc[VTIME] = 0;
     new_settings.c_cc[VMIN] = 1;
+#endif
 
-    tcsetattr(STDIN_FILENO, TCSANOW, &new_settings);
+    new_settings.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP
+                              | INLCR | IGNCR | ICRNL | IXON);
+    new_settings.c_oflag &= ~OPOST;
+    new_settings.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+    new_settings.c_cflag &= ~(CSIZE | PARENB);
+    new_settings.c_cflag |= CS8;
+
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &new_settings);
 
     return MESHX_SUCCESS;
 }

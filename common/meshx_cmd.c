@@ -40,6 +40,8 @@ int32_t meshx_cmd_init(const meshx_cmd_t *pcmds, uint32_t num_cmds)
         return MESHX_ERR_MEM;
     }
     memset(pcmd_info, 0, sizeof(meshx_user_cmd_info_t));
+    pcmd_info->history_tail_index = MESHX_CMD_MAX_HISTORY_SIZE;
+    pcmd_info->history_cur_index = MESHX_CMD_MAX_HISTORY_SIZE;
     pcmd_info->cmd_prompt = '$';
     pcmd_info->cmd_crlf[0] = '\r';
     pcmd_info->cmd_crlf[1] = '\n';
@@ -100,17 +102,25 @@ void meshx_cmd_parse(const uint8_t *pdata, uint8_t len)
         case '\n': /* command input finished */
             if (pcmd_info->cmd_len > 0)
             {
+                if (MESHX_CMD_MAX_HISTORY_SIZE == pcmd_info->history_tail_index)
+                {
+                    /* initialize tail for the first time */
+                    pcmd_info->history_tail_index = 0;
+                }
+                else
+                {
+                    /* adjust head and tail */
+                    pcmd_info->history_tail_index = (pcmd_info->history_tail_index + 1) % MESHX_CMD_MAX_HISTORY_SIZE;
+
+                    if (pcmd_info->history_tail_index == pcmd_info->history_head_index)
+                    {
+                        pcmd_info->history_head_index = (pcmd_info->history_head_index + 1) % MESHX_CMD_MAX_HISTORY_SIZE;
+                    }
+                    pcmd_info->history_cur_index = pcmd_info->history_tail_index;
+                }
                 /* save command */
                 memcpy(pcmd_info->cmd_history[pcmd_info->history_tail_index], pcmd_info->cmd, pcmd_info->cmd_len);
                 pcmd_info->cmd_history_len[pcmd_info->history_tail_index] = pcmd_info->cmd_len;
-                /* adjust head and tail */
-                pcmd_info->history_tail_index = (pcmd_info->history_tail_index + 1) % MESHX_CMD_MAX_HISTORY_SIZE;
-
-                if (pcmd_info->history_tail_index == pcmd_info->history_head_index)
-                {
-                    pcmd_info->history_head_index = (pcmd_info->history_head_index + 1) % MESHX_CMD_MAX_HISTORY_SIZE;
-                    pcmd_info->history_cur_index = pcmd_info->history_head_index;
-                }
                 /* clear cmd */
                 pcmd_info->cmd_len = 0;
                 pcmd_info->cursor_pos = 0;
@@ -146,18 +156,59 @@ void meshx_cmd_parse(const uint8_t *pdata, uint8_t len)
             }
             break;
         case ',': /* history previous command */
-            if (pcmd_info->history_head_index != pcmd_info->history_tail_index)
+            if ((MESHX_CMD_MAX_HISTORY_SIZE != pcmd_info->history_tail_index) &&
+                (pcmd_info->history_head_index != pcmd_info->history_cur_index))
             {
-                /* has valid history */
                 /* clear current cmd */
                 meshx_cmd_clear();
-                meshx_tty_send(&pcmd_info->cmd_prompt, 1);
+                if (MESHX_CMD_MAX_HISTORY_SIZE == pcmd_info->history_cur_index)
+                {
+                    /* initialize current for the first time */
+                    pcmd_info->history_cur_index = 0;
+                }
+
+                /* display history */
+                memcpy(pcmd_info->cmd, pcmd_info->cmd_history[pcmd_info->history_cur_index],
+                       pcmd_info->cmd_history_len[pcmd_info->history_cur_index]);
+                pcmd_info->cmd_len = pcmd_info->cmd_history_len[pcmd_info->history_cur_index];
+                pcmd_info->cursor_pos = pcmd_info->cmd_len;
+                meshx_tty_send(pcmd_info->cmd, pcmd_info->cmd_len);
+                /* adjust current index */
+                if (pcmd_info->history_cur_index != pcmd_info->history_head_index)
+                {
+                    if (0 == pcmd_info->history_cur_index)
+                    {
+                        pcmd_info->history_cur_index = MESHX_CMD_MAX_HISTORY_SIZE - 1;
+                    }
+                    else
+                    {
+                        pcmd_info->history_cur_index --;
+                    }
+                }
             }
             break;
         case '.': /* history next command */
-            if (pcmd_info->history_head_index != pcmd_info->history_tail_index)
+            if ((MESHX_CMD_MAX_HISTORY_SIZE != pcmd_info->history_tail_index) &&
+                (pcmd_info->history_tail_index != pcmd_info->history_cur_index))
             {
-                /* has valid history */
+                /* clear current cmd */
+                meshx_cmd_clear();
+                if (MESHX_CMD_MAX_HISTORY_SIZE == pcmd_info->history_cur_index)
+                {
+                    break;
+                }
+
+                /* display history */
+                memcpy(pcmd_info->cmd, pcmd_info->cmd_history[pcmd_info->history_cur_index],
+                       pcmd_info->cmd_history_len[pcmd_info->history_cur_index]);
+                pcmd_info->cmd_len = pcmd_info->cmd_history_len[pcmd_info->history_cur_index];
+                pcmd_info->cursor_pos = pcmd_info->cmd_len;
+                meshx_tty_send(pcmd_info->cmd, pcmd_info->cmd_len);
+                /* adjust current index */
+                if (pcmd_info->history_cur_index != pcmd_info->history_tail_index)
+                {
+                    pcmd_info->history_cur_index = (pcmd_info->history_cur_index + 1) % MESHX_CMD_MAX_HISTORY_SIZE;
+                }
             }
             break;
         default:
