@@ -34,28 +34,31 @@ typedef struct
     char cmd_crlf[2];
 } meshx_user_cmd_info_t;
 
-static meshx_user_cmd_info_t *pcmd_info;
+#define MESHX_CMD_MAX_PARAMETERS              20
+typedef struct
+{
+    char *pcmd;
+    uint8_t param_cnt;
+    uint32_t param_val[MESHX_CMD_MAX_PARAMETERS];
+    char *param_ptr[MESHX_CMD_MAX_PARAMETERS];
+} meshx_parsed_cmd_t;
+
+static meshx_user_cmd_info_t cmd_info;
+static meshx_parsed_cmd_t parsed_cmd;
 
 int32_t meshx_cmd_init(const meshx_cmd_t *pcmds, uint32_t num_cmds)
 {
-    pcmd_info = meshx_malloc(sizeof(meshx_user_cmd_info_t));
-    if (NULL == pcmd_info)
-    {
-        MESHX_ERROR("initialize user command failed: out of memory!");
-        return MESHX_ERR_MEM;
-    }
-    memset(pcmd_info, 0, sizeof(meshx_user_cmd_info_t));
-    pcmd_info->history_save_index = MESHX_CMD_MAX_HISTORY_SIZE;
-    pcmd_info->cmd_prompt = '$';
-    pcmd_info->cmd_crlf[0] = '\r';
-    pcmd_info->cmd_crlf[1] = '\n';
-    meshx_tty_send(&pcmd_info->cmd_prompt, 1);
+    cmd_info.history_save_index = MESHX_CMD_MAX_HISTORY_SIZE;
+    cmd_info.cmd_prompt = '$';
+    cmd_info.cmd_crlf[0] = '\r';
+    cmd_info.cmd_crlf[1] = '\n';
+    meshx_tty_send(&cmd_info.cmd_prompt, 1);
     return MESHX_SUCCESS;
 }
 
 static void meshx_cmd_clear(void)
 {
-    for (uint8_t i = 0; i < pcmd_info->cmd_len; ++i)
+    for (uint8_t i = 0; i < cmd_info.cmd_len; ++i)
     {
         meshx_tty_send("\b \b", 3);
     }
@@ -63,218 +66,309 @@ static void meshx_cmd_clear(void)
 
 static void meshx_cmd_move_forward(void)
 {
-    for (uint8_t i = 0; i <= pcmd_info->cmd_len - pcmd_info->cursor_pos; ++i)
+    for (uint8_t i = 0; i <= cmd_info.cmd_len - cmd_info.cursor_pos; ++i)
     {
-        pcmd_info->cmd[pcmd_info->cursor_pos + i - 1] = pcmd_info->cmd[pcmd_info->cursor_pos + i];
+        cmd_info.cmd[cmd_info.cursor_pos + i - 1] = cmd_info.cmd[cmd_info.cursor_pos + i];
     }
-    pcmd_info->cmd[pcmd_info->cmd_len - 1] = ' ';
+    cmd_info.cmd[cmd_info.cmd_len - 1] = ' ';
     meshx_tty_send("\b", 1);
 }
 
 static void meshx_cmd_move_back(void)
 {
-    for (uint8_t i = 0; i < pcmd_info->cmd_len - pcmd_info->cursor_pos; ++i)
+    for (uint8_t i = 0; i < cmd_info.cmd_len - cmd_info.cursor_pos; ++i)
     {
-        pcmd_info->cmd[pcmd_info->cmd_len - i] = pcmd_info->cmd[pcmd_info->cmd_len - i - 1];
+        cmd_info.cmd[cmd_info.cmd_len - i] = cmd_info.cmd[cmd_info.cmd_len - i - 1];
     }
 }
 
 static void meshx_cmd_cursor_move_back(void)
 {
-    for (uint8_t i = 0; i < pcmd_info->cmd_len - pcmd_info->cursor_pos; ++i)
+    for (uint8_t i = 0; i < cmd_info.cmd_len - cmd_info.cursor_pos; ++i)
     {
         meshx_tty_send("\b", 1);
     }
 }
 
-void meshx_cmd_parse(const uint8_t *pdata, uint8_t len)
+static bool meshx_cmd_parse(char *pdata, uint8_t len)
 {
-    MESHX_ASSERT(NULL != pcmd_info);
+    MESHX_INFO("parse cmd: %d-%s", len, pdata);
+    const char *tail = pdata + len;
+    char *p = pdata;
+    char *q;
+
+    memset(&parsed_cmd, 0, sizeof(meshx_parsed_cmd_t));
+
+    /* parse command */
+    /* skip space */
+    while (' ' == *p)
+    {
+        p ++;
+        if (p >= tail)
+        {
+            /* no valid command */
+            return FALSE;
+        }
+    };
+
+    /* find word end */
+    q = p;
+    while (' ' != *q)
+    {
+        q ++;
+        if (q >= tail)
+        {
+            *q = '\0';
+            /* reach end */
+            parsed_cmd.pcmd = p;
+            return TRUE;
+        }
+    };
+    *q = '\0';
+    parsed_cmd.pcmd = p;
+
+    /* parse parameters */
+    while (1)
+    {
+        /* skip space */
+        while (' ' == *p)
+        {
+            p ++;
+            if (p >= tail)
+            {
+                /* parse finished */
+                break;
+            }
+        };
+
+        /* find word end */
+        q = p;
+        while (' ' != *q)
+        {
+            q ++;
+            if (q >= tail)
+            {
+                *q = '\0';
+                /* reach end */
+                parsed_cmd.param_ptr[parsed_cmd.param_cnt] = p;
+                //parsed_cmd.param_val = *p;
+                break;
+            }
+        };
+        *q = '\0';
+        parsed_cmd.param_ptr[parsed_cmd.param_cnt] = p;
+        //parsed_cmd.param_val = *p;
+    }
+
+    return TRUE;
+}
+
+void meshx_cmd_collect(const uint8_t *pdata, uint8_t len)
+{
     for (uint8_t i = 0; i < len; ++i)
     {
         switch (pdata[i])
         {
         case '\r':
         case '\n': /* command input finished */
-            if (pcmd_info->cmd_len > 0)
+            if (cmd_info.cmd_len > 0)
             {
-                if (MESHX_CMD_MAX_HISTORY_SIZE == pcmd_info->history_save_index)
+                if (MESHX_CMD_MAX_HISTORY_SIZE == cmd_info.history_save_index)
                 {
                     /* save for first time */
-                    pcmd_info->history_save_index = 0;
+                    cmd_info.history_save_index = 0;
                 }
                 else
                 {
                     /* adjust save index */
-                    pcmd_info->history_save_index ++;
-                    if (MESHX_CMD_MAX_HISTORY_SIZE == pcmd_info->history_save_index)
+                    cmd_info.history_save_index ++;
+                    if (MESHX_CMD_MAX_HISTORY_SIZE == cmd_info.history_save_index)
                     {
-                        pcmd_info->history_save_index = 0;
-                        pcmd_info->history_looped = TRUE;
+                        cmd_info.history_save_index = 0;
+                        cmd_info.history_looped = TRUE;
                     }
                 }
 
-                memcpy(pcmd_info->cmd_history[pcmd_info->history_save_index], pcmd_info->cmd, pcmd_info->cmd_len);
-                pcmd_info->cmd_history_len[pcmd_info->history_save_index] = pcmd_info->cmd_len;
+                memcpy(cmd_info.cmd_history[cmd_info.history_save_index], cmd_info.cmd, cmd_info.cmd_len);
+                cmd_info.cmd_history_len[cmd_info.history_save_index] = cmd_info.cmd_len;
+                cmd_info.cmd_history[cmd_info.history_save_index][cmd_info.cmd_len] = '\0';
+                cmd_info.cmd[cmd_info.cmd_len] = '\0';
+
+                /* parse command */
+                meshx_cmd_parse(cmd_info.cmd, cmd_info.cmd_len);
+                MESHX_INFO("parsed cmd: %s", parsed_cmd.pcmd);
+                MESHX_INFO("parsed param cnt: %d", parsed_cmd.param_cnt);
+                for (uint8_t i = 0; i < parsed_cmd.param_cnt; ++i)
+                {
+                    MESHX_INFO("parsed param value: %d", parsed_cmd.param_val);
+                }
+                for (uint8_t i = 0; i < parsed_cmd.param_cnt; ++i)
+                {
+                    MESHX_INFO("parsed param ptr: %s", parsed_cmd.param_ptr);
+                }
+
+                /* execute command */
+
                 /* clear cmd */
-                pcmd_info->cmd_len = 0;
-                pcmd_info->cursor_pos = 0;
-                pcmd_info->history_traverse_index = pcmd_info->history_save_index;
-                pcmd_info->history_traversed_to_head = FALSE;
-                pcmd_info->history_traversed_to_tail = TRUE;
-                pcmd_info->history_traversing = FALSE;
+                cmd_info.cmd_len = 0;
+                cmd_info.cursor_pos = 0;
+                cmd_info.history_traverse_index = cmd_info.history_save_index;
+                cmd_info.history_traversed_to_head = FALSE;
+                cmd_info.history_traversed_to_tail = TRUE;
+                cmd_info.history_traversing = FALSE;
             }
 
-            meshx_tty_send(pcmd_info->cmd_crlf, 2);
-            meshx_tty_send(&pcmd_info->cmd_prompt, 1);
+            /* output new line */
+            meshx_tty_send(cmd_info.cmd_crlf, 2);
+            meshx_tty_send(&cmd_info.cmd_prompt, 1);
             break;
         case 127: /* backspace */
         case '\b': /* backspace */
-            if ((pcmd_info->cursor_pos > 0) && (pcmd_info->cmd_len > 0))
+            if ((cmd_info.cursor_pos > 0) && (cmd_info.cmd_len > 0))
             {
                 meshx_cmd_move_forward();
-                pcmd_info->cursor_pos --;
-                meshx_tty_send(pcmd_info->cmd + pcmd_info->cursor_pos, pcmd_info->cmd_len - pcmd_info->cursor_pos);
-                pcmd_info->cmd[pcmd_info->cmd_len - 1] = '\0';
+                cmd_info.cursor_pos --;
+                meshx_tty_send(cmd_info.cmd + cmd_info.cursor_pos, cmd_info.cmd_len - cmd_info.cursor_pos);
+                cmd_info.cmd[cmd_info.cmd_len - 1] = '\0';
                 meshx_cmd_cursor_move_back();
-                pcmd_info->cmd_len --;
+                cmd_info.cmd_len --;
             }
             break;
         case '[': /* cursor move left */
-            if (pcmd_info->cursor_pos > 0)
+            if (cmd_info.cursor_pos > 0)
             {
                 meshx_tty_send("\b", 1);
-                pcmd_info->cursor_pos --;
+                cmd_info.cursor_pos --;
             }
             break;
         case ']': /* cursor move right */
-            if (pcmd_info->cursor_pos < pcmd_info->cmd_len)
+            if (cmd_info.cursor_pos < cmd_info.cmd_len)
             {
-                meshx_tty_send(&pcmd_info->cmd[pcmd_info->cursor_pos], 1);
-                pcmd_info->cursor_pos ++;
+                meshx_tty_send(&cmd_info.cmd[cmd_info.cursor_pos], 1);
+                cmd_info.cursor_pos ++;
             }
             break;
         case ',': /* history previous command */
-            if ((MESHX_CMD_MAX_HISTORY_SIZE != pcmd_info->history_save_index) &&
-                !pcmd_info->history_traversed_to_head)
+            if ((MESHX_CMD_MAX_HISTORY_SIZE != cmd_info.history_save_index) &&
+                !cmd_info.history_traversed_to_head)
             {
-                pcmd_info->history_traversed_to_tail = FALSE;
-                if (pcmd_info->history_traversing)
+                cmd_info.history_traversed_to_tail = FALSE;
+                if (cmd_info.history_traversing)
                 {
                     /* adjust traverse index */
-                    if (pcmd_info->history_looped)
+                    if (cmd_info.history_looped)
                     {
-                        if (pcmd_info->history_traverse_index == ((pcmd_info->history_save_index + 1) %
-                                                                  MESHX_CMD_MAX_HISTORY_SIZE))
+                        if (cmd_info.history_traverse_index == ((cmd_info.history_save_index + 1) %
+                                                                MESHX_CMD_MAX_HISTORY_SIZE))
                         {
-                            pcmd_info->history_traversed_to_head = TRUE;
+                            cmd_info.history_traversed_to_head = TRUE;
                         }
                         else
                         {
-                            if (0 == pcmd_info->history_traverse_index)
+                            if (0 == cmd_info.history_traverse_index)
                             {
-                                pcmd_info->history_traverse_index = MESHX_CMD_MAX_HISTORY_SIZE - 1;
+                                cmd_info.history_traverse_index = MESHX_CMD_MAX_HISTORY_SIZE - 1;
                             }
                             else
                             {
-                                pcmd_info->history_traverse_index --;
+                                cmd_info.history_traverse_index --;
                             }
                         }
                     }
                     else
                     {
-                        if (0 == pcmd_info->history_traverse_index)
+                        if (0 == cmd_info.history_traverse_index)
                         {
-                            pcmd_info->history_traversed_to_head = TRUE;
+                            cmd_info.history_traversed_to_head = TRUE;
                         }
                         else
                         {
-                            pcmd_info->history_traverse_index --;
+                            cmd_info.history_traverse_index --;
                         }
                     }
                 }
                 else
                 {
-                    pcmd_info->history_traversing = TRUE;
-                    memcpy(pcmd_info->cmd_temp, pcmd_info->cmd, pcmd_info->cmd_len);
-                    pcmd_info->cmd_temp_len = pcmd_info->cmd_len;
+                    cmd_info.history_traversing = TRUE;
+                    memcpy(cmd_info.cmd_temp, cmd_info.cmd, cmd_info.cmd_len);
+                    cmd_info.cmd_temp_len = cmd_info.cmd_len;
                 }
 
-                if (!pcmd_info->history_traversed_to_head)
+                if (!cmd_info.history_traversed_to_head)
                 {
                     /* clear command */
                     meshx_cmd_clear();
                     /* copy history */
-                    memcpy(pcmd_info->cmd, pcmd_info->cmd_history[pcmd_info->history_traverse_index],
-                           pcmd_info->cmd_history_len[pcmd_info->history_traverse_index]);
-                    pcmd_info->cmd_len = pcmd_info->cmd_history_len[pcmd_info->history_traverse_index];
-                    pcmd_info->cursor_pos = pcmd_info->cmd_len;
+                    memcpy(cmd_info.cmd, cmd_info.cmd_history[cmd_info.history_traverse_index],
+                           cmd_info.cmd_history_len[cmd_info.history_traverse_index]);
+                    cmd_info.cmd_len = cmd_info.cmd_history_len[cmd_info.history_traverse_index];
+                    cmd_info.cursor_pos = cmd_info.cmd_len;
 
                     /* display history */
-                    meshx_tty_send(pcmd_info->cmd, pcmd_info->cmd_len);
+                    meshx_tty_send(cmd_info.cmd, cmd_info.cmd_len);
                 }
             }
             break;
         case '.': /* history next command */
-            if ((MESHX_CMD_MAX_HISTORY_SIZE != pcmd_info->history_save_index) &&
-                !pcmd_info->history_traversed_to_tail)
+            if ((MESHX_CMD_MAX_HISTORY_SIZE != cmd_info.history_save_index) &&
+                !cmd_info.history_traversed_to_tail)
             {
-                pcmd_info->history_traversed_to_head = FALSE;
+                cmd_info.history_traversed_to_head = FALSE;
                 /* clear current cmd */
                 meshx_cmd_clear();
                 /* adjust traverse index */
-                if (pcmd_info->history_looped)
+                if (cmd_info.history_looped)
                 {
-                    if (pcmd_info->history_traverse_index == pcmd_info->history_save_index)
+                    if (cmd_info.history_traverse_index == cmd_info.history_save_index)
                     {
-                        pcmd_info->history_traversed_to_tail = TRUE;
+                        cmd_info.history_traversed_to_tail = TRUE;
                     }
                     else
                     {
-                        pcmd_info->history_traverse_index = (pcmd_info->history_traverse_index + 1) %
-                                                            MESHX_CMD_MAX_HISTORY_SIZE;
+                        cmd_info.history_traverse_index = (cmd_info.history_traverse_index + 1) %
+                                                          MESHX_CMD_MAX_HISTORY_SIZE;
                     }
                 }
                 else
                 {
-                    if (pcmd_info->history_traverse_index == pcmd_info->history_save_index)
+                    if (cmd_info.history_traverse_index == cmd_info.history_save_index)
                     {
-                        pcmd_info->history_traversed_to_tail = TRUE;
+                        cmd_info.history_traversed_to_tail = TRUE;
                     }
                     else
                     {
-                        pcmd_info->history_traverse_index ++;
+                        cmd_info.history_traverse_index ++;
                     }
                 }
                 /* display history */
-                if (pcmd_info->history_traversed_to_tail)
+                if (cmd_info.history_traversed_to_tail)
                 {
-                    meshx_tty_send(pcmd_info->cmd_temp, pcmd_info->cmd_temp_len);
-                    memcpy(pcmd_info->cmd, pcmd_info->cmd_temp, pcmd_info->cmd_temp_len);
-                    pcmd_info->cmd_len = pcmd_info->cmd_temp_len;
-                    pcmd_info->cursor_pos = pcmd_info->cmd_len;
-                    pcmd_info->history_traversing = FALSE;
+                    meshx_tty_send(cmd_info.cmd_temp, cmd_info.cmd_temp_len);
+                    memcpy(cmd_info.cmd, cmd_info.cmd_temp, cmd_info.cmd_temp_len);
+                    cmd_info.cmd_len = cmd_info.cmd_temp_len;
+                    cmd_info.cursor_pos = cmd_info.cmd_len;
+                    cmd_info.history_traversing = FALSE;
                 }
                 else
                 {
-                    meshx_tty_send(pcmd_info->cmd_history[pcmd_info->history_traverse_index],
-                                   pcmd_info->cmd_history_len[pcmd_info->history_traverse_index]);
-                    memcpy(pcmd_info->cmd, pcmd_info->cmd_history[pcmd_info->history_traverse_index],
-                           pcmd_info->cmd_history_len[pcmd_info->history_traverse_index]);
-                    pcmd_info->cmd_len = pcmd_info->cmd_history_len[pcmd_info->history_traverse_index];
-                    pcmd_info->cursor_pos = pcmd_info->cmd_len;
+                    meshx_tty_send(cmd_info.cmd_history[cmd_info.history_traverse_index],
+                                   cmd_info.cmd_history_len[cmd_info.history_traverse_index]);
+                    memcpy(cmd_info.cmd, cmd_info.cmd_history[cmd_info.history_traverse_index],
+                           cmd_info.cmd_history_len[cmd_info.history_traverse_index]);
+                    cmd_info.cmd_len = cmd_info.cmd_history_len[cmd_info.history_traverse_index];
+                    cmd_info.cursor_pos = cmd_info.cmd_len;
                 }
             }
             break;
         default:
-            if (pcmd_info->cmd_len < MESHX_CMD_MAX_LEN)
+            if (cmd_info.cmd_len < MESHX_CMD_MAX_LEN)
             {
                 meshx_cmd_move_back();
-                pcmd_info->cmd[pcmd_info->cursor_pos] = pdata[i];
-                pcmd_info->cmd_len ++;
-                pcmd_info->cursor_pos ++;
-                meshx_tty_send(pcmd_info->cmd + pcmd_info->cursor_pos - 1,
-                               pcmd_info->cmd_len - pcmd_info->cursor_pos + 1);
+                cmd_info.cmd[cmd_info.cursor_pos] = pdata[i];
+                cmd_info.cmd_len ++;
+                cmd_info.cursor_pos ++;
+                meshx_tty_send(cmd_info.cmd + cmd_info.cursor_pos - 1,
+                               cmd_info.cmd_len - cmd_info.cursor_pos + 1);
                 meshx_cmd_cursor_move_back();
             }
             break;

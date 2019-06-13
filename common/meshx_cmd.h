@@ -35,7 +35,7 @@ typedef struct
 } meshx_cmd_t;
 
 MESHX_EXTERN int32_t meshx_cmd_init(const meshx_cmd_t *pcmds, uint32_t num_cmds);
-MESHX_EXTERN void meshx_cmd_parse(const uint8_t *pdata, uint8_t len);
+MESHX_EXTERN void meshx_cmd_collect(const uint8_t *pdata, uint8_t len);
 MESHX_EXTERN void meshx_cmd_list(const char *pcmd);
 MESHX_EXTERN void meshx_cmd_list_all(void);
 

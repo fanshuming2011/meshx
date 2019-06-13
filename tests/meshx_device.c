@@ -194,7 +194,7 @@ static void *meshx_thread(void *pargs)
                 break;
             case ASYNC_DATA_TYPE_TTY:
                 {
-                    meshx_cmd_parse(async_data.data, 1);
+                    meshx_cmd_collect(async_data.data, 1);
                 }
                 break;
             default:
