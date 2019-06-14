@@ -14,6 +14,7 @@
 #include "meshx_tty.h"
 #include "meshx_mem.h"
 #include "meshx_assert.h"
+#include "meshx_lib.h"
 
 typedef struct
 {
@@ -122,7 +123,7 @@ static bool meshx_cmd_parse(char *pdata, uint8_t len)
             parsed_data.pcmd = p;
             return TRUE;
         }
-    };
+    }
     *q = '\0';
     parsed_data.pcmd = p;
     p = q + 1;
@@ -139,7 +140,7 @@ static bool meshx_cmd_parse(char *pdata, uint8_t len)
                 /* parse finished */
                 return TRUE;;
             }
-        };
+        }
 
         /* find word end */
         q = p;
@@ -151,14 +152,14 @@ static bool meshx_cmd_parse(char *pdata, uint8_t len)
                 *q = '\0';
                 /* reach end */
                 parsed_data.param_ptr[parsed_data.param_cnt] = p;
-                //parsed_cmd.param_val = *p;
+                parsed_data.param_val[parsed_data.param_cnt] = meshx_atoi(p, NULL);
                 parsed_data.param_cnt ++;
                 return TRUE;
             }
-        };
+        }
         *q = '\0';
         parsed_data.param_ptr[parsed_data.param_cnt] = p;
-        //parsed_cmd.param_val = *p;
+        parsed_data.param_val[parsed_data.param_cnt] = meshx_atoi(p, NULL);
         parsed_data.param_cnt ++;
         p = q + 1;
     }

@@ -21,6 +21,7 @@ set(COMMON_SRC_LIST
     ../common/meshx_3gpp_crc.c
     ../common/meshx_cmd.c
     ../common/meshx_errno.c
+    ../common/meshx_lib.c
     ../mesh/common/meshx_node.c
     ../mesh/common/meshx_async.c
     ../mesh/gap/meshx_gap.c
