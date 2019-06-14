@@ -109,12 +109,10 @@ int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *
     return MESHX_SUCCESS;
 }
 
-static int32_t meshx_async_msg_notify_handler(const meshx_async_msg_t *pmsg)
+static int32_t meshx_async_msg_notify_handler(void)
 {
     async_data_t async_data;
     async_data.type = ASYNC_DATA_TYPE_MESH_DATA;
-    *((uint64_t *)async_data.data) = (uint64_t)pmsg;
-    async_data.data_len = 8;
     msg_queue_send(msg_queue, &async_data, sizeof(async_data_t));
 
     return MESHX_SUCCESS;
@@ -124,7 +122,7 @@ static void *meshx_thread(void *pargs)
 {
     msg_queue_init();
     msg_queue_create(&msg_queue, 10, sizeof(async_data_t));
-    meshx_async_msg_set_notify(meshx_async_msg_notify_handler);
+    meshx_async_msg_init(10, meshx_async_msg_notify_handler);
 
 
     meshx_trace_init(linux_send_string);
@@ -173,10 +171,7 @@ static void *meshx_thread(void *pargs)
                 break;
             case ASYNC_DATA_TYPE_MESH_DATA:
                 {
-                    uint64_t address = *((uint64_t *)async_data.data);
-                    meshx_async_msg_t *pmsg = (meshx_async_msg_t *)address;
-                    MESHX_DEBUG("receive mesh inner msg: %d", pmsg->type);
-                    meshx_async_msg_process(pmsg);
+                    meshx_async_msg_process();
                 }
                 break;
             case ASYNC_DATA_TYPE_TTY:

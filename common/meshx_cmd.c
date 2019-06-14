@@ -34,17 +34,14 @@ typedef struct
     char cmd_crlf[2];
 } meshx_user_cmd_info_t;
 
-#define MESHX_CMD_MAX_PARAMETERS              20
-typedef struct
-{
-    char *pcmd;
-    uint8_t param_cnt;
-    uint32_t param_val[MESHX_CMD_MAX_PARAMETERS];
-    char *param_ptr[MESHX_CMD_MAX_PARAMETERS];
-} meshx_parsed_cmd_t;
 
 static meshx_user_cmd_info_t cmd_info;
-static meshx_parsed_cmd_t parsed_cmd;
+static meshx_cmd_parsed_data_t parsed_data;
+
+static const meshx_cmd_t *puser_cmds;
+static uint32_t num_user_cmds;
+
+static const char err_data[] = "execute command failed: ";
 
 int32_t meshx_cmd_init(const meshx_cmd_t *pcmds, uint32_t num_cmds)
 {
@@ -53,6 +50,8 @@ int32_t meshx_cmd_init(const meshx_cmd_t *pcmds, uint32_t num_cmds)
     cmd_info.cmd_crlf[0] = '\r';
     cmd_info.cmd_crlf[1] = '\n';
     meshx_tty_send(&cmd_info.cmd_prompt, 1);
+    puser_cmds = pcmds;
+    num_user_cmds = num_cmds;
     return MESHX_SUCCESS;
 }
 
@@ -97,7 +96,7 @@ static bool meshx_cmd_parse(char *pdata, uint8_t len)
     char *p = pdata;
     char *q;
 
-    memset(&parsed_cmd, 0, sizeof(meshx_parsed_cmd_t));
+    memset(&parsed_data, 0, sizeof(meshx_cmd_parsed_data_t));
 
     /* parse command */
     /* skip space */
@@ -120,12 +119,13 @@ static bool meshx_cmd_parse(char *pdata, uint8_t len)
         {
             *q = '\0';
             /* reach end */
-            parsed_cmd.pcmd = p;
+            parsed_data.pcmd = p;
             return TRUE;
         }
     };
     *q = '\0';
-    parsed_cmd.pcmd = p;
+    parsed_data.pcmd = p;
+    p = q + 1;
 
     /* parse parameters */
     while (1)
@@ -137,7 +137,7 @@ static bool meshx_cmd_parse(char *pdata, uint8_t len)
             if (p >= tail)
             {
                 /* parse finished */
-                break;
+                return TRUE;;
             }
         };
 
@@ -150,18 +150,63 @@ static bool meshx_cmd_parse(char *pdata, uint8_t len)
             {
                 *q = '\0';
                 /* reach end */
-                parsed_cmd.param_ptr[parsed_cmd.param_cnt] = p;
+                parsed_data.param_ptr[parsed_data.param_cnt] = p;
                 //parsed_cmd.param_val = *p;
-                break;
+                parsed_data.param_cnt ++;
+                return TRUE;
             }
         };
         *q = '\0';
-        parsed_cmd.param_ptr[parsed_cmd.param_cnt] = p;
+        parsed_data.param_ptr[parsed_data.param_cnt] = p;
         //parsed_cmd.param_val = *p;
+        parsed_data.param_cnt ++;
+        p = q + 1;
     }
 
     return TRUE;
 }
+
+static int32_t meshx_cmd_execute(void)
+{
+    int32_t ret = -MESHX_ERR_NOT_FOUND;
+    for (uint32_t i = 0; i < num_user_cmds; ++i)
+    {
+        if (0 == strcmp(parsed_data.pcmd, puser_cmds[i].pcmd))
+        {
+            if (NULL != puser_cmds[i].process)
+            {
+                ret = puser_cmds[i].process(&parsed_data);
+            }
+            break;
+        }
+    }
+    return ret;
+}
+
+#if 0
+static void meshx_send_err_code(int32_t err_code)
+{
+    if (0 == err_code)
+    {
+        return ;
+    }
+
+    meshx_send_err_code(err_code / 10);
+    char data = err_code % 10 + 0x30;
+    meshx_tty_send(&data, 1);
+}
+
+static void meshx_cmd_send_err_code(int32_t err_code)
+{
+    if (err_code < 0)
+    {
+        err_code = -err_code;
+        meshx_tty_send("-", 1);
+    }
+
+    meshx_send_err_code(err_code);
+}
+#endif
 
 void meshx_cmd_collect(const uint8_t *pdata, uint8_t len)
 {
@@ -195,19 +240,31 @@ void meshx_cmd_collect(const uint8_t *pdata, uint8_t len)
                 cmd_info.cmd[cmd_info.cmd_len] = '\0';
 
                 /* parse command */
-                meshx_cmd_parse(cmd_info.cmd, cmd_info.cmd_len);
-                MESHX_INFO("parsed cmd: %s", parsed_cmd.pcmd);
-                MESHX_INFO("parsed param cnt: %d", parsed_cmd.param_cnt);
-                for (uint8_t i = 0; i < parsed_cmd.param_cnt; ++i)
+                if (meshx_cmd_parse(cmd_info.cmd, cmd_info.cmd_len))
                 {
-                    MESHX_INFO("parsed param value: %d", parsed_cmd.param_val);
+                    /* execute command */
+                    int32_t ret = meshx_cmd_execute();
+                    if (MESHX_SUCCESS != ret)
+                    {
+                        meshx_tty_send(cmd_info.cmd_crlf, 2);
+                        meshx_tty_send(err_data, sizeof(err_data));
+                        const char *err_str = meshx_errno_to_string(ret);
+                        meshx_tty_send(err_str, strlen(err_str));
+                    }
                 }
-                for (uint8_t i = 0; i < parsed_cmd.param_cnt; ++i)
+#if 0
+                MESHX_INFO("parsed cmd: %s", parsed_data.pcmd);
+                MESHX_INFO("parsed param cnt: %d", parsed_data.param_cnt);
+                for (uint8_t i = 0; i < parsed_data.param_cnt; ++i)
                 {
-                    MESHX_INFO("parsed param ptr: %s", parsed_cmd.param_ptr);
+                    MESHX_INFO("parsed param value: %d", parsed_data.param_val[i]);
                 }
+                for (uint8_t i = 0; i < parsed_data.param_cnt; ++i)
+                {
+                    MESHX_INFO("parsed param ptr: %s", parsed_data.param_ptr[i]);
+                }
+#endif
 
-                /* execute command */
 
                 /* clear cmd */
                 cmd_info.cmd_len = 0;

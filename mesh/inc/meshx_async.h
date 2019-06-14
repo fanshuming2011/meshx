@@ -13,12 +13,10 @@
 MESHX_BEGIN_DECLS
 
 
-typedef struct _meshx_async_msg meshx_async_msg_t;
+typedef int32_t (*meshx_async_msg_notify_t)(void);
 
-typedef int32_t (*meshx_async_msg_notify_t)(const meshx_async_msg_t *pmsg);
-
-MESHX_EXTERN int32_t meshx_async_msg_set_notify(meshx_async_msg_notify_t handler);
-MESHX_EXTERN void meshx_async_msg_process(meshx_async_msg_t *pmsg);
+MESHX_EXTERN int32_t meshx_async_msg_init(uint32_t msg_max_num, meshx_async_msg_notify_t handler);
+MESHX_EXTERN void meshx_async_msg_process(void);
 
 
 MESHX_END_DECLS

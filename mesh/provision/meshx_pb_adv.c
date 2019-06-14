@@ -326,19 +326,11 @@ static void meshx_link_loss_timeout_handler(void *pargs)
     pdev->link_monitor_time += MESHX_LINK_MONITOR_PERIOD;
     if (pdev->link_monitor_time > MESHX_LINK_LOSS_TIME)
     {
-        if (NULL != meshx_async_msg_notify)
-        {
-            meshx_async_msg_t *pmsg = meshx_malloc(sizeof(meshx_async_msg_t));
-            if (NULL == pmsg)
-            {
-                MESHX_ERROR("handle link loss timeout failed: out of memory");
-                return ;
-            }
-            pmsg->type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_LINK_LOSS;
-            pmsg->pdata = pargs;
-            pmsg->data_len = 0;
-            meshx_async_msg_notify(pmsg);
-        }
+        meshx_async_msg_t msg;
+        msg.type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_LINK_LOSS;
+        msg.pdata = pargs;
+        msg.data_len = 0;
+        meshx_async_msg_send(&msg);
     }
 }
 
@@ -414,32 +406,22 @@ static void meshx_retry_timeout_handler(void *pargs)
         MESHX_WARN("handle retry timeout failed: device may be deleted!");
         return;
     }
-    if (NULL != meshx_async_msg_notify)
-    {
-        meshx_async_msg_t *pmsg = meshx_malloc(sizeof(meshx_async_msg_t));
-        if (NULL == pmsg)
-        {
-            MESHX_ERROR("handle link loss timeout failed: out of memory");
-            return ;
-        }
-        pmsg->type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY;
-        pmsg->pdata = pargs;
-        pmsg->data_len = 0;
-        meshx_async_msg_notify(pmsg);
-    }
+    meshx_async_msg_t msg;
+    msg.type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY;
+    msg.pdata = pargs;
+    msg.data_len = 0;
+    meshx_async_msg_send(&msg);
 }
 
-void meshx_pb_adv_async_handle_timeout(meshx_async_msg_t *pmsg)
+void meshx_pb_adv_async_handle_timeout(meshx_async_msg_t msg)
 {
-    switch (pmsg->type)
+    switch (msg.type)
     {
     case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_LINK_LOSS:
-        meshx_pb_adv_link_loss_timeout_handler(pmsg->pdata);
-        meshx_free(pmsg);
+        meshx_pb_adv_link_loss_timeout_handler(msg.pdata);
         break;
     case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY:
-        meshx_pb_adv_retry_timeout_handler(pmsg->pdata);
-        meshx_free(pmsg);
+        meshx_pb_adv_retry_timeout_handler(msg.pdata);
         break;
     default:
         break;

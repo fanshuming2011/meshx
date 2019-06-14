@@ -8,21 +8,25 @@
 #ifndef _MESHX_ASYNC_INTERNAL_H_
 #define _MESHX_ASYNC_INTERNAL_H_
 
-#include "meshx_async.h"
+#include "meshx_types.h"
 
 MESHX_BEGIN_DECLS
-
-MESHX_EXTERN meshx_async_msg_notify_t meshx_async_msg_notify;
 
 #define MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY                      0
 #define MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_LINK_LOSS                  1
 
-struct _meshx_async_msg
+typedef struct
 {
     uint8_t type;
-    void *pdata;
+    union
+    {
+        uint32_t data;
+        void *pdata;
+    };
     uint8_t data_len;
-};
+} meshx_async_msg_t;
+
+MESHX_EXTERN int32_t meshx_async_msg_send(const meshx_async_msg_t *pmsg);
 
 MESHX_END_DECLS
 
