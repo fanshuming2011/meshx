@@ -56,6 +56,19 @@ int32_t meshx_cmd_init(const meshx_cmd_t *pcmds, uint32_t num_cmds)
     return MESHX_SUCCESS;
 }
 
+static const meshx_cmd_t *meshx_cmd_find(const char *pcmd)
+{
+    for (uint32_t i = 0; i < num_user_cmds; ++i)
+    {
+        if (0 == strcmp(puser_cmds[i].pcmd, pcmd))
+        {
+            return &puser_cmds[i];
+        }
+    }
+
+    return NULL;
+}
+
 static void meshx_cmd_clear(void)
 {
     for (uint8_t i = 0; i < cmd_info.cmd_len; ++i)
@@ -169,18 +182,20 @@ static bool meshx_cmd_parse(char *pdata, uint8_t len)
 
 static int32_t meshx_cmd_execute(void)
 {
-    int32_t ret = -MESHX_ERR_NOT_FOUND;
-    for (uint32_t i = 0; i < num_user_cmds; ++i)
+    int32_t ret = MESHX_SUCCESS;
+    const meshx_cmd_t *pcmd = meshx_cmd_find(parsed_data.pcmd);
+    if (NULL != pcmd)
     {
-        if (0 == strcmp(parsed_data.pcmd, puser_cmds[i].pcmd))
+        if (NULL != pcmd->process)
         {
-            if (NULL != puser_cmds[i].process)
-            {
-                ret = puser_cmds[i].process(&parsed_data);
-            }
-            break;
+            ret = pcmd->process(&parsed_data);
         }
     }
+    else
+    {
+        ret = -MESHX_ERR_NOT_FOUND;
+    }
+
     return ret;
 }
 
@@ -437,11 +452,32 @@ void meshx_cmd_collect(const uint8_t *pdata, uint8_t len)
 
 void meshx_cmd_list(const char *pcmd)
 {
-
+    const meshx_cmd_t *pcmd_temp = meshx_cmd_find(pcmd);
+    if (NULL != pcmd_temp)
+    {
+        meshx_tty_send(cmd_info.cmd_crlf, 2);
+        meshx_tty_send("usage: ", 7);
+        meshx_tty_send(pcmd_temp->pusage, strlen(pcmd_temp->pusage));
+        meshx_tty_send(cmd_info.cmd_crlf, 2);
+        meshx_tty_send(pcmd_temp->phelp, strlen(pcmd_temp->phelp));
+        meshx_tty_send(cmd_info.cmd_crlf, 2);
+    }
 }
 
 void meshx_cmd_list_all(void)
 {
-
+    for (uint32_t i = 0; i < num_user_cmds; ++i)
+    {
+        meshx_tty_send(cmd_info.cmd_crlf, 2);
+        meshx_tty_send(puser_cmds[i].pcmd, strlen(puser_cmds[i].pcmd));
+        meshx_tty_send(cmd_info.cmd_crlf, 2);
+        meshx_tty_send("  ", 2);
+        meshx_tty_send("usage: ", 7);
+        meshx_tty_send(puser_cmds[i].pusage, strlen(puser_cmds[i].pusage));
+        meshx_tty_send(cmd_info.cmd_crlf, 2);
+        meshx_tty_send("  ", 2);
+        meshx_tty_send(puser_cmds[i].phelp, strlen(puser_cmds[i].phelp));
+        meshx_tty_send(cmd_info.cmd_crlf, 2);
+    }
 }
 

@@ -5,6 +5,7 @@ include_directories(../common
                     ../mesh/inc
                     ../mesh/gap
                     ../mesh/common
+                    ../cmd
                     ../platform
                     ../platform/linux
                     ../)
@@ -22,6 +23,7 @@ set(COMMON_SRC_LIST
     ../common/meshx_cmd.c
     ../common/meshx_errno.c
     ../common/meshx_lib.c
+    ../cmd/meshx_cmd_common.c
     ../mesh/common/meshx_node.c
     ../mesh/common/meshx_async.c
     ../mesh/gap/meshx_gap.c
@@ -34,10 +36,12 @@ set(COMMON_SRC_LIST
     ../mesh/provision/meshx_provision.c)
 
 set(DEV_SRC_LIST
-    ../platform/linux/meshx_gap_wrapper_dev.c)
+    ../platform/linux/meshx_gap_wrapper_dev.c
+    device_cmd.c)
 
 set(PROV_SRC_LIST
-    ../platform/linux/meshx_gap_wrapper_prov.c)
+    ../platform/linux/meshx_gap_wrapper_prov.c
+    provisioner_cmd.c)
 
 
 find_package(Threads REQUIRED)

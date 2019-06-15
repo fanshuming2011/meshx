@@ -19,6 +19,7 @@
 #include "meshx.h"
 #include "msg_queue.h"
 #include "meshx_async_internal.h"
+#include "device_cmd.h"
 //#include "meshx_mem.h"
 
 meshx_msg_queue_t msg_queue = NULL;
@@ -57,7 +58,7 @@ void system_init(void)
     fd_dspr = open(FIFO_DSPR, O_WRONLY);
     log_file = fopen("./log_dev", "w");
     meshx_tty_init();
-    meshx_cmd_init(NULL, 0);
+    device_cmd_init();
 }
 
 void linux_send_string(const char *pdata, uint32_t len)
