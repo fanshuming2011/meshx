@@ -42,7 +42,7 @@ static meshx_cmd_parsed_data_t parsed_data;
 static const meshx_cmd_t *puser_cmds;
 static uint32_t num_user_cmds;
 
-static const char err_data[] = "execute command failed: ";
+//static const char err_data[] = "execute command failed: ";
 
 int32_t meshx_cmd_init(const meshx_cmd_t *pcmds, uint32_t num_cmds)
 {
@@ -248,7 +248,8 @@ void meshx_cmd_collect(const uint8_t *pdata, uint8_t len)
                     if (MESHX_SUCCESS != ret)
                     {
                         meshx_tty_send(cmd_info.cmd_crlf, 2);
-                        meshx_tty_send(err_data, sizeof(err_data));
+                        meshx_tty_send(parsed_data.pcmd, strlen(parsed_data.pcmd));
+                        meshx_tty_send(": ", 2);
                         const char *err_str = meshx_errno_to_string(ret);
                         meshx_tty_send(err_str, strlen(err_str));
                     }

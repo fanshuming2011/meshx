@@ -38,7 +38,7 @@ int32_t meshx_atoi(const char *pstr, bool *pvalid)
     /* get val */
     while ('\0' != *p)
     {
-        if ((*p < '0') || (*p > 9))
+        if ((*p >= '0') && (*p <= '9'))
         {
             valid = TRUE;
             val = val * 10 + *p - '0';
