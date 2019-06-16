@@ -455,14 +455,14 @@ int32_t meshx_pb_adv_link_open(meshx_provision_dev_t prov_dev)
     if (0 == memcmp(uuid_self, prov_dev->dev_uuid, sizeof(meshx_dev_uuid_t)))
     {
         MESHX_ERROR("can't not provision myself");
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     /* check device state */
     if (prov_dev->state > MESHX_PROVISION_STATE_IDLE)
     {
         MESHX_WARN("device is already in provision procedure: %d", prov_dev->state);
-        return MESHX_ERR_BUSY;
+        return -MESHX_ERR_BUSY;
     }
 
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
@@ -491,7 +491,7 @@ int32_t meshx_pb_adv_link_ack(meshx_provision_dev_t prov_dev)
     if (pdev->dev.state != MESHX_PROVISION_STATE_LINK_OPENING)
     {
         MESHX_ERROR("invalid provision state: %d", pdev->dev.state);
-        return MESHX_ERR_STATE;
+        return -MESHX_ERR_STATE;
     }
     int32_t ret = pb_adv_link_ack(prov_dev->bearer, pdev->link_id);
     if (MESHX_SUCCESS == ret)
@@ -522,7 +522,7 @@ int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
     if (prov_dev->state <= MESHX_PROVISION_STATE_LINK_OPENING)
     {
         MESHX_WARN("device is not in provision procedure: %d", prov_dev->state);
-        return MESHX_ERR_BUSY;
+        return -MESHX_ERR_BUSY;
     }
 
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
@@ -642,7 +642,7 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
     if (len < MESHX_LINK_OPEN_PDU_LEN)
     {
         MESHX_WARN("invalid link open pdu length: %d", len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
     const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
     uint32_t link_id = MESHX_BE32_TO_HOST(ppkt->metadata.link_id);
@@ -652,14 +652,14 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
     if (0 != memcmp(dev_uuid, ppkt->bearer_ctl.link_open.dev_uuid, sizeof(meshx_dev_uuid_t)))
     {
         MESHX_INFO("receive dismatched uuid");
-        return MESHX_ERR_DIFF;
+        return -MESHX_ERR_DIFF;
     }
 
     meshx_provision_dev_t prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid);
     if (NULL == prov_dev)
     {
         MESHX_ERROR("can't handle link open message now");
-        return MESHX_ERR_RESOURCE;
+        return -MESHX_ERR_RESOURCE;
     }
 
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
@@ -668,7 +668,7 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
         (pdev->link_id != link_id))
     {
         MESHX_INFO("receive dismatched link id: %d-%d", pdev->link_id, link_id);
-        return MESHX_ERR_DIFF;
+        return -MESHX_ERR_DIFF;
     }
 
     if (MESHX_PROVISION_STATE_LINK_OPENED == prov_dev->state)
@@ -682,7 +682,7 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
     if (prov_dev->state > MESHX_PROVISION_STATE_LINK_OPENED)
     {
         MESHX_WARN("device is already in provisioning procedure: %d", prov_dev->state);
-        return MESHX_ERR_ALREADY;
+        return -MESHX_ERR_ALREADY;
     }
 
     pdev->link_id = link_id;
@@ -700,7 +700,7 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *
     if (len < MESHX_LINK_ACK_PDU_LEN)
     {
         MESHX_WARN("invalid link open pdu length: %d", len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
     const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
 
@@ -709,14 +709,14 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *
     if (NULL == pdev)
     {
         MESHX_WARN("can't find provision device with link id %d", link_id);
-        return MESHX_ERR_RESOURCE;
+        return -MESHX_ERR_RESOURCE;
     }
 
     /* check state */
     if (pdev->dev.state > MESHX_PROVISION_STATE_LINK_OPENED)
     {
         MESHX_WARN("invalid device state: %d", pdev->dev.state);
-        return MESHX_ERR_STATE;
+        return -MESHX_ERR_STATE;
     }
 
     MESHX_INFO("link established: %d", link_id);
@@ -746,7 +746,7 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
     if (len < MESHX_LINK_CLOSE_PDU_LEN)
     {
         MESHX_WARN("invalid link open pdu length: %d", len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
 
     const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
@@ -755,7 +755,7 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
     if (NULL == pdev)
     {
         MESHX_WARN("can't find provision device with link id %d", link_id);
-        return MESHX_ERR_RESOURCE;
+        return -MESHX_ERR_RESOURCE;
     }
 
     MESHX_INFO("link closed: %d", link_id);
@@ -778,14 +778,14 @@ static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const uint8_t
     if (len < MESHX_BEARER_CTL_METADATA_LEN)
     {
         MESHX_WARN("invalid bearer ctl pdu length: %d", len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
 
     const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
     if (ppkt->metadata.trans_num != MESHX_BEARER_CTL_TRANS_NUM)
     {
         MESHX_WARN("the transition number of bearer control must be 0: %d", ppkt->metadata.trans_num);
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     int32_t ret = MESHX_SUCCESS;
@@ -806,7 +806,7 @@ static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const uint8_t
         break;
     default:
         MESHX_WARN("invalid bearer opcode: %d", ppkt->bearer_ctl.metadata.bearer_opcode);
-        ret = MESHX_ERR_INVAL;
+        ret = -MESHX_ERR_INVAL;
         break;
     }
 
@@ -824,7 +824,7 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
         MESHX_ERROR("calculated fcs(%d) doesn't match received fcs(%d)", fcs, pdev->fcs);
         /* clear trans data to enable receive new trans packet */
         pdev->trans_data_len = 0;
-        return MESHX_ERR_FAIL;
+        return -MESHX_ERR_FAIL;
     }
 
     meshx_pb_adv_trans_ack(&pdev->dev);
@@ -870,7 +870,7 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
     if (len < MESHX_TRANS_START_METADATA_LEN)
     {
         MESHX_WARN("invalid trans start pdu length: %d", len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
 
     const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
@@ -879,13 +879,13 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
     if (NULL == pdev)
     {
         MESHX_WARN("can't find provision device with link id %d", link_id);
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     if (pdev->dev.state < MESHX_PROVISION_STATE_LINK_OPENED)
     {
         MESHX_WARN("invalid provision state: %d", pdev->dev.state);
-        return MESHX_ERR_STATE;
+        return -MESHX_ERR_STATE;
     }
 
     if (pdev->acked_trans_num == ppkt->metadata.trans_num)
@@ -900,7 +900,7 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
     if ((0 == total_len) || (total_len > MESHX_TRANS_DATA_VALID_MAX_LEN))
     {
         MESHX_WARN("invalid total length: %d", total_len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
 
     uint8_t calc_seg_num = meshx_calc_seg_num(total_len);
@@ -908,7 +908,7 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
     {
         MESHX_WARN("receive trans start length(%d) does not match segment num(%d)", total_len,
                    ppkt->trans_start.metadata.last_seg_num + 1);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
 
     if (0 == pdev->trans_data_len)
@@ -928,7 +928,7 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
     {
         /* receive another trans start */
         MESHX_WARN("trans start has already been successfully received!");
-        return MESHX_ERR_ALREADY;
+        return -MESHX_ERR_ALREADY;
     }
 
     pdev->trans_data_len = total_len;
@@ -943,7 +943,7 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
         {
             MESHX_WARN("segment(0) received length(%d) does not match required length(%d)", recv_data_len,
                        pdev->trans_data_len);
-            return MESHX_ERR_LENGTH;
+            return -MESHX_ERR_LENGTH;
         }
     }
     else
@@ -952,7 +952,7 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
         {
             MESHX_WARN("segment(0) received length(%d) does not match required length(%d)", recv_data_len,
                        pdev->trans_data_len);
-            return MESHX_ERR_LENGTH;
+            return -MESHX_ERR_LENGTH;
         }
     }
 
@@ -975,7 +975,7 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer, const uin
     if (len < MESHX_TRANS_CONTINUE_METADATA_LEN)
     {
         MESHX_WARN("invalid trans continue pdu length: %d", len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
     const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
     uint32_t link_id = MESHX_BE32_TO_HOST(ppkt->metadata.link_id);
@@ -983,13 +983,13 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer, const uin
     if (NULL == pdev)
     {
         MESHX_WARN("can't find provision device with link id %d", link_id);
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     if (pdev->dev.state < MESHX_PROVISION_STATE_LINK_OPENED)
     {
         MESHX_WARN("invalid provision state: %d", pdev->dev.state);
-        return MESHX_ERR_STATE;
+        return -MESHX_ERR_STATE;
     }
 
     if (pdev->acked_trans_num == ppkt->metadata.trans_num)
@@ -1004,27 +1004,27 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer, const uin
     {
         MESHX_WARN("receive dismatched trans num:%d-%d", pdev->rx_trans_num,
                    ppkt->metadata.trans_num);
-        return MESHX_ERR_DIFF;
+        return -MESHX_ERR_DIFF;
     }
 
     if (0 == pdev->trans_data_len)
     {
         /* receive trans continue message before trans start message */
         MESHX_WARN("receive trans continue message before trans start message!");
-        return MESHX_ERR_TIMING;
+        return -MESHX_ERR_TIMING;
     }
 
     if (ppkt->trans_continue.metadata.seg_index > pdev->last_seg_num)
     {
         MESHX_WARN("invalid segment index: %d", ppkt->trans_continue.metadata.seg_index);
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     if (!MESHX_IS_BIT_FIELD_SET(pdev->recv_seg,
                                 ppkt->trans_continue.metadata.seg_index))
     {
         MESHX_WARN("segment %d has already been received!", ppkt->trans_continue.metadata.seg_index);
-        return MESHX_ERR_ALREADY;
+        return -MESHX_ERR_ALREADY;
     }
 
     uint8_t recv_data_len = len - MESHX_TRANS_CONTINUE_METADATA_LEN;
@@ -1034,7 +1034,7 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer, const uin
         {
             MESHX_WARN("segment(%d) received length(%d) does not match required length(%d)",
                        ppkt->trans_continue.metadata.seg_index, recv_data_len, MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN);
-            return MESHX_ERR_LENGTH;
+            return -MESHX_ERR_LENGTH;
         }
     }
     else
@@ -1045,7 +1045,7 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer, const uin
         {
             MESHX_WARN("receive segment(%d) length(%d) does not match required length(%d)",
                        ppkt->trans_continue.metadata.seg_index, recv_data_len, required_len);
-            return MESHX_ERR_LENGTH;
+            return -MESHX_ERR_LENGTH;
         }
     }
 
@@ -1069,7 +1069,7 @@ static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const uint8_t 
     if (len < sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_ack_metadata_t))
     {
         MESHX_WARN("invalid trans continue pdu length: %d", len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
     const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
     uint32_t link_id = MESHX_BE32_TO_HOST(ppkt->metadata.link_id);
@@ -1077,14 +1077,14 @@ static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const uint8_t 
     if (NULL == pdev)
     {
         MESHX_WARN("can't find provision device with link id %d", link_id);
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     if (pdev->tx_trans_num != ppkt->metadata.trans_num)
     {
         MESHX_WARN("receive dismatch trans ack number: %d-%d", pdev->tx_trans_num,
                    ppkt->metadata.trans_num);
-        return MESHX_ERR_DIFF;
+        return -MESHX_ERR_DIFF;
     }
 
     MESHX_INFO("link(%d) receive trans ack(%d)", link_id, ppkt->metadata.trans_num);

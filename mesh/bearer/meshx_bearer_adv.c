@@ -77,13 +77,13 @@ int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
     if (MESHX_BEARER_TYPE_ADV != bearer->type)
     {
         MESHX_ERROR("send failed: invalid bearer type(%d)", bearer->type);
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     if (len > MESHX_GAP_ADV_DATA_MAX_LEN - 2)
     {
         MESHX_ERROR("invalid length: %d", len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
     meshx_bearer_adv_pkt_t adv_data;
     adv_data.length = len + 1;
@@ -115,7 +115,7 @@ int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const 
         if (NULL == bearer->network_if)
         {
             MESHX_WARN("adv bearer(0x%08x) hasn't connected to any network interface!", bearer);
-            ret = MESHX_ERR_CONNECT;
+            ret = -MESHX_ERR_CONNECT;
             break;
         }
         ret = meshx_network_receive(bearer->network_if, pdata, len);
@@ -128,7 +128,7 @@ int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const 
         break;
     default:
         MESHX_DEBUG("received no mesh message: 0x%x", adv_type);
-        ret = MESHX_ERR_INVAL_ADTYPE;
+        ret = -MESHX_ERR_INVAL_ADTYPE;
         break;
     }
 

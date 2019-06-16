@@ -87,7 +87,7 @@ int32_t meshx_gap_start(void)
     if (gap_state.enabled)
     {
         MESHX_WARN("gap already started");
-        return MESHX_ERR_ALREADY;
+        return -MESHX_ERR_ALREADY;
     }
     /* start scaning */
     meshx_gap_scan_param_t param;
@@ -224,7 +224,7 @@ static int32_t meshx_sort_insert_action(const meshx_gap_action_t *paction)
     if (NULL == pnode)
     {
         MESHX_ERROR("action number reached maximum!");
-        return MESHX_ERR_BUSY;
+        return -MESHX_ERR_BUSY;
     }
 
     meshx_gap_action_list_t *pact = MESHX_CONTAINER_OF(pnode, meshx_gap_action_list_t, node);
@@ -241,7 +241,7 @@ static int32_t meshx_append_action(const meshx_gap_action_t *paction)
     if (NULL == pnode)
     {
         MESHX_ERROR("action number reached maximum!");
-        return MESHX_ERR_BUSY;
+        return -MESHX_ERR_BUSY;
     }
 
     meshx_gap_action_list_t *pact = MESHX_CONTAINER_OF(pnode, meshx_gap_action_list_t, node);
@@ -274,7 +274,7 @@ int32_t meshx_gap_add_action(const meshx_gap_action_t *paction)
     if (!gap_state.enabled)
     {
         MESHX_WARN("add action failed: gap not started!");
-        return MESHX_ERR_STATE;
+        return -MESHX_ERR_STATE;
     }
 
     int32_t ret = MESHX_SUCCESS;
@@ -283,7 +283,7 @@ int32_t meshx_gap_add_action(const meshx_gap_action_t *paction)
         (gap_action_list_active.scan_action_exists))
     {
         MESHX_WARN("action(%d) already exists!", paction->action_type);
-        return MESHX_ERR_ALREADY;
+        return -MESHX_ERR_ALREADY;
     }
 
     switch (paction->action_type)
@@ -302,7 +302,7 @@ int32_t meshx_gap_add_action(const meshx_gap_action_t *paction)
 #endif
         break;
     default:
-        ret = MESHX_ERR_INVAL;
+        ret = -MESHX_ERR_INVAL;
         MESHX_WARN("invalid action type: %d", paction->action_type);
         break;
     }
@@ -321,7 +321,7 @@ int32_t meshx_gap_handle_adv_report(const uint8_t *pdata, uint16_t len,
     if (len > MESHX_GAP_ADV_DATA_MAX_LEN || len < 2)
     {
         MESHX_DEBUG("invalid length: %d", len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
 
     uint8_t data_len = MESHX_GAP_GET_ADV_LEN(pdata);
@@ -329,7 +329,7 @@ int32_t meshx_gap_handle_adv_report(const uint8_t *pdata, uint16_t len,
     {
         MESHX_DEBUG("received length does not match calculated length: %d-%d",
                     len - MESHX_GAP_ADV_LENGTH_FIELD_SIZE, data_len);
-        return MESHX_ERR_LENGTH;
+        return -MESHX_ERR_LENGTH;
     }
 
     return meshx_bearer_receive(pdata, len, prx_metadata);

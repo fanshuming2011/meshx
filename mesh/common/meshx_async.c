@@ -51,7 +51,7 @@ int32_t meshx_async_msg_init(uint32_t msg_max_num, meshx_async_msg_notify_t hand
     if (NULL == pmsg)
     {
         MESHX_ERROR("initialize async message failed: out of memory");
-        return MESHX_ERR_MEM;
+        return -MESHX_ERR_MEM;
     }
 
     for (uint32_t i = 0; i < msg_max_num; ++i)
@@ -85,7 +85,7 @@ int32_t meshx_async_msg_send(const meshx_async_msg_t *pmsg)
     if (NULL == pmsg_node)
     {
         MESHX_ERROR("send async message failed: out of resource");
-        return MESHX_ERR_RESOURCE;
+        return -MESHX_ERR_RESOURCE;
     }
     pmsg_node->msg = *pmsg;
     meshx_list_append(&async_msg_active_list, &pmsg_node->node);

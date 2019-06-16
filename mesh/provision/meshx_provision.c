@@ -39,7 +39,7 @@ int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uin
         break;
     default:
         MESHX_WARN("invalid bearer type(%d)", bearer->type);
-        ret = MESHX_ERR_INVAL;
+        ret = -MESHX_ERR_INVAL;
         break;
     }
     return ret;
@@ -75,13 +75,13 @@ int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev)
     if (NULL == prov_dev)
     {
         MESHX_ERROR("provision device value is NULL");
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     if (MESHX_BEARER_TYPE_ADV != prov_dev->bearer->type)
     {
         MESHX_WARN("link open message can only send on advertising bearer!");
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     return meshx_pb_adv_link_open(prov_dev);
@@ -92,7 +92,7 @@ int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reaso
     if (NULL == prov_dev)
     {
         MESHX_ERROR("provision device value is NULL");
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
     return meshx_pb_adv_link_close(prov_dev, reason);
 }
@@ -103,20 +103,20 @@ int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
     if (NULL == prov_dev)
     {
         MESHX_ERROR("provision device value is NULL");
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     if ((prov_dev->state < MESHX_PROVISION_STATE_LINK_OPENED) ||
         (prov_dev->state > MESHX_PROVISION_STATE_INVITE))
     {
         MESHX_ERROR("invalid state: %d", prov_dev->state);
-        return MESHX_ERR_STATE;
+        return -MESHX_ERR_STATE;
     }
 
     if (MESHX_PROVISION_STATE_INVITE == prov_dev->state)
     {
         MESHX_WARN("already in invite procedure");
-        return MESHX_ERR_ALREADY;
+        return -MESHX_ERR_ALREADY;
     }
 
     int32_t ret = MESHX_SUCCESS;
@@ -129,7 +129,7 @@ int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
         break;
     default:
         MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
-        ret = MESHX_ERR_INVAL;
+        ret = -MESHX_ERR_INVAL;
         break;
     }
 
@@ -142,20 +142,20 @@ int32_t meshx_provision_capabilites(meshx_provision_dev_t prov_dev,
     if (NULL == prov_dev)
     {
         MESHX_ERROR("provision device value is NULL");
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     if ((prov_dev->state < MESHX_PROVISION_STATE_LINK_OPENED) ||
         (prov_dev->state > MESHX_PROVISION_STATE_CAPABILITES))
     {
         MESHX_ERROR("invalid state: %d", prov_dev->state);
-        return MESHX_ERR_STATE;
+        return -MESHX_ERR_STATE;
     }
 
     if (MESHX_PROVISION_STATE_CAPABILITES == prov_dev->state)
     {
         MESHX_WARN("already in capabilites procedure");
-        return MESHX_ERR_ALREADY;
+        return -MESHX_ERR_ALREADY;
     }
 
     int32_t ret = MESHX_SUCCESS;
@@ -168,7 +168,7 @@ int32_t meshx_provision_capabilites(meshx_provision_dev_t prov_dev,
         break;
     default:
         MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
-        ret = MESHX_ERR_INVAL;
+        ret = -MESHX_ERR_INVAL;
         break;
     }
 
@@ -181,20 +181,20 @@ int32_t meshx_provision_start(meshx_provision_dev_t prov_dev,
     if (NULL == prov_dev)
     {
         MESHX_ERROR("provision device value is NULL");
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     if ((prov_dev->state < MESHX_PROVISION_STATE_LINK_OPENED) ||
         (prov_dev->state > MESHX_PROVISION_STATE_START))
     {
         MESHX_ERROR("invalid state: %d", prov_dev->state);
-        return MESHX_ERR_STATE;
+        return -MESHX_ERR_STATE;
     }
 
     if (MESHX_PROVISION_STATE_START == prov_dev->state)
     {
         MESHX_WARN("already in start procedure");
-        return MESHX_ERR_ALREADY;
+        return -MESHX_ERR_ALREADY;
     }
 
     int32_t ret = MESHX_SUCCESS;
@@ -207,7 +207,7 @@ int32_t meshx_provision_start(meshx_provision_dev_t prov_dev,
         break;
     default:
         MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
-        ret = MESHX_ERR_INVAL;
+        ret = -MESHX_ERR_INVAL;
         break;
     }
 
@@ -227,7 +227,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         {
             /* provision failed: invalid format */
             MESHX_ERROR("invalid ivnvite pdu length: %d", len);
-            ret = MESHX_ERR_LENGTH;
+            ret = -MESHX_ERR_LENGTH;
         }
         else
         {
@@ -246,7 +246,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         {
             /* provision failed: invalid format */
             MESHX_ERROR("invalid capabilites pdu length: %d", len);
-            ret = MESHX_ERR_LENGTH;
+            ret = -MESHX_ERR_LENGTH;
         }
         else
         {
@@ -265,7 +265,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         {
             /* provision failed: invalid format */
             MESHX_ERROR("invalid start pdu length: %d", len);
-            ret = MESHX_ERR_LENGTH;
+            ret = -MESHX_ERR_LENGTH;
         }
         else
         {

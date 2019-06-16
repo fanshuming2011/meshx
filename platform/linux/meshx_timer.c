@@ -42,7 +42,7 @@ int32_t meshx_timer_create(meshx_timer_t *ptimer, meshx_timer_mode_t mode,
     if (NULL == ptimer_wrapper)
     {
         MESHX_ERROR("create timer failed: out of memory");
-        return MESHX_ERR_MEM;
+        return -MESHX_ERR_MEM;
     }
 
     evp.sigev_value.sival_ptr = ptimer_wrapper;
@@ -54,7 +54,7 @@ int32_t meshx_timer_create(meshx_timer_t *ptimer, meshx_timer_mode_t mode,
     {
         meshx_free(ptimer_wrapper);
         MESHX_ERROR("create timer failed: internal");
-        return MESHX_ERR_FAIL;
+        return -MESHX_ERR_FAIL;
     }
     *ptimer = ptimer_wrapper;
 
@@ -72,7 +72,7 @@ int32_t meshx_timer_start(meshx_timer_t timer, uint32_t interval)
     if (NULL == ptimer_wrapper)
     {
         MESHX_ERROR("invalid timer: 0x%x", timer);
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     struct itimerspec it;
@@ -94,7 +94,7 @@ int32_t meshx_timer_start(meshx_timer_t timer, uint32_t interval)
     if (timer_settime(ptimer_wrapper->timer, 0, &it, NULL) == -1)
     {
         MESHX_ERROR("failed to set timer");
-        return MESHX_ERR_FAIL;
+        return -MESHX_ERR_FAIL;
     }
 
     return MESHX_SUCCESS;

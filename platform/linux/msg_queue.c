@@ -35,7 +35,7 @@ int32_t msg_queue_create(meshx_msg_queue_t *pmsg_queue, uint32_t msg_num, uint32
     if (NULL == pmsg)
     {
         MESHX_ERROR("create message queue failed: out of memory");
-        return MESHX_ERR_MEM;
+        return -MESHX_ERR_MEM;
     }
 
     int fd[2];
@@ -43,7 +43,7 @@ int32_t msg_queue_create(meshx_msg_queue_t *pmsg_queue, uint32_t msg_num, uint32
     {
         MESHX_ERROR("create message queue failed: no pipe resource");
         meshx_free(pmsg);
-        return MESHX_ERR_RESOURCE;
+        return -MESHX_ERR_RESOURCE;
     }
 
     *pmsg_queue = pmsg;

@@ -71,7 +71,7 @@ int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
     if ((NULL == bearer) || (NULL == pdata))
     {
         MESHX_ERROR("bearer or data is NULL: 0x%x-0x%x", bearer, pdata);
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     int32_t ret = MESHX_SUCCESS;
@@ -85,7 +85,7 @@ int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
         break;
     default:
         MESHX_ERROR("invalid bearer type: %d", bearer->type);
-        ret = MESHX_ERR_INVAL;
+        ret = -MESHX_ERR_INVAL;
         break;
     }
 
@@ -123,14 +123,14 @@ int32_t meshx_bearer_receive(const uint8_t *pdata, uint8_t len,
     if ((NULL == prx_metadata) || ((NULL == pdata) && (0 != len)))
     {
         MESHX_WARN("can't handle NULL metadata or data: 0x%08x-0x%08x-%d", prx_metadata, pdata, len);
-        return MESHX_ERR_INVAL;
+        return -MESHX_ERR_INVAL;
     }
 
     meshx_bearer_t bearer = meshx_bearer_get(prx_metadata);
     if (NULL == bearer)
     {
         MESHX_WARN("no bearer can handle received data");
-        return MESHX_ERR_RESOURCE;
+        return -MESHX_ERR_RESOURCE;
     }
 
     int32_t ret = MESHX_SUCCESS;
@@ -144,7 +144,7 @@ int32_t meshx_bearer_receive(const uint8_t *pdata, uint8_t len,
         ret = meshx_bearer_gatt_receive(bearer, pdata, len);
         break;
     default:
-        ret = MESHX_ERR_INVAL;
+        ret = -MESHX_ERR_INVAL;
         MESHX_WARN("can't handle received bearer type: %d", prx_metadata->bearer_type);
         break;
     }
