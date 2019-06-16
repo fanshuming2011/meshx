@@ -21,7 +21,7 @@ void meshx_get_device_uuid(meshx_dev_uuid_t uuid)
 }
 
 
-uint16_t meshx_node_get_address(void)
+uint16_t meshx_get_node_address(void)
 {
     return MESHX_ADDRESS_UNASSIGNED;
 }

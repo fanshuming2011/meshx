@@ -6,6 +6,7 @@ include_directories(../common
                     ../mesh/gap
                     ../mesh/common
                     ../cmd
+                    ../mesh/beacon
                     ../platform
                     ../platform/linux
                     ../)
@@ -34,7 +35,8 @@ set(COMMON_SRC_LIST
     ../mesh/network/meshx_network.c
     ../mesh/network/meshx_network_interface.c
     ../mesh/provision/meshx_pb_adv.c
-    ../mesh/provision/meshx_provision.c)
+    ../mesh/provision/meshx_provision.c
+    ../mesh/beacon/meshx_beacon.c)
 
 set(DEV_SRC_LIST
     ../platform/linux/meshx_gap_wrapper_dev.c
