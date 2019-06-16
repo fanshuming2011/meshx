@@ -19,3 +19,9 @@ void meshx_get_device_uuid(meshx_dev_uuid_t uuid)
 {
     memcpy(uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
 }
+
+
+uint16_t meshx_node_get_address(void)
+{
+    return MESHX_ADDRESS_UNASSIGNED;
+}

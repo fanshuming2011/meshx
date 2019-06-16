@@ -8,7 +8,7 @@
 #ifndef _MESHX_BEACON_H_
 #define _MESHX_BEACON_H_
 
-#include "meshx_types.h"
+#include "meshx_bearer.h"
 
 MESHX_BEGIN_DECLS
 
@@ -18,7 +18,8 @@ typedef enum
     MESHX_BEACON_TYPE_SNB,
 } meshx_beacon_type_t;
 
-MESHX_EXTERN int32_t meshx_beacon_start(meshx_beacon_type_t type, uint32_t interval);
+MESHX_EXTERN int32_t meshx_beacon_start(meshx_bearer_t bearer, meshx_beacon_type_t type,
+                                        uint32_t interval);
 MESHX_EXTERN void meshx_beacon_stop(meshx_beacon_type_t type);
 
 
