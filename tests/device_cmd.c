@@ -7,10 +7,12 @@
  */
 #include "device_cmd.h"
 #include "meshx_cmd.h"
+#include "meshx_cmd_base.h"
 #include "meshx_cmd_common.h"
 
 static meshx_cmd_t dev_cmds[] =
 {
+    MESHX_CMD_BASE,
     MESHX_CMD_COMMON
 };
 

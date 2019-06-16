@@ -9,25 +9,6 @@
 #include "meshx_cmd_common.h"
 #include "meshx_errno.h"
 
-int32_t meshx_cmd_help(const meshx_cmd_parsed_data_t *pparsed_data)
-{
-    if (0 == pparsed_data->param_cnt)
-    {
-        return -MESHX_ERR_INVAL;
-    }
-
-    if (0 == strcmp(pparsed_data->param_ptr[0], "*"))
-    {
-        meshx_cmd_list_all();
-    }
-    else
-    {
-        meshx_cmd_list(pparsed_data->param_ptr[0]);
-    }
-
-    return MESHX_SUCCESS;
-}
-
 int32_t meshx_cmd_list_node_info(const meshx_cmd_parsed_data_t *pparsed_data)
 {
     return MESHX_SUCCESS;

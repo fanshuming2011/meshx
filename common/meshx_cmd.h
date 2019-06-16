@@ -12,7 +12,7 @@
 
 MESHX_BEGIN_DECLS
 
-#define MESHX_CMD_MAX_LEN                     10
+#define MESHX_CMD_MAX_LEN                     70
 #define MESHX_CMD_MAX_PARAMETERS              20
 #define MESHX_CMD_MAX_HISTORY_SIZE            3
 

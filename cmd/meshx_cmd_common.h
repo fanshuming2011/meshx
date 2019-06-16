@@ -12,18 +12,11 @@
 
 MESHX_BEGIN_DECLS
 
-MESHX_EXTERN int32_t meshx_cmd_help(const meshx_cmd_parsed_data_t *pparsed_data);
 MESHX_EXTERN int32_t meshx_cmd_list_node_info(const meshx_cmd_parsed_data_t *pparsed_data);
 MESHX_EXTERN int32_t meshx_cmd_node_reset(const meshx_cmd_parsed_data_t *pparsed_data);
 
 
 #define MESHX_CMD_COMMON \
-    {\
-        "help",\
-        "help [cmd]",\
-        "list command usage and help, use command name as a parameter or '*' to list all commands",\
-        meshx_cmd_help\
-    },\
     {\
         "ls",\
         "ls",\
