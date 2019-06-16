@@ -6,7 +6,7 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #include <string.h>
-#include "meshx_cmd_common.h"
+#include "meshx_cmd_base.h"
 #include "meshx_errno.h"
 
 int32_t meshx_cmd_help(const meshx_cmd_parsed_data_t *pparsed_data)

@@ -5,12 +5,18 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
-#include <string.h>
-#include "meshx_cmd_prov.h"
+#include "meshx_beacon.h"
+#define TRACE_MODULE "MESHX_BEACON"
+#include "meshx_trace.h"
+#include "meshx_beacon.h"
 #include "meshx_errno.h"
 
-int32_t meshx_cmd_udb_scan(const meshx_cmd_parsed_data_t *pparsed_data)
+int32_t meshx_beacon_start(meshx_beacon_type_t type, uint32_t interval)
 {
     return MESHX_SUCCESS;
+}
+
+void meshx_beacon_stop(meshx_beacon_type_t type)
+{
 }
 

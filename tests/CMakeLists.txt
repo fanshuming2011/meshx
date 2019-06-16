@@ -42,6 +42,7 @@ set(DEV_SRC_LIST
 
 set(PROV_SRC_LIST
     ../platform/linux/meshx_gap_wrapper_prov.c
+    ../cmd/meshx_cmd_prov.c
     provisioner_cmd.c)
 
 
