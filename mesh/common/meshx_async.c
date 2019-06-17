@@ -13,6 +13,7 @@
 #include "meshx_errno.h"
 #include "meshx_list.h"
 #include "meshx_mem.h"
+#include "meshx_beacon_internal.h"
 
 static meshx_async_msg_notify_t meshx_async_msg_notify;
 
@@ -108,6 +109,9 @@ void meshx_async_msg_process(void)
     case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY:
     case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_LINK_LOSS:
         meshx_pb_adv_async_handle_timeout(pmsg->msg);
+        break;
+    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_BEACON:
+        meshx_beacon_async_handle_timeout(pmsg->msg);
         break;
     default:
         MESHX_ERROR("unkonwn message type: %d", pmsg->msg.type);

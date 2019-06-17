@@ -14,8 +14,12 @@
 #include "meshx_timer.h"
 #include "meshx_node.h"
 #include "meshx_async_internal.h"
+#include "meshx_beacon_internal.h"
 
 static meshx_timer_t beacon_timer;
+static uint16_t meshx_oob_info;
+static bool meshx_uri_hash_exists;
+static uint32_t meshx_uri_hash;
 
 static void meshx_beacon_timer_timeout(void *pargs)
 {
@@ -32,7 +36,21 @@ void meshx_beacon_async_handle_timeout(meshx_async_msg_t msg)
     if (MESHX_ADDRESS_UNASSIGNED == meshx_get_node_address())
     {
         /* send udb */
-        //meshx_bearer_send(msg.pdata, MESHX_BEARER_ADV_PKT_TYPE_BEACON, );
+        meshx_udb_t udb;
+        uint8_t len = sizeof(meshx_udb_t);
+        udb.type = MESHX_BEACON_TYPE_UDB;
+        meshx_get_device_uuid(udb.dev_uuid);
+        udb.oob_info = meshx_oob_info;
+        if (meshx_uri_hash_exists)
+        {
+            udb.uri_hash = meshx_uri_hash;
+            len = sizeof(meshx_udb_t);
+        }
+        else
+        {
+            len = MESHX_OFFSET_OF(meshx_udb_t, uri_hash);
+        }
+        meshx_bearer_send(msg.pdata, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&udb, len);
     }
     else
     {
@@ -106,3 +124,28 @@ void meshx_beacon_stop(uint8_t beacon_type)
     }
 }
 
+void meshx_beacon_set_oob_info(uint16_t oob_info)
+{
+    meshx_oob_info = oob_info;
+}
+
+void meshx_beacon_set_uri_hash(uint32_t uri_hash)
+{
+    meshx_uri_hash_exists = TRUE;
+    meshx_uri_hash = uri_hash;
+}
+
+int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
+{
+    const meshx_udb_t *pudb = (const meshx_udb_t *)pdata;
+    if (len == sizeof(meshx_udb_t))
+    {
+        /* has uri hash */
+        (void)pudb->uri_hash;
+    }
+    else
+    {
+    }
+
+    return MESHX_SUCCESS;
+}

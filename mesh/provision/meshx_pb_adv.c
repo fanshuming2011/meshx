@@ -23,6 +23,8 @@
 #include "meshx_provision_internal.h"
 #include "meshx_bearer_internal.h"
 #include "meshx_async_internal.h"
+#include "meshx_notify.h"
+#include "meshx_notify_internal.h"
 
 
 /* maximum trans segment number */
@@ -90,12 +92,9 @@ typedef struct
 
 static meshx_list_t pb_adv_devs;
 
-static meshx_provision_callback_t prov_cb;
-
-int32_t meshx_pb_adv_init(meshx_provision_callback_t pcb)
+int32_t meshx_pb_adv_init(void)
 {
     meshx_list_init_head(&pb_adv_devs);
-    prov_cb = pcb;
     return MESHX_SUCCESS;
 }
 
@@ -305,12 +304,13 @@ static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
     MESHX_WARN("link loss in state: %d", pdev->dev.state);
     pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                       MESHX_LINK_CLOSE_REASON_TIMEOUT);
-    if (NULL != prov_cb)
-    {
-        /* notify app link loss */
-        meshx_provision_link_close_t link_close = MESHX_PROVISION_LINK_CLOSE_LINK_LOSS;
-        prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
-    }
+    /* notify app link loss */
+    meshx_notify_prov_t notify_prov;
+    notify_prov.metadata.prov_dev = &pdev->dev;
+    notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
+    notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_LINK_LOSS;
+    meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                 sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
     meshx_pb_adv_delete_device(pdev);
 }
 
@@ -345,12 +345,13 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
         {
             MESHX_WARN("provision failed: receive no link ack from device uuid:");
             MESHX_DUMP_ERROR(pdev->dev.dev_uuid, sizeof(meshx_dev_uuid_t));
-            if (NULL != prov_cb)
-            {
-                /* notify app link open failed, timeout */
-                meshx_provision_link_open_t link_open = MESHX_PROVISION_LINK_OPEN_TIMEOUT;
-                prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_OPEN, &link_open);
-            }
+            /* notify app link open failed, timeout */
+            meshx_notify_prov_t notify_prov;
+            notify_prov.metadata.prov_dev = &pdev->dev;
+            notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_OPEN;
+            notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_TIMEOUT;
+            meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                         sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
             meshx_pb_adv_delete_device(pdev);
         }
     }
@@ -382,12 +383,13 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
             MESHX_WARN("provision failed: receive no ack of state(%d)", pdev->dev.state);
             pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                               MESHX_LINK_CLOSE_REASON_TIMEOUT);
-            if (NULL != prov_cb)
-            {
-                /* notify app link close */
-                meshx_provision_link_close_t link_close = MESHX_PROVISION_LINK_CLOSE_TIMEOUT;
-                prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
-            }
+            /* notify app link close */
+            meshx_notify_prov_t notify_prov;
+            notify_prov.metadata.prov_dev = &pdev->dev;
+            notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
+            notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_TIMEOUT;
+            meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                         sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
             meshx_pb_adv_delete_device(pdev);
         }
     }
@@ -498,12 +500,13 @@ int32_t meshx_pb_adv_link_ack(meshx_provision_dev_t prov_dev)
     {
         MESHX_INFO("link opened: %d", pdev->link_id);
         pdev->dev.state = MESHX_PROVISION_STATE_LINK_OPENED;
-        if (NULL != prov_cb)
-        {
-            /* notify app link opened */
-            meshx_provision_link_open_t link_open = MESHX_PROVISION_LINK_OPEN_SUCCESS;
-            prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_OPEN, &link_open);
-        }
+        /* notify app link opened */
+        meshx_notify_prov_t notify_prov;
+        notify_prov.metadata.prov_dev = &pdev->dev;
+        notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_OPEN;
+        notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_SUCCESS;
+        meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                     sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
 
         /* start link loss timer */
         pdev->link_monitor_time = 0;
@@ -531,12 +534,14 @@ int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
     {
         if (prov_dev->state < MESHX_PROVISION_STATE_COMPLETE)
         {
-            if (NULL != prov_cb)
-            {
-                /* notify app link close */
-                meshx_provision_link_close_t link_close = MESHX_PROVISION_LINK_CLOSE_FAIL;
-                prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
-            }
+            /* notify app link close */
+            meshx_notify_prov_t notify_prov;
+            notify_prov.metadata.prov_dev = &pdev->dev;
+            notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
+            notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_FAIL;
+            meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                         sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
+
             meshx_pb_adv_delete_device(pdev);
         }
     }
@@ -727,12 +732,13 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *
 
     pdev->dev.state = MESHX_PROVISION_STATE_LINK_OPENED;
 
-    if (NULL != prov_cb)
-    {
-        /* notify app link opened */
-        meshx_provision_link_open_t link_open = MESHX_PROVISION_LINK_OPEN_SUCCESS;
-        prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_OPEN, &link_open);
-    }
+    /* notify app link opened */
+    meshx_notify_prov_t notify_prov;
+    notify_prov.metadata.prov_dev = &pdev->dev;
+    notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_OPEN;
+    notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_SUCCESS;
+    meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                 sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
 
     /* start link loss timer */
     pdev->link_monitor_time = 0;
@@ -759,13 +765,14 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
     }
 
     MESHX_INFO("link closed: %d", link_id);
-    if (NULL != prov_cb)
-    {
-        /* notify app link closed */
-        meshx_provision_link_close_t link_close = (meshx_provision_link_close_t)(
-                                                      ppkt->bearer_ctl.link_close.reason);
-        prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
-    }
+    /* notify app link closed */
+    meshx_notify_prov_t notify_prov;
+    notify_prov.metadata.prov_dev = &pdev->dev;
+    notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
+    notify_prov.link_close_reason = (meshx_provision_link_close_reason_t)(
+                                        ppkt->bearer_ctl.link_close.reason);
+    meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                 sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
 
     meshx_pb_adv_delete_device(pdev);
 
@@ -839,12 +846,14 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
     {
         pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                           MESHX_LINK_CLOSE_REASON_FAIL);
-        if (NULL != prov_cb)
-        {
-            /* notify app link close */
-            meshx_provision_link_close_t link_close = MESHX_PROVISION_LINK_CLOSE_FAIL;
-            prov_cb(&pdev->dev, MESHX_PROVISION_CB_TYPE_LINK_CLOSE, &link_close);
-        }
+        /* notify app link closed */
+        meshx_notify_prov_t notify_prov;
+        notify_prov.metadata.prov_dev = &pdev->dev;
+        notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
+        notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_FAIL;
+        meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                     sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
+
         meshx_pb_adv_delete_device(pdev);
     }
 

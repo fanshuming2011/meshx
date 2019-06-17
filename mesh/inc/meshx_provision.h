@@ -9,7 +9,6 @@
 #define _MESHX_PROVISION_H_
 
 #include "meshx_bearer.h"
-#include "meshx_provision_callback.h"
 
 MESHX_BEGIN_DECLS
 
@@ -34,6 +33,19 @@ MESHX_BEGIN_DECLS
 #define MESHX_PROVISION_FAILED_UNEXPECTED_ERROR            0x07
 #define MESHX_PROVISION_FAILED_CANNOT_ASSIGN_ADDRESS       0x08
 
+typedef enum
+{
+    MESHX_PROVISION_LINK_CLOSE_SUCCESS,
+    MESHX_PROVISION_LINK_CLOSE_TIMEOUT,
+    MESHX_PROVISION_LINK_CLOSE_FAIL,
+    MESHX_PROVISION_LINK_CLOSE_LINK_LOSS,
+} meshx_provision_link_close_reason_t;
+
+typedef enum
+{
+    MESHX_PROVISION_LINK_OPEN_SUCCESS,
+    MESHX_PROVISION_LINK_OPEN_TIMEOUT,
+} meshx_provision_link_open_result_t;
 
 typedef struct
 {
@@ -80,10 +92,7 @@ typedef struct
 
 typedef struct _meshx_provision_dev *meshx_provision_dev_t;
 
-typedef int32_t (*meshx_provision_callback_t)(const meshx_provision_dev_t prov_dev, uint8_t type,
-                                              void *pargs);
-
-MESHX_EXTERN int32_t meshx_provision_init(meshx_provision_callback_t pcb);
+MESHX_EXTERN int32_t meshx_provision_init(void);
 
 MESHX_EXTERN meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
                                                                  meshx_dev_uuid_t dev_uuid);

@@ -17,13 +17,13 @@
 #include "meshx_node.h"
 #include "meshx_bearer_internal.h"
 #include "meshx_list.h"
+#include "meshx_notify.h"
+#include "meshx_notify_internal.h"
 
-static meshx_provision_callback_t prov_cb;
 
-int32_t meshx_provision_init(meshx_provision_callback_t pcb)
+int32_t meshx_provision_init(void)
 {
-    meshx_pb_adv_init(pcb);
-    prov_cb = pcb;
+    meshx_pb_adv_init();
     return MESHX_SUCCESS;
 }
 
@@ -232,11 +232,12 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         else
         {
             /* notify app invite value */
-            meshx_provision_invite_t invite = pprov_pdu->invite;
-            if (NULL != prov_cb)
-            {
-                ret = prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_INVITE, &invite);
-            }
+            meshx_notify_prov_t notify_prov;
+            notify_prov.metadata.prov_dev = prov_dev;
+            notify_prov.metadata.prov_type = MESHX_PROVISION_TYPE_INVITE;
+            notify_prov.invite = pprov_pdu->invite;
+            meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                         sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_invite_t));
         }
         break;
 #endif
@@ -251,11 +252,12 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         else
         {
             /* notify app capabilites value */
-            meshx_provision_capabilites_t cap = pprov_pdu->capabilites;
-            if (NULL != prov_cb)
-            {
-                ret = prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_CAPABILITES, &cap);
-            }
+            meshx_notify_prov_t notify_prov;
+            notify_prov.metadata.prov_dev = prov_dev;
+            notify_prov.metadata.prov_type = MESHX_PROVISION_TYPE_CAPABILITES;
+            notify_prov.capabilites = pprov_pdu->capabilites;
+            meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                         sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_capabilites_t));
         }
         break;
 #endif
@@ -270,11 +272,12 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         else
         {
             /* notify app start value */
-            meshx_provision_start_t start = pprov_pdu->start;
-            if (NULL != prov_cb)
-            {
-                ret = prov_cb(prov_dev, MESHX_PROVISION_CB_TYPE_START, &start);
-            }
+            meshx_notify_prov_t notify_prov;
+            notify_prov.metadata.prov_dev = prov_dev;
+            notify_prov.metadata.prov_type = MESHX_PROVISION_TYPE_START;
+            notify_prov.start = pprov_pdu->start;
+            meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                         sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_start_t));
         }
         break;
 #endif

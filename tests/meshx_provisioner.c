@@ -65,48 +65,68 @@ void linux_send_string(const char *pdata, uint32_t len)
     fflush(log_file);
 }
 
-int32_t meshx_prov_cb(const meshx_provision_dev_t prov_dev, uint8_t type, void *pargs)
+static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 {
-    switch (type)
+    const meshx_notify_prov_t *pprov = pdata;
+
+    switch (pprov->metadata.prov_type)
     {
-    case MESHX_PROVISION_CB_TYPE_LINK_OPEN:
+    case MESHX_PROV_NOTIFY_LINK_OPEN:
         {
-            meshx_provision_link_open_t *pdata = pargs;
-            MESHX_DEBUG("link opened, result: %d", *pdata);
-            /* send invite */
-            meshx_provision_invite_t invite = {0};
-            meshx_provision_invite(prov_dev, invite);
+            MESHX_DEBUG("link opened, result: %d", pprov->link_open_result);
         }
         break;
-    case MESHX_PROVISION_CB_TYPE_LINK_CLOSE:
+    case MESHX_PROV_NOTIFY_LINK_CLOSE:
         {
-            meshx_provision_link_close_t *pdata = pargs;
-            MESHX_DEBUG("link closed, result: %d", *pdata);
+            MESHX_DEBUG("link closed, reason: %d", pprov->link_close_reason);
         }
         break;
-    case MESHX_PROVISION_CB_TYPE_CAPABILITES:
+    case MESHX_PROV_NOTIFY_CAPABILITES:
         {
-            meshx_provision_capabilites_t *pdata = pargs;
             MESHX_DEBUG("capabilites:");
-            MESHX_DUMP_DEBUG(pdata, sizeof(meshx_provision_capabilites_t));
+            MESHX_DUMP_DEBUG(&pprov->capabilites, sizeof(meshx_provision_capabilites_t));
             /* send start */
             meshx_provision_start_t start;
             memset(&start, 0, sizeof(meshx_provision_start_t));
-            meshx_provision_start(prov_dev, &start);
+            meshx_provision_start(pprov->metadata.prov_dev, &start);
         }
         break;
-    case MESHX_PROVISION_CB_TYPE_FAILED:
+    case MESHX_PROV_NOTIFY_FAILED:
         {
             /* @ref meshx provisison failed error code macros */
             MESHX_DEBUG("provision failed");
         }
         break;
-    case MESHX_PROVISION_CB_TYPE_COMPLETE:
+    case MESHX_PROV_NOTIFY_COMPLETE:
         {
             MESHX_DEBUG("provision complete");
         }
         break;
     }
+    return MESHX_SUCCESS;
+
+}
+
+static int32_t meshx_notify_beacon_cb(const void *pdata, uint8_t len)
+{
+    return MESHX_SUCCESS;
+}
+
+static int32_t meshx_notify_cb(uint8_t notify_type, const void *pdata, uint8_t len)
+{
+    switch (notify_type)
+    {
+    case MESHX_NOTIFY_TYPE_PROV:
+        meshx_notify_prov_cb(pdata, len);
+        break;
+    case MESHX_NOTIFY_TYPE_BEACON:
+        meshx_notify_beacon_cb(pdata, len);
+        break;
+    default:
+        MESHX_ERROR("unknown notify type: %d", notify_type);
+        break;
+    }
+
     return MESHX_SUCCESS;
 }
 
@@ -128,10 +148,13 @@ static void *meshx_thread(void *pargs)
 
     meshx_trace_init(linux_send_string);
     meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
+
+    meshx_notify_init(meshx_notify_cb);
+
     meshx_gap_init();
     meshx_bearer_init();
     meshx_network_init();
-    meshx_provision_init(meshx_prov_cb);
+    meshx_provision_init();
 
     meshx_gap_start();
     meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV, .param_adv.adv_period = 0};

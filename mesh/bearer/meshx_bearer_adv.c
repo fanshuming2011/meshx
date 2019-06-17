@@ -17,6 +17,7 @@
 #include "meshx_mem.h"
 #include "meshx_network.h"
 #include "meshx_provision_internal.h"
+#include "meshx_beacon_internal.h"
 
 typedef union
 {
@@ -124,7 +125,7 @@ int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const 
         ret = meshx_provision_receive(bearer, pdata, len);
         break;
     case MESHX_GAP_ADTYPE_MESH_BEACON:
-        MESHX_INFO("receive beacon msg");
+        ret = meshx_beacon_receive(bearer, pdata, len);
         break;
     default:
         MESHX_DEBUG("received no mesh message: 0x%x", adv_type);

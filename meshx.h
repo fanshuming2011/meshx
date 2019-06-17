@@ -19,7 +19,8 @@
 #include "meshx_network.h"
 #include "meshx_provision.h"
 #include "meshx_node.h"
-
+#include "meshx_beacon.h"
+#include "meshx_notify.h"
 
 
 

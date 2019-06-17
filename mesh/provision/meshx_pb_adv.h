@@ -126,7 +126,7 @@ typedef struct
 } __PACKED meshx_pb_adv_pkt_t;
 
 
-MESHX_EXTERN int32_t meshx_pb_adv_init(meshx_provision_callback_t pcb);
+MESHX_EXTERN int32_t meshx_pb_adv_init(void);
 
 MESHX_EXTERN meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer,
                                                               meshx_dev_uuid_t dev_uuid);
