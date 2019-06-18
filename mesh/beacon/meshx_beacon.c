@@ -5,6 +5,7 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
+#include <string.h>
 #include "meshx_beacon.h"
 #define TRACE_MODULE "MESHX_BEACON"
 #include "meshx_trace.h"
@@ -15,6 +16,8 @@
 #include "meshx_node.h"
 #include "meshx_async_internal.h"
 #include "meshx_beacon_internal.h"
+#include "meshx_notify.h"
+#include "meshx_notify_internal.h"
 
 static meshx_timer_t beacon_timer;
 static uint16_t meshx_oob_info;
@@ -137,15 +140,8 @@ void meshx_beacon_set_uri_hash(uint32_t uri_hash)
 
 int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
-    const meshx_udb_t *pudb = (const meshx_udb_t *)pdata;
-    if (len == sizeof(meshx_udb_t))
-    {
-        /* has uri hash */
-        (void)pudb->uri_hash;
-    }
-    else
-    {
-    }
-
+    meshx_notify_beacon_t beacon;
+	memcpy(&beacon, pdata, len);
+    meshx_notify(MESHX_NOTIFY_TYPE_BEACON, &beacon, len);
     return MESHX_SUCCESS;
 }

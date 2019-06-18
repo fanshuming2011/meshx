@@ -109,6 +109,13 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 
 static int32_t meshx_notify_beacon_cb(const void *pdata, uint8_t len)
 {
+    //const meshx_notify_beacon_t *pprov = pdata;
+    if (len == sizeof(meshx_notify_beacon_t))
+    {
+    }
+    MESHX_INFO("receive mesh beacon:");
+    MESHX_DUMP_DEBUG(pdata, len);
+
     return MESHX_SUCCESS;
 }
 
