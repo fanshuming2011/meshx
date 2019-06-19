@@ -44,7 +44,7 @@ void meshx_tty_deinit(void)
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &default_settings);
 }
 
-uint32_t meshx_tty_send(const char *pdata, uint32_t len)
+int32_t meshx_tty_send(const char *pdata, uint32_t len)
 {
     while (len --)
     {
@@ -53,6 +53,6 @@ uint32_t meshx_tty_send(const char *pdata, uint32_t len)
     }
     fflush(stdout);
 
-    return MESHX_SUCCESS;
+    return len;
 }
 

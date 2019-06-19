@@ -25,7 +25,6 @@ typedef struct
     char *param_ptr[MESHX_CMD_MAX_PARAMETERS];
 } meshx_cmd_parsed_data_t;
 
-typedef void (*meshx_tty_send_t)(const uint8_t *pdata, uint32_t len);
 typedef int32_t (*meshx_cmd_process_t)(const meshx_cmd_parsed_data_t *pdata);
 
 typedef struct

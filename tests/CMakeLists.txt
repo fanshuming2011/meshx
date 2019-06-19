@@ -24,6 +24,7 @@ set(COMMON_SRC_LIST
     ../common/meshx_cmd.c
     ../common/meshx_errno.c
     ../common/meshx_lib.c
+    ../common/meshx_io.c
     ../cmd/meshx_cmd_base.c
     ../cmd/meshx_cmd_common.c
     ../mesh/common/meshx_node.c

@@ -26,11 +26,8 @@ MESHX_BEGIN_DECLS
                                            MESHX_TRACE_LEVEL_WARN | MESHX_TRACE_LEVEL_ERROR |\
                                            MESHX_TRACE_LEVEL_FATAL)
 
-/* trace send data function */
-typedef void (*trace_send)(const char *pdata, uint32_t len);
-
-
-MESHX_EXTERN int32_t meshx_trace_init(trace_send psend);
+MESHX_EXTERN int32_t meshx_trace_init(void);
+MESHX_EXTERN int32_t meshx_trace_send(const char *pdata, uint32_t len);
 MESHX_EXTERN void meshx_trace(const char *module, uint16_t level, const char *func, const char *fmt,
                               ...);
 MESHX_EXTERN void meshx_trace_dump(const char *module, uint16_t level, const char *func,

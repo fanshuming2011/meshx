@@ -10,6 +10,7 @@
 
 #include "meshx_types.h"
 #include "meshx_errno.h"
+#include "meshx_io.h"
 #include "meshx_trace.h"
 #include "meshx_async.h"
 #include "meshx_tty.h"
@@ -23,8 +24,12 @@
 #include "meshx_notify.h"
 
 
+MESHX_BEGIN_DECLS
 
+MESHX_EXTERN int32_t meshx_init(void);
+MESHX_EXTERN int32_t meshx_run(void);
 
+MESHX_END_DECLS
 
 
 #endif /* _MESHX_H_ */

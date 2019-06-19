@@ -17,3 +17,4 @@ int32_t meshx_rand(void)
 {
     return rand();
 }
+

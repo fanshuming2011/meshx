@@ -61,10 +61,11 @@ void system_init(void)
     device_cmd_init();
 }
 
-void linux_send_string(const char *pdata, uint32_t len)
+int32_t meshx_trace_send(const char *pdata, uint32_t len)
 {
     fwrite(pdata, 1, len, log_file);
     fflush(log_file);
+    return len;
 }
 
 static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
@@ -159,7 +160,7 @@ static void *meshx_thread(void *pargs)
     meshx_async_msg_init(10, meshx_async_msg_notify_handler);
 
 
-    meshx_trace_init(linux_send_string);
+    meshx_trace_init();
     meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
 
     meshx_notify_init(meshx_notify_cb);

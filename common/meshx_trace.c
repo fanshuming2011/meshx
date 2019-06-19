@@ -12,8 +12,8 @@
 #include "meshx_errno.h"
 #include "meshx_trace.h"
 #include "meshx_config.h"
+#include "meshx_io.h"
 
-static trace_send psend_func;
 static uint8_t trace_active_levels;
 
 /* trace level names */
@@ -27,6 +27,7 @@ static char *trace_level_names[] =
     "FATAL",
 };
 
+#if 0
 #define CHAR_MAX_LEN              3
 #define HEX_MAX_LEN               8
 #define DEC_MAX_LEN               10
@@ -191,10 +192,10 @@ static void meshx_trace_vsprintf(const char *fmt, va_list args)
         }
     }
 }
+#endif
 
-int32_t meshx_trace_init(trace_send psend)
+int32_t meshx_trace_init(void)
 {
-    psend_func = psend;
     return MESHX_SUCCESS;
 }
 
@@ -217,50 +218,47 @@ void meshx_trace(const char *module, uint16_t level, const char *func, const cha
 #else
 void meshx_trace(const char *module, uint16_t level, const char *func, const char *fmt, ...)
 {
-    if (NULL != psend_func)
+    /* check level */
+    if (trace_active_levels & (level >> 8))
     {
-        /* check level */
-        if (trace_active_levels & (level >> 8))
-        {
-            /* output time */
-            time_t lt = time(NULL);
-            struct tm ltm;
-            localtime_r(&lt, &ltm);
-            char time_cur[32];
-            size_t time_len = strftime(time_cur, 32, "%F %T", &ltm);
-            psend_func(time_cur, time_len);
-            psend_func(".", 1);
-            struct timeval tv;
-            gettimeofday(&tv, NULL);
-            char temp_buf[6];
-            temp_buf[0] = tv.tv_usec / 100000 + '0';
-            temp_buf[1] = tv.tv_usec / 10000 % 10 + '0';
-            temp_buf[2] = tv.tv_usec / 1000 % 10 + '0';
-            temp_buf[3] = tv.tv_usec / 100 % 10 + '0';
-            temp_buf[4] = tv.tv_usec / 10 % 10 + '0';
-            temp_buf[5] = tv.tv_usec % 10 + '0';
-            psend_func(temp_buf, 6);
-            psend_func(" ", 1);
+        /* output time */
+        time_t lt = time(NULL);
+        struct tm ltm;
+        localtime_r(&lt, &ltm);
+        char time_cur[32];
+        size_t time_len = strftime(time_cur, 32, "%F %T", &ltm);
+        meshx_trace_send(time_cur, time_len);
+        meshx_trace_send(".", 1);
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        char temp_buf[6];
+        temp_buf[0] = tv.tv_usec / 100000 + '0';
+        temp_buf[1] = tv.tv_usec / 10000 % 10 + '0';
+        temp_buf[2] = tv.tv_usec / 1000 % 10 + '0';
+        temp_buf[3] = tv.tv_usec / 100 % 10 + '0';
+        temp_buf[4] = tv.tv_usec / 10 % 10 + '0';
+        temp_buf[5] = tv.tv_usec % 10 + '0';
+        meshx_trace_send(temp_buf, 6);
+        meshx_trace_send(" ", 1);
 
 
-            /* output level */
-            psend_func(trace_level_names[level & 0x0f], TRACE_LEVEL_NAME_LEN);
-            /* output seperator */
-            psend_func(" [", 2);
-            /*output module and function */
-            psend_func(module, strlen(module));
-            psend_func(" ", 1);
-            psend_func(func, strlen(func));
-            /* output seperator */
-            psend_func("] ", 2);
-            /* output message */
-            va_list args;
-            va_start(args, fmt);
-            meshx_trace_vsprintf(fmt, args);
-            va_end(args);
-            /* output CR */
-            psend_func("\r\n", 2);
-        }
+        /* output level */
+        meshx_trace_send(trace_level_names[level & 0x0f], TRACE_LEVEL_NAME_LEN);
+        /* output seperator */
+        meshx_trace_send(" [", 2);
+        /*output module and function */
+        meshx_trace_send(module, strlen(module));
+        meshx_trace_send(" ", 1);
+        meshx_trace_send(func, strlen(func));
+        /* output seperator */
+        meshx_trace_send("] ", 2);
+        /* output message */
+        va_list args;
+        va_start(args, fmt);
+        meshx_vsprintf(meshx_trace_send, fmt, args);
+        va_end(args);
+        /* output CR */
+        meshx_trace_send("\r\n", 2);
     }
 }
 #endif
@@ -268,54 +266,50 @@ void meshx_trace(const char *module, uint16_t level, const char *func, const cha
 void meshx_trace_dump(const char *module, uint16_t level, const char *func, const void *pdata,
                       uint32_t len)
 {
-    if (NULL != psend_func)
+    /* check level */
+    if (trace_active_levels & (level >> 8))
     {
-        /* check level */
-        if (trace_active_levels & (level >> 8))
+        /* output time */
+        time_t lt = time(NULL);
+        struct tm ltm;
+        localtime_r(&lt, &ltm);
+        char time_cur[32];
+        size_t time_len = strftime(time_cur, 32, "%F %T", &ltm);
+        meshx_trace_send(time_cur, time_len);
+        meshx_trace_send(".", 1);
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        char temp_buf[6];
+        temp_buf[0] = tv.tv_usec / 100000 + '0';
+        temp_buf[1] = tv.tv_usec / 10000 % 10 + '0';
+        temp_buf[2] = tv.tv_usec / 1000 % 10 + '0';
+        temp_buf[3] = tv.tv_usec / 100 % 10 + '0';
+        temp_buf[4] = tv.tv_usec / 10 % 10 + '0';
+        temp_buf[5] = tv.tv_usec % 10 + '0';
+        meshx_trace_send(temp_buf, 6);
+        meshx_trace_send(" ", 1);
+
+        /* output level */
+        meshx_trace_send(trace_level_names[level & 0x0f], TRACE_LEVEL_NAME_LEN);
+        /* output seperator */
+        meshx_trace_send(" [", 2);
+        /*output module and function */
+        meshx_trace_send(module, strlen(module));
+        meshx_trace_send(" ", 1);
+        meshx_trace_send(func, strlen(func));
+        /* output seperator */
+        meshx_trace_send("] ", 2);
+
+        for (uint32_t index = 0; index < len; ++ index)
         {
-            /* output time */
-            time_t lt = time(NULL);
-            struct tm ltm;
-            localtime_r(&lt, &ltm);
-            char time_cur[32];
-            size_t time_len = strftime(time_cur, 32, "%F %T", &ltm);
-            psend_func(time_cur, time_len);
-            psend_func(".", 1);
-            struct timeval tv;
-            gettimeofday(&tv, NULL);
-            char temp_buf[6];
-            temp_buf[0] = tv.tv_usec / 100000 + '0';
-            temp_buf[1] = tv.tv_usec / 10000 % 10 + '0';
-            temp_buf[2] = tv.tv_usec / 1000 % 10 + '0';
-            temp_buf[3] = tv.tv_usec / 100 % 10 + '0';
-            temp_buf[4] = tv.tv_usec / 10 % 10 + '0';
-            temp_buf[5] = tv.tv_usec % 10 + '0';
-            psend_func(temp_buf, 6);
-            psend_func(" ", 1);
-
-            /* output level */
-            psend_func(trace_level_names[level & 0x0f], TRACE_LEVEL_NAME_LEN);
+            char data = "0123456789ABCDEF"[((const uint8_t *)pdata)[index] >> 4];
+            meshx_trace_send(&data, 1);
+            data = "0123456789ABCDEF"[((const uint8_t *)pdata)[index] & 0x0f];
+            meshx_trace_send(&data, 1);
             /* output seperator */
-            psend_func(" [", 2);
-            /*output module and function */
-            psend_func(module, strlen(module));
-            psend_func(" ", 1);
-            psend_func(func, strlen(func));
-            /* output seperator */
-            psend_func("] ", 2);
-
-            for (uint32_t index = 0; index < len; ++ index)
-            {
-                char data = "0123456789ABCDEF"[((const uint8_t *)pdata)[index] >> 4];
-                psend_func(&data, 1);
-                data = "0123456789ABCDEF"[((const uint8_t *)pdata)[index] & 0x0f];
-                psend_func(&data, 1);
-                /* output seperator */
-                psend_func(" ", 1);
-            }
-            psend_func("\r", 1);
-            psend_func("\n", 1);
+            meshx_trace_send(" ", 1);
         }
+        meshx_trace_send("\r\n", 2);
     }
 }
 

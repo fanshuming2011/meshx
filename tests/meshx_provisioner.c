@@ -59,10 +59,11 @@ void system_init(void)
     provisioner_cmd_init();
 }
 
-void linux_send_string(const char *pdata, uint32_t len)
+int32_t meshx_trace_send(const char *pdata, uint32_t len)
 {
     fwrite(pdata, 1, len, log_file);
     fflush(log_file);
+    return len;
 }
 
 static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
@@ -73,12 +74,12 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     {
     case MESHX_PROV_NOTIFY_LINK_OPEN:
         {
-            MESHX_DEBUG("link opened, result: %d", pprov->link_open_result);
+            meshx_printf(meshx_tty_send, "link opened, result: %d", pprov->link_open_result);
         }
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:
         {
-            MESHX_DEBUG("link closed, reason: %d", pprov->link_close_reason);
+            meshx_printf(meshx_tty_send, "link closed, reason: %d", pprov->link_close_reason);
         }
         break;
     case MESHX_PROV_NOTIFY_CAPABILITES:
@@ -153,7 +154,7 @@ static void *meshx_thread(void *pargs)
     meshx_async_msg_init(10, meshx_async_msg_notify_handler);
 
 
-    meshx_trace_init(linux_send_string);
+    meshx_trace_init();
     meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
 
     meshx_notify_init(meshx_notify_cb);
@@ -170,9 +171,11 @@ static void *meshx_thread(void *pargs)
     meshx_network_if_t adv_network_if = meshx_network_if_create();
     meshx_network_if_connect(adv_network_if, adv_bearer, NULL, NULL);
 
+#if 0
     meshx_dev_uuid_t dev_uuid = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
     meshx_provision_dev_t prov_dev = meshx_provision_create_device(adv_bearer, dev_uuid);
     meshx_provision_link_open(prov_dev);
+#endif
 
     meshx_bearer_rx_metadata_t rx_metadata;
     meshx_bearer_rx_metadata_adv_t adv_metadata =
