@@ -7,7 +7,7 @@
  */
 #include <string.h>
 #include "meshx_config.h"
-#define TRACE_MODULE "MESHX_PB_ADV"
+#define MESHX_TRACE_MODULE "MESHX_PB_ADV"
 #include "meshx_trace.h"
 #include "meshx_gap.h"
 #include "meshx_pb_adv.h"

@@ -6,7 +6,7 @@
  * See the LICENSE file for the terms of usage and distribution.
  */
 #include <string.h>
-#define TRACE_MODULE "MESHX_BEARER_ADV"
+#define MESHX_TRACE_MODULE "MESHX_BEARER_ADV"
 #include "meshx_trace.h"
 #include "meshx_bearer.h"
 #include "meshx_bearer_internal.h"
@@ -106,7 +106,7 @@ int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
 }
 
 int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const uint8_t *pdata,
-                                 uint8_t len)
+                                 uint8_t len, const meshx_bearer_rx_metadata_adv_t *padv_metadata)
 {
     MESHX_ASSERT(NULL != bearer);
     int32_t ret = MESHX_SUCCESS;
@@ -125,7 +125,7 @@ int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const 
         ret = meshx_provision_receive(bearer, pdata, len);
         break;
     case MESHX_GAP_ADTYPE_MESH_BEACON:
-        ret = meshx_beacon_receive(bearer, pdata, len);
+        ret = meshx_beacon_receive(bearer, pdata, len, padv_metadata);
         break;
     default:
         MESHX_DEBUG("received no mesh message: 0x%x", adv_type);

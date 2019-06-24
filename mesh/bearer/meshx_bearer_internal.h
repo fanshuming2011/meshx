@@ -29,7 +29,8 @@ MESHX_EXTERN int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_ty
                                            const uint8_t *pdata, uint8_t len);
 
 MESHX_EXTERN int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type,
-                                              const uint8_t *pdata, uint8_t len);
+                                              const uint8_t *pdata,
+                                              uint8_t len, const meshx_bearer_rx_metadata_adv_t *padv_metadata);
 MESHX_EXTERN meshx_bearer_t meshx_bearer_adv_get(void);
 
 MESHX_EXTERN int32_t meshx_bearer_gatt_init(void);

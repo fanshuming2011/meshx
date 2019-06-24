@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <string.h>
-#define TRACE_MODULE "MESHX_GAP_WRAPPER"
+#define MESHX_TRACE_MODULE "MESHX_GAP_WRAPPER"
 #include "meshx_trace.h"
 #include "meshx_gap_wrapper.h"
 #include "meshx_errno.h"

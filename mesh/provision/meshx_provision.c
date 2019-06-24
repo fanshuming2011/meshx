@@ -6,7 +6,7 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #include <string.h>
-#define TRACE_MODULE "MEHSX_PROVISION"
+#define MESHX_TRACE_MODULE "MEHSX_PROVISION"
 #include "meshx_trace.h"
 #include "meshx_provision.h"
 #include "meshx_provision_internal.h"

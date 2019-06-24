@@ -5,7 +5,7 @@
  *
  * See the LICENSE file for the terms of usage and distribution.
  */
-#define TRACE_MODULE "MESHX_GAP"
+#define MESHX_TRACE_MODULE "MESHX_GAP"
 #include "meshx_trace.h"
 #include "meshx_config.h"
 #include "meshx_gap.h"

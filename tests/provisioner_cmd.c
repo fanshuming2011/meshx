@@ -10,14 +10,19 @@
 #include "meshx_cmd_base.h"
 #include "meshx_cmd_common.h"
 
+bool meshx_show_beacon;
+extern meshx_bearer_t adv_bearer;
 
 int32_t meshx_cmd_prov_scan(const meshx_cmd_parsed_data_t *pparsed_data)
 {
+    meshx_show_beacon = pparsed_data->param_val[0];
     return MESHX_SUCCESS;
 }
 
 int32_t meshx_cmd_prov_conn(const meshx_cmd_parsed_data_t *pparsed_data)
 {
+    //meshx_provision_dev_t prov_dev = meshx_provision_create_device(adv_bearer, dev_uuid);
+    //meshx_provision_link_open(prov_dev);
     return MESHX_SUCCESS;
 }
 

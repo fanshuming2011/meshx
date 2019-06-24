@@ -15,6 +15,8 @@ MESHX_BEGIN_DECLS
 MESHX_EXTERN int32_t meshx_tty_init(void);
 MESHX_EXTERN void meshx_tty_deinit(void);
 MESHX_EXTERN int32_t meshx_tty_send(const char *pdata, uint32_t len);
+MESHX_EXTERN int32_t meshx_tty_printf(const char *fmt, ...);
+MESHX_EXTERN int32_t meshx_tty_dump(const uint8_t *pdata, uint32_t len);
 
 MESHX_END_DECLS
 

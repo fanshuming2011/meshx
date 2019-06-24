@@ -5,7 +5,7 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
-#define TRACE_MODULE "MESHX_NOTIFY"
+#define MESHX_TRACE_MODULE "MESHX_NOTIFY"
 #include "meshx_trace.h"
 #include "meshx_errno.h"
 #include "meshx_notify.h"

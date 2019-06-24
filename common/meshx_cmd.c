@@ -7,7 +7,7 @@
  */
 #include <stdio.h>
 #include <string.h>
-#define TRACE_MODULE "MESHX_CMD"
+#define MESHX_TRACE_MODULE "MESHX_CMD"
 #include "meshx_trace.h"
 #include "meshx_errno.h"
 #include "meshx_cmd.h"

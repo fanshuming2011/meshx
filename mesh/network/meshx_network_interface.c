@@ -6,7 +6,7 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #include <string.h>
-#define TRACE_MODULE "MESHX_NETWORK_INTERFACE"
+#define MESHX_TRACE_MODULE "MESHX_NETWORK_IF"
 #include "meshx_trace.h"
 #include "meshx_network.h"
 #include "meshx_errno.h"

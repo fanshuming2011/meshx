@@ -8,10 +8,11 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <termios.h>
-#define TRACE_MODULE "MESHX_TTY"
+#define MESHX_TRACE_MODULE "MESHX_TTY"
 #include "meshx_trace.h"
 #include "meshx_tty.h"
 #include "meshx_errno.h"
+#include "meshx_io.h"
 
 static struct termios default_settings;
 
@@ -56,3 +57,24 @@ int32_t meshx_tty_send(const char *pdata, uint32_t len)
     return len;
 }
 
+int32_t meshx_tty_printf(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    int32_t ret = meshx_vsprintf(meshx_tty_send, fmt, args);
+    va_end(args);
+
+    return ret;
+}
+
+int32_t meshx_tty_dump(const uint8_t *pdata, uint32_t len)
+{
+    for (uint32_t index = 0; index < len; ++ index)
+    {
+        char data = "0123456789ABCDEF"[((const uint8_t *)pdata)[index] >> 4];
+        meshx_tty_send(&data, 1);
+        data = "0123456789ABCDEF"[((const uint8_t *)pdata)[index] & 0x0f];
+        meshx_tty_send(&data, 1);
+    }
+    return 0;
+}

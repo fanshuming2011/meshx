@@ -42,7 +42,22 @@ typedef struct
     };
 } __PACKED meshx_notify_prov_t;
 
-typedef meshx_udb_t meshx_notify_beacon_t;
+typedef enum
+{
+    MESHX_NOTIFY_BEACON_TYPE_UDB,
+    MESHX_NOTIFY_BEACON_TYPE_PB_GATT,
+    MESHX_NOTIFY_BEACON_TYPE_PROXY,
+} meshx_notify_beacon_type_t;
+
+typedef struct
+{
+    meshx_notify_beacon_type_t type;
+    union
+    {
+        meshx_udb_t udb;
+    };
+    const meshx_bearer_rx_metadata_adv_t *padv_metadata;
+} meshx_notify_beacon_t;
 
 
 #define MESHX_NOTIFY_TYPE_PROV                0 /* @ref meshx_notify_prov_t */

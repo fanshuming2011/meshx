@@ -14,7 +14,6 @@ MESHX_BEGIN_DECLS
 
 MESHX_EXTERN void meshx_srand(uint32_t seed);
 MESHX_EXTERN int32_t meshx_rand(void);
-MESHX_EXTERN int32_t meshx_trace_send(const char *pdata, uint32_t len);
 
 MESHX_END_DECLS
 

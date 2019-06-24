@@ -12,6 +12,7 @@
 
 MESHX_BEGIN_DECLS
 
+MESHX_EXTERN bool meshx_show_beacon;
 MESHX_EXTERN void provisioner_cmd_init(void);
 
 MESHX_END_DECLS

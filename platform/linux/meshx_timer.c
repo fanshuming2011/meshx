@@ -11,7 +11,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define TRACE_MODULE "MESHX_TIMER"
+#define MESHX_TRACE_MODULE "MESHX_TIMER"
 #include "meshx_trace.h"
 #include "meshx_timer.h"
 #include "meshx_errno.h"

@@ -5,7 +5,7 @@
  *
  * See the LICENSE file for the terms of usage and distribution.
  */
-#define TRACE_MODULE "MESHX_BEARER"
+#define MESHX_TRACE_MODULE "MESHX_BEARER"
 #include "meshx_bearer.h"
 #include "meshx_bearer_internal.h"
 #include "meshx_errno.h"
@@ -138,7 +138,7 @@ int32_t meshx_bearer_receive(const uint8_t *pdata, uint8_t len,
     {
     case MESHX_BEARER_TYPE_ADV:
         ret = meshx_bearer_adv_receive(bearer, MESHX_GAP_GET_ADV_TYPE(pdata), MESHX_GAP_GET_ADV_PDU(pdata),
-                                       MESHX_GAP_GET_ADV_PDU_LEN(pdata));
+                                       MESHX_GAP_GET_ADV_PDU_LEN(pdata), &prx_metadata->adv_metadata);
         break;
     case MESHX_BEARER_TYPE_GATT:
         ret = meshx_bearer_gatt_receive(bearer, pdata, len);

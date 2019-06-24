@@ -12,8 +12,8 @@
 
 MESHX_BEGIN_DECLS
 
-#ifndef TRACE_MODULE
-#define TRACE_MODULE "APP"
+#ifndef MESHX_TRACE_MODULE
+#define MESHX_TRACE_MODULE "APP"
 #endif
 
 #define MESHX_TRACE_LEVEL_DEBUG           0x0100
@@ -27,7 +27,6 @@ MESHX_BEGIN_DECLS
                                            MESHX_TRACE_LEVEL_FATAL)
 
 MESHX_EXTERN int32_t meshx_trace_init(void);
-MESHX_EXTERN int32_t meshx_trace_send(const char *pdata, uint32_t len);
 MESHX_EXTERN void meshx_trace(const char *module, uint16_t level, const char *func, const char *fmt,
                               ...);
 MESHX_EXTERN void meshx_trace_dump(const char *module, uint16_t level, const char *func,
@@ -37,27 +36,27 @@ MESHX_EXTERN void meshx_trace_level_disable(uint16_t levels);
 
 
 #define MESHX_DEBUG(fmt, ...) \
-    meshx_trace(TRACE_MODULE, MESHX_TRACE_LEVEL_DEBUG, __FUNC__, fmt, ##__VA_ARGS__)
+    meshx_trace(MESHX_TRACE_MODULE, MESHX_TRACE_LEVEL_DEBUG, __FUNC__, fmt, ##__VA_ARGS__)
 #define MESHX_INFO(fmt, ...) \
-    meshx_trace(TRACE_MODULE, MESHX_TRACE_LEVEL_INFO, __FUNC__, fmt, ##__VA_ARGS__)
+    meshx_trace(MESHX_TRACE_MODULE, MESHX_TRACE_LEVEL_INFO, __FUNC__, fmt, ##__VA_ARGS__)
 #define MESHX_WARN(fmt, ...) \
-    meshx_trace(TRACE_MODULE, MESHX_TRACE_LEVEL_WARN, __FUNC__, fmt, ##__VA_ARGS__)
+    meshx_trace(MESHX_TRACE_MODULE, MESHX_TRACE_LEVEL_WARN, __FUNC__, fmt, ##__VA_ARGS__)
 #define MESHX_ERROR(fmt, ...) \
-    meshx_trace(TRACE_MODULE, MESHX_TRACE_LEVEL_ERROR, __FUNC__, fmt, ##__VA_ARGS__)
+    meshx_trace(MESHX_TRACE_MODULE, MESHX_TRACE_LEVEL_ERROR, __FUNC__, fmt, ##__VA_ARGS__)
 #define MESHX_FATAL(fmt, ...) \
-    meshx_trace(TRACE_MODULE, MESHX_TRACE_LEVEL_FATAL, __FUNC__, fmt, ##__VA_ARGS__)
+    meshx_trace(MESHX_TRACE_MODULE, MESHX_TRACE_LEVEL_FATAL, __FUNC__, fmt, ##__VA_ARGS__)
 
 
 #define MESHX_DUMP_DEBUG(pdata, len) \
-    meshx_trace_dump(TRACE_MODULE, MESHX_TRACE_LEVEL_DEBUG, __FUNC__, pdata, len)
+    meshx_trace_dump(MESHX_TRACE_MODULE, MESHX_TRACE_LEVEL_DEBUG, __FUNC__, pdata, len)
 #define MESHX_DUMP_INFO(pdata, len) \
-    meshx_trace_dump(TRACE_MODULE, MESHX_TRACE_LEVEL_INFO, __FUNC__, pdata, len)
+    meshx_trace_dump(MESHX_TRACE_MODULE, MESHX_TRACE_LEVEL_INFO, __FUNC__, pdata, len)
 #define MESHX_DUMP_WARN(pdata, len) \
-    meshx_trace_dump(TRACE_MODULE, MESHX_TRACE_LEVEL_WARN, __FUNC__, pdata, len)
+    meshx_trace_dump(MESHX_TRACE_MODULE, MESHX_TRACE_LEVEL_WARN, __FUNC__, pdata, len)
 #define MESHX_DUMP_ERROR(pdata, len) \
-    meshx_trace_dump(TRACE_MODULE, MESHX_TRACE_LEVEL_ERROR, __FUNC__, pdata, len)
+    meshx_trace_dump(MESHX_TRACE_MODULE, MESHX_TRACE_LEVEL_ERROR, __FUNC__, pdata, len)
 #define MESHX_DUMP_FATAL(pdata, len) \
-    meshx_trace_dump(TRACE_MODULE, MESHX_TRACE_LEVEL_FATAL, __FUNC__, pdata, len)
+    meshx_trace_dump(MESHX_TRACE_MODULE, MESHX_TRACE_LEVEL_FATAL, __FUNC__, pdata, len)
 
 MESHX_END_DECLS
 

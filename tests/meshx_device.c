@@ -5,7 +5,7 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
-#define TRACE_MODULE "DEVICE"
+#define MESHX_TRACE_MODULE "DEVICE"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

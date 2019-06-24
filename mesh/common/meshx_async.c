@@ -5,7 +5,7 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
-#define TRACE_MODULE "MESHX_ASYNC"
+#define MESHX_TRACE_MODULE "MESHX_ASYNC"
 #include "meshx_trace.h"
 #include "meshx_async.h"
 #include "meshx_async_internal.h"

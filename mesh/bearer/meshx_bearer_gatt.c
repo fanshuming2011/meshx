@@ -5,7 +5,7 @@
  *
  * See the LICENSE file for the terms of usage and distribution.
  */
-#define TRACE_MODULE "MESHX_BEARER_ADV"
+#define MESHX_TRACE_MODULE "MESHX_BEARER_GATT"
 #include "meshx_trace.h"
 #include "meshx_bearer_internal.h"
 #include "meshx_errno.h"

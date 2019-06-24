@@ -7,7 +7,7 @@
  */
 #include <string.h>
 #include "meshx_beacon.h"
-#define TRACE_MODULE "MESHX_BEACON"
+#define MESHX_TRACE_MODULE "MESHX_BEACON"
 #include "meshx_trace.h"
 #include "meshx_beacon.h"
 #include "meshx_errno.h"
@@ -138,10 +138,13 @@ void meshx_beacon_set_uri_hash(uint32_t uri_hash)
     meshx_uri_hash = uri_hash;
 }
 
-int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
+int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len,
+                             const meshx_bearer_rx_metadata_adv_t *padv_metadata)
 {
     meshx_notify_beacon_t beacon;
-	memcpy(&beacon, pdata, len);
+    beacon.type = MESHX_NOTIFY_BEACON_TYPE_UDB;
+    memcpy(&beacon.udb, pdata, len);
+    beacon.padv_metadata = padv_metadata;
     meshx_notify(MESHX_NOTIFY_TYPE_BEACON, &beacon, len);
     return MESHX_SUCCESS;
 }

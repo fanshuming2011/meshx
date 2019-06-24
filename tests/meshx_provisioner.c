@@ -5,7 +5,7 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
-#define TRACE_MODULE "PROVISIONER"
+#define MESHX_TRACE_MODULE "PROVISIONER"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +22,8 @@
 #include "provisioner_cmd.h"
 //#include "meshx_mem.h"
 
+
+meshx_bearer_t adv_bearer;
 meshx_msg_queue_t msg_queue = NULL;
 
 #define ASYNC_DATA_TYPE_ADV_DATA   0
@@ -110,12 +112,27 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 
 static int32_t meshx_notify_beacon_cb(const void *pdata, uint8_t len)
 {
-    //const meshx_notify_beacon_t *pprov = pdata;
+    const meshx_notify_beacon_t *pbeacon = pdata;
+    switch (pbeacon->type)
+    {
+    case MESHX_NOTIFY_BEACON_TYPE_UDB:
+        meshx_tty_printf("bt addr: ");
+        meshx_tty_dump(pbeacon->padv_metadata->peer_addr, sizeof(meshx_mac_addr_t));
+        meshx_tty_send("  ", 2);
+        meshx_tty_printf("udb: ");
+        meshx_tty_dump(pbeacon->udb.dev_uuid, sizeof(meshx_dev_uuid_t));
+        meshx_tty_send("\r\n", 2);
+        break;
+    case MESHX_NOTIFY_BEACON_TYPE_PB_GATT:
+        break;
+    case MESHX_NOTIFY_BEACON_TYPE_PROXY:
+        break;
+    default:
+        break;
+    }
     if (len == sizeof(meshx_notify_beacon_t))
     {
     }
-    MESHX_INFO("receive mesh beacon:");
-    MESHX_DUMP_DEBUG(pdata, len);
 
     return MESHX_SUCCESS;
 }
@@ -128,7 +145,10 @@ static int32_t meshx_notify_cb(uint8_t notify_type, const void *pdata, uint8_t l
         meshx_notify_prov_cb(pdata, len);
         break;
     case MESHX_NOTIFY_TYPE_BEACON:
-        meshx_notify_beacon_cb(pdata, len);
+        if (meshx_show_beacon)
+        {
+            meshx_notify_beacon_cb(pdata, len);
+        }
         break;
     default:
         MESHX_ERROR("unknown notify type: %d", notify_type);
@@ -166,7 +186,7 @@ static void *meshx_thread(void *pargs)
 
     meshx_gap_start();
     meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV, .param_adv.adv_period = 0};
-    meshx_bearer_t adv_bearer = meshx_bearer_create(adv_param);
+    adv_bearer = meshx_bearer_create(adv_param);
 
     meshx_network_if_t adv_network_if = meshx_network_if_create();
     meshx_network_if_connect(adv_network_if, adv_bearer, NULL, NULL);
