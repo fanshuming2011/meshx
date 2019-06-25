@@ -5,6 +5,7 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
+#include <string.h>
 #include "meshx_lib.h"
 
 int32_t meshx_atoi(const char *pstr, bool *pvalid)
@@ -88,3 +89,28 @@ void meshx_itoa(int32_t val, char *pstr)
     }
 }
 
+void meshx_bin2hex(const char *pbin, uint8_t *phex, uint8_t len)
+{
+    memset(phex, 0, len);
+    uint8_t tag = 0;
+    for (uint8_t i = 0; i < len / 2; ++i)
+    {
+        if ((pbin[i] >= 'a') && (pbin[i] <= 'f'))
+        {
+            tag = 'a';
+        }
+        else if ((pbin[i] >= 'A') && (pbin[i] <= 'F'))
+        {
+            tag = 'A';
+        }
+        else
+        {
+            break;
+        }
+        phex[i / 2] |= (pbin[i] - tag + 10);
+        if (0 == (i & 0x01))
+        {
+            phex[i / 2] <<= 4;
+        }
+    }
+}

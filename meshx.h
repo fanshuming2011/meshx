@@ -11,6 +11,7 @@
 #include "meshx_types.h"
 #include "meshx_errno.h"
 #include "meshx_io.h"
+#include "meshx_lib.h"
 #include "meshx_trace.h"
 #include "meshx_async.h"
 #include "meshx_tty.h"
