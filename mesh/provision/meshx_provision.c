@@ -70,6 +70,26 @@ meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
     return prov_dev;
 }
 
+void meshx_provision_delete_device(meshx_provision_dev_t prov_dev)
+{
+    if (NULL == prov_dev)
+    {
+        return;
+    }
+
+    switch (prov_dev->bearer->type)
+    {
+    case MESHX_BEARER_TYPE_ADV:
+        meshx_pb_adv_delete_device(prov_dev);
+        break;
+    case MESHX_BEARER_TYPE_GATT:
+        break;
+    default:
+        MESHX_ERROR("invalid bearer type: %d", prov_dev->bearer->type);
+        break;
+    }
+}
+
 int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev)
 {
     if (NULL == prov_dev)

@@ -114,9 +114,32 @@ static uint8_t meshx_calc_seg_num(uint16_t len)
     return segment_num;
 }
 
-static void meshx_pb_adv_delete_device(meshx_pb_adv_dev_t *pdev)
+static meshx_provision_dev_t meshx_pb_adv_find_device(meshx_bearer_t bearer,
+                                                      meshx_dev_uuid_t dev_uuid)
 {
-    MESHX_ASSERT(NULL != pdev);
+    meshx_list_t *pnode;
+    meshx_pb_adv_dev_t *pdev = NULL;
+    meshx_list_foreach(pnode, &pb_adv_devs)
+    {
+        pdev = MESHX_CONTAINER_OF(pnode, meshx_pb_adv_dev_t, node);
+        if ((0 == memcmp(pdev->dev.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t))) &&
+            (pdev->dev.bearer == bearer))
+        {
+            MESHX_INFO("provision device with same parameter already exists!");
+            return &pdev->dev;
+        }
+    }
+
+    return NULL;
+}
+
+void meshx_pb_adv_delete_device(meshx_provision_dev_t prov_dev)
+{
+    if (NULL == prov_dev)
+    {
+        return ;
+    }
+    meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     meshx_list_remove(&pdev->node);
     if (NULL != pdev->link_loss_timer)
     {
@@ -304,6 +327,12 @@ static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
     MESHX_WARN("link loss in state: %d", pdev->dev.state);
     pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                       MESHX_LINK_CLOSE_REASON_TIMEOUT);
+    /* stop timer */
+    if (NULL != pdev->link_loss_timer)
+    {
+        meshx_timer_stop(pdev->link_loss_timer);
+    }
+
     /* notify app link loss */
     meshx_notify_prov_t notify_prov;
     notify_prov.metadata.prov_dev = &pdev->dev;
@@ -311,7 +340,7 @@ static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
     notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_LINK_LOSS;
     meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                  sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
-    meshx_pb_adv_delete_device(pdev);
+    //meshx_pb_adv_delete_device(&pdev->dev);
 }
 
 static void meshx_link_loss_timeout_handler(void *pargs)
@@ -345,6 +374,13 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
         {
             MESHX_WARN("provision failed: receive no link ack from device uuid:");
             MESHX_DUMP_ERROR(pdev->dev.dev_uuid, sizeof(meshx_dev_uuid_t));
+
+            /* stop retry timer */
+            if (NULL != pdev->retry_timer)
+            {
+                meshx_timer_stop(pdev->retry_timer);
+            }
+
             /* notify app link open failed, timeout */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = &pdev->dev;
@@ -352,7 +388,7 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
             notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_TIMEOUT;
             meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
-            meshx_pb_adv_delete_device(pdev);
+            //meshx_pb_adv_delete_device(&pdev->dev);
         }
     }
     else if ((pdev->dev.state >= MESHX_PROVISION_STATE_INVITE) &&
@@ -383,6 +419,13 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
             MESHX_WARN("provision failed: receive no ack of state(%d)", pdev->dev.state);
             pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                               MESHX_LINK_CLOSE_REASON_TIMEOUT);
+
+            /* stop retry timer */
+            if (NULL != pdev->retry_timer)
+            {
+                meshx_timer_stop(pdev->retry_timer);
+            }
+
             /* notify app link close */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = &pdev->dev;
@@ -390,7 +433,7 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
             notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_TIMEOUT;
             meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
-            meshx_pb_adv_delete_device(pdev);
+            //meshx_pb_adv_delete_device(&pdev->dev);
         }
     }
     else
@@ -534,6 +577,16 @@ int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
     {
         if (prov_dev->state < MESHX_PROVISION_STATE_COMPLETE)
         {
+            /* stop timer */
+            if (NULL != pdev->link_loss_timer)
+            {
+                meshx_timer_stop(pdev->link_loss_timer);
+            }
+            if (NULL != pdev->retry_timer)
+            {
+                meshx_timer_stop(pdev->retry_timer);
+            }
+
             /* notify app link close */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = &pdev->dev;
@@ -542,7 +595,7 @@ int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
             meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
 
-            meshx_pb_adv_delete_device(pdev);
+            //meshx_pb_adv_delete_device(&pdev->dev);
         }
     }
 
@@ -660,11 +713,17 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
         return -MESHX_ERR_DIFF;
     }
 
-    meshx_provision_dev_t prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid);
+    meshx_provision_dev_t prov_dev = meshx_pb_adv_find_device(bearer, dev_uuid);
+    bool first_receive = FALSE;
     if (NULL == prov_dev)
     {
-        MESHX_ERROR("can't handle link open message now");
-        return -MESHX_ERR_RESOURCE;
+        prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid);
+        if (NULL == prov_dev)
+        {
+            MESHX_ERROR("can't handle link open message now");
+            return -MESHX_ERR_RESOURCE;
+        }
+        first_receive = TRUE;
     }
 
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
@@ -697,7 +756,20 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
     pdev->trans_data_len = 0;
     MESHX_INFO("receive link open: %d", link_id);
 
-    return meshx_pb_adv_link_ack(prov_dev);
+    int32_t ret = meshx_pb_adv_link_ack(prov_dev);
+
+    if (first_receive)
+    {
+        /* notify app link opened */
+        meshx_notify_prov_t notify_prov;
+        notify_prov.metadata.prov_dev = &pdev->dev;
+        notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_OPEN;
+        notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_SUCCESS;
+        meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                     sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
+    }
+
+    return ret;
 }
 
 static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
@@ -765,6 +837,16 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
     }
 
     MESHX_INFO("link closed: %d", link_id);
+    /* stop timer */
+    if (NULL != pdev->link_loss_timer)
+    {
+        meshx_timer_stop(pdev->link_loss_timer);
+    }
+    if (NULL != pdev->retry_timer)
+    {
+        meshx_timer_stop(pdev->retry_timer);
+    }
+
     /* notify app link closed */
     meshx_notify_prov_t notify_prov;
     notify_prov.metadata.prov_dev = &pdev->dev;
@@ -774,7 +856,7 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
     meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                  sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
 
-    meshx_pb_adv_delete_device(pdev);
+    //meshx_pb_adv_delete_device(&pdev->dev);
 
     return MESHX_SUCCESS;
 }
@@ -846,6 +928,16 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
     {
         pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                           MESHX_LINK_CLOSE_REASON_FAIL);
+        /* stop timer */
+        if (NULL != pdev->link_loss_timer)
+        {
+            meshx_timer_stop(pdev->link_loss_timer);
+        }
+        if (NULL != pdev->retry_timer)
+        {
+            meshx_timer_stop(pdev->retry_timer);
+        }
+
         /* notify app link closed */
         meshx_notify_prov_t notify_prov;
         notify_prov.metadata.prov_dev = &pdev->dev;
@@ -854,7 +946,7 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
         meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                      sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
 
-        meshx_pb_adv_delete_device(pdev);
+        //meshx_pb_adv_delete_device(&pdev->dev);
     }
 
     return ret;
@@ -1135,21 +1227,15 @@ int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
 
 meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
 {
-    meshx_list_t *pnode;
-    meshx_pb_adv_dev_t *pdev = NULL;
-    meshx_list_foreach(pnode, &pb_adv_devs)
+    meshx_provision_dev_t prov_dev = meshx_pb_adv_find_device(bearer, dev_uuid);
+    if (NULL != prov_dev)
     {
-        pdev = MESHX_CONTAINER_OF(pnode, meshx_pb_adv_dev_t, node);
-        if ((0 == memcmp(pdev->dev.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t))) &&
-            (pdev->dev.bearer == bearer))
-        {
-            MESHX_INFO("provision device with same parameter already exists!");
-            return &pdev->dev;
-        }
+        MESHX_INFO("provision device with same parameter already exists!");
+        return prov_dev;
     }
 
     /* create new provision device */
-    pdev = meshx_malloc(sizeof(meshx_pb_adv_dev_t));
+    meshx_pb_adv_dev_t *pdev = meshx_malloc(sizeof(meshx_pb_adv_dev_t));
     if (NULL == pdev)
     {
         MESHX_ERROR("create pb adv device failed: out of memory!");

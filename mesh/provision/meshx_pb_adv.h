@@ -130,6 +130,7 @@ MESHX_EXTERN int32_t meshx_pb_adv_init(void);
 
 MESHX_EXTERN meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer,
                                                               meshx_dev_uuid_t dev_uuid);
+MESHX_EXTERN void meshx_pb_adv_delete_device(meshx_provision_dev_t prov_dev);
 
 MESHX_EXTERN int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len);
 
