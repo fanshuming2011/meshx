@@ -327,4 +327,32 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
     return ret;
 }
 
+int32_t meshx_provision_handle_notify(const meshx_notify_prov_t *pnotify, uint8_t len)
+{
+    switch (pnotify->metadata.prov_type)
+    {
+    case MESHX_PROV_NOTIFY_LINK_OPEN:
+        if (MESHX_PROVISION_LINK_OPEN_SUCCESS == pnotify->link_open_result)
+        {
+            /* stop pb-adv and pb-gatt */
+            meshx_beacon_stop(MESHX_BEACON_TYPE_UDB);
+        }
+        break;
+    case MESHX_PROV_NOTIFY_LINK_CLOSE:
+        /* check node state */
+        if (MESHX_NODE_PROVED == meshx_get_node_prov_state())
+        {
+            /* start snb */
+            //meshx_beacon_start(adv_bearer, MESHX_BEACON_TYPE_UDB, 5000);
+        }
+        else
+        {
+            /* start pb-adv and pb-gatt */
+        }
+        break;
+    default:
+        break;
+    }
+    return meshx_notify(MESHX_NOTIFY_TYPE_PROV, pnotify, len);
+}
 

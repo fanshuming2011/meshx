@@ -76,12 +76,12 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     {
     case MESHX_PROV_NOTIFY_LINK_OPEN:
         {
-            meshx_printf(meshx_tty_send, "link opened, result: %d", pprov->link_open_result);
+            meshx_tty_printf("link opened, result: %d\r\n", pprov->link_open_result);
         }
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:
         {
-            meshx_printf(meshx_tty_send, "link closed, reason: %d", pprov->link_close_reason);
+            meshx_tty_printf("link closed, reason: %d\r\n", pprov->link_close_reason);
         }
         break;
     case MESHX_PROV_NOTIFY_CAPABILITES:
