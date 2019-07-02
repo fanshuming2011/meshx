@@ -42,7 +42,7 @@ void meshx_beacon_async_handle_timeout(meshx_async_msg_t msg)
         meshx_udb_t udb;
         uint8_t len = sizeof(meshx_udb_t);
         udb.type = MESHX_BEACON_TYPE_UDB;
-        meshx_get_device_uuid(udb.dev_uuid);
+        meshx_node_param_get(MESHX_NODE_PARAM_TYPE_DEV_UUID, udb.dev_uuid);
         udb.oob_info = meshx_oob_info;
         if (meshx_uri_hash_exists)
         {

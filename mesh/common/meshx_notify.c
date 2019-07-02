@@ -12,7 +12,8 @@
 
 static meshx_notify_t notify;
 
-static int32_t notify_default(uint8_t notify_type, const void *pdata, uint8_t len)
+static int32_t notify_default(uint8_t notify_type, meshx_bearer_t bearer, const void *pdata,
+                              uint8_t len)
 {
     return MESHX_SUCCESS;
 }
@@ -33,7 +34,7 @@ int32_t meshx_notify_init(meshx_notify_t notify_func)
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_notify(uint8_t notify_type, const void *pdata, uint8_t len)
+int32_t meshx_notify(uint8_t notify_type, meshx_bearer_t bearer, const void *pdata, uint8_t len)
 {
-    return notify(notify_type, pdata, len);
+    return notify(notify_type, bearer, pdata, len);
 }

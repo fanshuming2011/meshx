@@ -137,7 +137,8 @@ static int32_t meshx_notify_beacon_cb(const void *pdata, uint8_t len)
     return MESHX_SUCCESS;
 }
 
-static int32_t meshx_notify_cb(uint8_t notify_type, const void *pdata, uint8_t len)
+static int32_t meshx_notify_cb(uint8_t notify_type, meshx_bearer_t bearer, const void *pdata,
+                               uint8_t len)
 {
     switch (notify_type)
     {

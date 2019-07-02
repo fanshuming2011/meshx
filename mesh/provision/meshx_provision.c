@@ -327,7 +327,8 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
     return ret;
 }
 
-int32_t meshx_provision_handle_notify(const meshx_notify_prov_t *pnotify, uint8_t len)
+int32_t meshx_provision_handle_notify(meshx_bearer_t bearer, const meshx_notify_prov_t *pnotify,
+                                      uint8_t len)
 {
     switch (pnotify->metadata.prov_type)
     {
@@ -347,7 +348,10 @@ int32_t meshx_provision_handle_notify(const meshx_notify_prov_t *pnotify, uint8_
         }
         else
         {
+            uint32_t udb_interval = 0;
+            meshx_node_param_get(MESHX_NODE_PARAM_TYPE_UDB_INTERVAL, &udb_interval);
             /* start pb-adv and pb-gatt */
+            meshx_beacon_start(bearer, MESHX_BEACON_TYPE_UDB, udb_interval);
         }
         break;
     default:

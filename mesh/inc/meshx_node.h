@@ -19,11 +19,31 @@ typedef enum
     MESHX_NODE_PROVED
 } meshx_node_provision_state_t;
 
-MESHX_EXTERN void meshx_set_device_uuid(const meshx_dev_uuid_t uuid);
-MESHX_EXTERN void meshx_get_device_uuid(meshx_dev_uuid_t uuid);
+typedef enum
+{
+    MESHX_NODE_PARAM_TYPE_DEV_UUID,
+    MESHX_NODE_PARAM_TYPE_UDB_INTERVAL,
+    MESHX_NODE_PARAM_TYPE_SNB_INTERVAL,
+} meshx_node_param_type_t;
+
+typedef struct
+{
+    meshx_node_param_type_t type;
+    union
+    {
+        meshx_dev_uuid_t dev_uuid;
+        uint32_t udb_interval;
+        uint32_t snb_interval;
+    };
+} meshx_node_param_t;
+
+
 MESHX_EXTERN uint16_t meshx_get_node_address(void);
 MESHX_EXTERN void meshx_set_node_prov_state(meshx_node_provision_state_t prov_state);
 MESHX_EXTERN meshx_node_provision_state_t meshx_get_node_prov_state(void);
+
+MESHX_EXTERN int32_t meshx_node_param_set(const meshx_node_param_t *pparam);
+MESHX_EXTERN int32_t meshx_node_param_get(meshx_node_param_type_t type, void *pdata);
 
 MESHX_END_DECLS
 

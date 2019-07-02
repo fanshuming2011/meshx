@@ -64,7 +64,8 @@ typedef struct
 #define MESHX_NOTIFY_TYPE_BEACON              1 /* @ref meshx_notify_beacon_t */
 
 
-typedef int32_t (*meshx_notify_t)(uint8_t notify_type, const void *pdata, uint8_t len);
+typedef int32_t (*meshx_notify_t)(uint8_t notify_type, meshx_bearer_t bearer, const void *pdata,
+                                  uint8_t len);
 MESHX_EXTERN int32_t meshx_notify_init(meshx_notify_t notify_func);
 
 MESHX_END_DECLS

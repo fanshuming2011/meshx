@@ -126,7 +126,8 @@ static int32_t meshx_notify_beacon_cb(const void *pdata, uint8_t len)
     return MESHX_SUCCESS;
 }
 
-static int32_t meshx_notify_cb(uint8_t notify_type, const void *pdata, uint8_t len)
+static int32_t meshx_notify_cb(uint8_t notify_type, meshx_bearer_t bearer, const void *pdata,
+                               uint8_t len)
 {
     switch (notify_type)
     {
@@ -177,12 +178,13 @@ static void *meshx_thread(void *pargs)
     meshx_network_if_t adv_network_if = meshx_network_if_create();
     meshx_network_if_connect(adv_network_if, adv_bearer, NULL, NULL);
 
-    meshx_dev_uuid_t uuid;
+    meshx_node_param_t param;
+    param.type = MESHX_NODE_PARAM_TYPE_DEV_UUID;
     for (uint8_t i = 0; i < 16; ++i)
     {
-        uuid[i] = i;
+        param.dev_uuid[i] = i;
     }
-    meshx_set_device_uuid(uuid);
+    meshx_node_param_set(&param);
 
     meshx_bearer_rx_metadata_t rx_metadata;
     meshx_bearer_rx_metadata_adv_t adv_metadata =
