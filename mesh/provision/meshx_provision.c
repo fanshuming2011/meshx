@@ -241,7 +241,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
     int32_t ret = MESHX_SUCCESS;
     switch (pprov_pdu->metadata.type)
     {
-#if MESHX_ROLE_DEVICE
+#if MESHX_SUPPORT_ROLE_DEVICE
     case MESHX_PROVISION_TYPE_INVITE:
         if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_invite_t))
         {
@@ -261,7 +261,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         }
         break;
 #endif
-#if MESHX_ROLE_PROVISIONER
+#if MESHX_SUPPORT_ROLE_PROVISIONER
     case MESHX_PROVISION_TYPE_CAPABILITES:
         if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_capabilites_t))
         {
@@ -281,7 +281,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         }
         break;
 #endif
-#if MESHX_ROLE_DEVICE
+#if MESHX_SUPPORT_ROLE_DEVICE
     case MESHX_PROVISION_TYPE_START:
         if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_start_t))
         {
@@ -309,7 +309,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         break;
     case MESHX_PROVISION_TYPE_RANDOM:
         break;
-#if MESHX_ROLE_DEVICE
+#if MESHX_SUPPORT_ROLE_DEVICE
     case MESHX_PROVISION_TYPE_DATA:
         break;
 #endif

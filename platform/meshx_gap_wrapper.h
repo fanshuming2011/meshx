@@ -8,10 +8,16 @@
 #ifndef _MESHX_GAP_WRAPPER_H_
 #define _MESHX_GAP_WRAPPER_H_
 
-#include "meshx_types.h"
-
 MESHX_BEGIN_DECLS
 
+typedef enum
+{
+    MESHX_GAP_PUBLIC_ADDR,
+    MESHX_GAP_RANDOM_ADDR,
+} meshx_mac_addr_type_t;
+
+#define MESHX_MAC_ADDR_LEN                           6
+typedef uint8_t meshx_mac_addr_t[MESHX_MAC_ADDR_LEN];
 
 typedef enum
 {
@@ -48,6 +54,8 @@ typedef struct
     meshx_gap_adv_type_t adv_type;
     uint8_t channel;
 } meshx_gap_adv_param_t;
+
+int32_t meshx_gap_get_mac_addr(meshx_mac_addr_t mac_addr);
 
 int32_t meshx_gap_scan_set_param(const meshx_gap_scan_param_t *pscan_param);
 int32_t meshx_gap_scan_start(void);

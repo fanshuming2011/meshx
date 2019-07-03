@@ -218,7 +218,7 @@ static int32_t pb_adv_send_trans(meshx_bearer_t bearer, uint32_t link_id, uint8_
     return ret;
 }
 
-#if MESHX_ROLE_PROVISIONER
+#if MESHX_SUPPORT_ROLE_PROVISIONER
 static int32_t pb_adv_link_open(meshx_bearer_t bearer, uint32_t link_id, meshx_dev_uuid_t dev_uuid)
 {
     meshx_pb_adv_pkt_t pb_adv_pkt;
@@ -234,7 +234,7 @@ static int32_t pb_adv_link_open(meshx_bearer_t bearer, uint32_t link_id, meshx_d
 }
 #endif
 
-#if MESHX_ROLE_DEVICE
+#if MESHX_SUPPORT_ROLE_DEVICE
 static int32_t pb_adv_link_ack(meshx_bearer_t bearer, uint32_t link_id)
 {
     meshx_pb_adv_pkt_t pb_adv_pkt;
@@ -276,7 +276,7 @@ static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t
                              MESHX_TRANS_ACK_PDU_LEN);
 }
 
-#if MESHX_ROLE_PROVISIONER
+#if MESHX_SUPPORT_ROLE_PROVISIONER
 static int32_t pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
                              meshx_provision_invite_t invite)
 {
@@ -290,7 +290,7 @@ static int32_t pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id, uint8_t tr
 }
 #endif
 
-#if MESHX_ROLE_DEVICE
+#if MESHX_SUPPORT_ROLE_DEVICE
 static int32_t pb_adv_capabilites(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
                                   const meshx_provision_capabilites_t *pcap)
 {
@@ -305,7 +305,7 @@ static int32_t pb_adv_capabilites(meshx_bearer_t bearer, uint32_t link_id, uint8
 }
 #endif
 
-#if MESHX_ROLE_PROVISIONER
+#if MESHX_SUPPORT_ROLE_PROVISIONER
 static int32_t pb_adv_start(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
                             const meshx_provision_start_t *pstart)
 {
@@ -488,7 +488,7 @@ static meshx_pb_adv_dev_t *meshx_find_prov_dev_by_link_id(uint32_t link_id)
     return pdev;
 }
 
-#if MESHX_ROLE_PROVISIONER
+#if MESHX_SUPPORT_ROLE_PROVISIONER
 int32_t meshx_pb_adv_link_open(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
@@ -527,7 +527,7 @@ int32_t meshx_pb_adv_link_open(meshx_provision_dev_t prov_dev)
 }
 #endif
 
-#if MESHX_ROLE_DEVICE
+#if MESHX_SUPPORT_ROLE_DEVICE
 int32_t meshx_pb_adv_link_ack(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
@@ -601,7 +601,7 @@ int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
     return ret;
 }
 
-#if MESHX_ROLE_PROVISIONER
+#if MESHX_SUPPORT_ROLE_PROVISIONER
 static uint8_t meshx_prov_require_trans_num(meshx_pb_adv_dev_t *pdev)
 {
     pdev->tx_trans_num ++;
@@ -614,7 +614,7 @@ static uint8_t meshx_prov_require_trans_num(meshx_pb_adv_dev_t *pdev)
 }
 #endif
 
-#if MESHX_ROLE_DEVICE
+#if MESHX_SUPPORT_ROLE_DEVICE
 static uint8_t meshx_dev_require_trans_num(meshx_pb_adv_dev_t *pdev)
 {
     pdev->tx_trans_num ++;
@@ -640,7 +640,7 @@ int32_t meshx_pb_adv_trans_ack(meshx_provision_dev_t prov_dev)
     return ret;
 }
 
-#if MESHX_ROLE_PROVISIONER
+#if MESHX_SUPPORT_ROLE_PROVISIONER
 int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
                             meshx_provision_invite_t invite)
 {
@@ -658,7 +658,7 @@ int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
 }
 #endif
 
-#if MESHX_ROLE_DEVICE
+#if MESHX_SUPPORT_ROLE_DEVICE
 int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
                                  const meshx_provision_capabilites_t *pcap)
 {
@@ -676,7 +676,7 @@ int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
 }
 #endif
 
-#if MESHX_ROLE_PROVISIONER
+#if MESHX_SUPPORT_ROLE_PROVISIONER
 int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
                            const meshx_provision_start_t *pstart)
 {
@@ -860,12 +860,12 @@ static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const uint8_t
     int32_t ret = MESHX_SUCCESS;
     switch (ppkt->bearer_ctl.metadata.bearer_opcode)
     {
-#if MESHX_ROLE_DEVICE
+#if MESHX_SUPPORT_ROLE_DEVICE
     case MESHX_BEARER_LINK_OPEN:
         ret = meshx_pb_adv_recv_link_open(bearer, pdata, len);
         break;
 #endif
-#if MESHX_ROLE_PROVISIONER
+#if MESHX_SUPPORT_ROLE_PROVISIONER
     case MESHX_BEARER_LINK_ACK:
         ret = meshx_pb_adv_recv_link_ack(bearer, pdata, len);
         break;

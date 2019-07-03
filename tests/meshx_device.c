@@ -159,32 +159,11 @@ static void *meshx_thread(void *pargs)
     msg_queue_init();
     msg_queue_create(&msg_queue, 10, sizeof(async_data_t));
     meshx_async_msg_init(10, meshx_async_msg_notify_handler);
-
-
-    meshx_trace_init();
-    meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
-
     meshx_notify_init(meshx_notify_cb);
 
-    meshx_gap_init();
-    meshx_bearer_init();
-    meshx_network_init();
-    meshx_provision_init();
-
-    meshx_gap_start();
-    meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV, .param_adv.adv_period = 0};
-    meshx_bearer_t adv_bearer = meshx_bearer_create(adv_param);
-
-    meshx_network_if_t adv_network_if = meshx_network_if_create();
-    meshx_network_if_connect(adv_network_if, adv_bearer, NULL, NULL);
-
-    meshx_node_param_t param;
-    param.type = MESHX_NODE_PARAM_TYPE_DEV_UUID;
-    for (uint8_t i = 0; i < 16; ++i)
-    {
-        param.dev_uuid[i] = i;
-    }
-    meshx_node_param_set(&param);
+    meshx_config(MESHX_ROLE_DEVICE, NULL);
+    meshx_init();
+    meshx_run();
 
     meshx_bearer_rx_metadata_t rx_metadata;
     meshx_bearer_rx_metadata_adv_t adv_metadata =
@@ -198,7 +177,6 @@ static void *meshx_thread(void *pargs)
     rx_metadata.bearer_type = MESHX_BEARER_TYPE_ADV;
     rx_metadata.adv_metadata = adv_metadata;
 
-    meshx_beacon_start(adv_bearer, MESHX_BEACON_TYPE_UDB, 5000);
 
     while (1)
     {

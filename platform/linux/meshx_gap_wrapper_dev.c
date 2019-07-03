@@ -29,6 +29,15 @@ typedef struct
 
 static adv_data_t adv_data;
 
+int32_t meshx_gap_get_mac_addr(meshx_mac_addr_t mac_addr)
+{
+    for (uint8_t i = 0; i < sizeof(meshx_mac_addr_t); ++i)
+    {
+        mac_addr[i] = i + 9;
+    }
+
+    return MESHX_SUCCESS;
+}
 
 int32_t meshx_gap_scan_set_param(const meshx_gap_scan_param_t *pscan_param)
 {

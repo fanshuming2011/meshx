@@ -23,7 +23,6 @@
 //#include "meshx_mem.h"
 
 
-meshx_bearer_t adv_bearer;
 meshx_msg_queue_t msg_queue = NULL;
 
 #define ASYNC_DATA_TYPE_ADV_DATA   0
@@ -173,30 +172,11 @@ static void *meshx_thread(void *pargs)
     msg_queue_init();
     msg_queue_create(&msg_queue, 10, sizeof(async_data_t));
     meshx_async_msg_init(10, meshx_async_msg_notify_handler);
-
-
-    meshx_trace_init();
-    meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
-
     meshx_notify_init(meshx_notify_cb);
 
-    meshx_gap_init();
-    meshx_bearer_init();
-    meshx_network_init();
-    meshx_provision_init();
-
-    meshx_gap_start();
-    meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV, .param_adv.adv_period = 0};
-    adv_bearer = meshx_bearer_create(adv_param);
-
-    meshx_network_if_t adv_network_if = meshx_network_if_create();
-    meshx_network_if_connect(adv_network_if, adv_bearer, NULL, NULL);
-
-#if 0
-    meshx_dev_uuid_t dev_uuid = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-    meshx_provision_dev_t prov_dev = meshx_provision_create_device(adv_bearer, dev_uuid);
-    meshx_provision_link_open(prov_dev);
-#endif
+    meshx_config(MESHX_ROLE_PROVISIONER, NULL);
+    meshx_init();
+    meshx_run();
 
     meshx_bearer_rx_metadata_t rx_metadata;
     meshx_bearer_rx_metadata_adv_t adv_metadata =

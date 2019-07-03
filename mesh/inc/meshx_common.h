@@ -25,14 +25,6 @@ MESHX_BEGIN_DECLS
 
 typedef uint8_t meshx_dev_uuid_t[16];
 
-typedef enum
-{
-    MESHX_GAP_PUBLIC_ADDR,
-    MESHX_GAP_RANDOM_ADDR,
-} meshx_mac_addr_type_t;
-
-#define MESHX_MAC_ADDR_LEN                           6
-typedef uint8_t meshx_mac_addr_t[MESHX_MAC_ADDR_LEN];
 
 #define MESHX_BEARER_TYPE_INVALID           0
 #define MESHX_BEARER_TYPE_ADV               1

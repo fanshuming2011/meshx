@@ -14,10 +14,30 @@
 #include "meshx_gap.h"
 #include "meshx_network.h"
 
-int32_t meshx_bearer_init(void)
+static bool meshx_adv_bearer_enabled;
+static bool meshx_gatt_bearer_enabled;
+
+int32_t meshx_bearer_init(bool adv_bearer_enabled, bool gatt_bearer_enabled)
 {
-    meshx_bearer_adv_init();
-    meshx_bearer_gatt_init();
+    meshx_adv_bearer_enabled = adv_bearer_enabled;
+    meshx_gatt_bearer_enabled = gatt_bearer_enabled;
+    if (adv_bearer_enabled)
+    {
+        meshx_bearer_adv_init();
+    }
+    else
+    {
+        MESHX_WARN("adv bearer is diabled!");
+    }
+
+    if (gatt_bearer_enabled)
+    {
+        meshx_bearer_gatt_init();
+    }
+    else
+    {
+        MESHX_WARN("gatt bearer is diabled!");
+    }
 
     return MESHX_SUCCESS;
 }
@@ -28,10 +48,24 @@ meshx_bearer_t meshx_bearer_create(meshx_bearer_param_t bearer_param)
     switch (bearer_param.bearer_type)
     {
     case MESHX_BEARER_TYPE_ADV:
-        bearer = meshx_bearer_adv_create(bearer_param.param_adv);
+        if (meshx_adv_bearer_enabled)
+        {
+            bearer = meshx_bearer_adv_create(bearer_param.param_adv);
+        }
+        else
+        {
+            MESHX_WARN("create failed: adv bearer is disabled!");
+        }
         break;
     case MESHX_BEARER_TYPE_GATT:
-        bearer = meshx_bearer_gatt_create(bearer_param.param_gatt);
+        if (meshx_gatt_bearer_enabled)
+        {
+            bearer = meshx_bearer_gatt_create(bearer_param.param_gatt);
+        }
+        else
+        {
+            MESHX_WARN("create failed: gatt bearer is disabled!");
+        }
         break;
     default:
         MESHX_ERROR("create failed: invalid bearer type %d", bearer_param.bearer_type);
@@ -92,7 +126,7 @@ int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
     return ret;
 }
 
-static meshx_bearer_t meshx_bearer_get(const meshx_bearer_rx_metadata_t *prx_metadata)
+meshx_bearer_t meshx_bearer_get(const meshx_bearer_rx_metadata_t *prx_metadata)
 {
     if (NULL == prx_metadata)
     {

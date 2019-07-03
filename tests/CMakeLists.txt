@@ -11,6 +11,7 @@ include_directories(../common
                     ../platform/linux
                     ../)
 set(COMMON_SRC_LIST
+    ../meshx.c
     ../platform/linux/meshx_mem.c
     ../platform/linux/meshx_system.c
     ../platform/linux/meshx_timer.c

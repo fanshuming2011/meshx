@@ -18,6 +18,7 @@
 #include "meshx_trace.h"
 #include "meshx_gap_wrapper.h"
 #include "meshx_errno.h"
+#include "meshx_common.h"
 
 extern int fd_psdr;
 typedef struct
@@ -27,6 +28,16 @@ typedef struct
 } adv_data_t;
 
 static adv_data_t adv_data;
+
+int32_t meshx_gap_get_mac_addr(meshx_mac_addr_t mac_addr)
+{
+    for (uint8_t i = 0; i < sizeof(meshx_mac_addr_t); ++i)
+    {
+        mac_addr[i] = i;
+    }
+
+    return MESHX_SUCCESS;
+}
 
 int32_t meshx_gap_scan_set_param(const meshx_gap_scan_param_t *pscan_param)
 {

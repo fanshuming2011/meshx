@@ -11,7 +11,6 @@
 #include "meshx_cmd_common.h"
 
 bool meshx_show_beacon;
-extern meshx_bearer_t adv_bearer;
 
 int32_t meshx_cmd_prov_scan(const meshx_cmd_parsed_data_t *pparsed_data)
 {
@@ -21,9 +20,11 @@ int32_t meshx_cmd_prov_scan(const meshx_cmd_parsed_data_t *pparsed_data)
 
 int32_t meshx_cmd_prov_conn(const meshx_cmd_parsed_data_t *pparsed_data)
 {
+    meshx_bearer_rx_metadata_t rx_meatadata = {.bearer_type = MESHX_BEARER_TYPE_ADV};
     meshx_dev_uuid_t dev_uuid;
     meshx_bin2hex(pparsed_data->param_ptr[0], dev_uuid, sizeof(meshx_dev_uuid_t) * 2);
-    meshx_provision_dev_t prov_dev = meshx_provision_create_device(adv_bearer, dev_uuid);
+    meshx_provision_dev_t prov_dev = meshx_provision_create_device(meshx_bearer_get(&rx_meatadata),
+                                                                   dev_uuid);
     meshx_provision_link_open(prov_dev);
     return MESHX_SUCCESS;
 }
