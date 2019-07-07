@@ -27,11 +27,9 @@ void meshx_config(uint8_t role, const meshx_config_t *pconfig)
     meshx_role = role;
     if (NULL == pconfig)
     {
-#if 0
         meshx_mac_addr_t addr;
         meshx_gap_get_mac_addr(addr);
         memcpy(default_config.dev_uuid, addr, sizeof(meshx_mac_addr_t));
-#endif
         config = default_config;
     }
     else
@@ -50,7 +48,6 @@ meshx_config_t meshx_get_default_config(void)
 
 int32_t meshx_init(void)
 {
-#if 0
     meshx_node_param_t node_param;
 
     node_param.type = MESHX_NODE_PARAM_TYPE_DEV_UUID;
@@ -64,7 +61,6 @@ int32_t meshx_init(void)
     node_param.type = MESHX_NODE_PARAM_TYPE_SNB_INTERVAL;
     node_param.snb_interval = config.snb_interval;
     meshx_node_param_set(&node_param);
-#endif
 
     meshx_trace_init();
     meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);

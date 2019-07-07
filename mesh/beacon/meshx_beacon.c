@@ -145,6 +145,6 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
     beacon.type = MESHX_NOTIFY_BEACON_TYPE_UDB;
     memcpy(&beacon.udb, pdata, len);
     beacon.padv_metadata = padv_metadata;
-    meshx_notify(MESHX_NOTIFY_TYPE_BEACON, &beacon, len);
+    meshx_notify(bearer, MESHX_NOTIFY_TYPE_BEACON, &beacon, len);
     return MESHX_SUCCESS;
 }

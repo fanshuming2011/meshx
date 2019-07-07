@@ -31,10 +31,12 @@ static adv_data_t adv_data;
 
 int32_t meshx_gap_get_mac_addr(meshx_mac_addr_t mac_addr)
 {
-    for (uint8_t i = 0; i < sizeof(meshx_mac_addr_t); ++i)
-    {
-        mac_addr[i] = i;
-    }
+    mac_addr[0] = 0xaa;
+    mac_addr[1] = 0xbb;
+    mac_addr[2] = 0xcc;
+    mac_addr[3] = 0xdd;
+    mac_addr[4] = 0xee;
+    mac_addr[5] = 0xff;
 
     return MESHX_SUCCESS;
 }

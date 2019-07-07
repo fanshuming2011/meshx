@@ -126,7 +126,7 @@ static int32_t meshx_notify_beacon_cb(const void *pdata, uint8_t len)
     return MESHX_SUCCESS;
 }
 
-static int32_t meshx_notify_cb(uint8_t notify_type, meshx_bearer_t bearer, const void *pdata,
+static int32_t meshx_notify_cb(meshx_bearer_t bearer, uint8_t notify_type, const void *pdata,
                                uint8_t len)
 {
     switch (notify_type)
@@ -169,7 +169,7 @@ static void *meshx_thread(void *pargs)
     meshx_bearer_rx_metadata_adv_t adv_metadata =
     {
         .adv_type = MESHX_GAP_ADV_TYPE_NONCONN_IND,
-        .peer_addr = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
+        .peer_addr = {0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff},
         .addr_type = MESHX_GAP_PUBLIC_ADDR,
         .channel = MESHX_GAP_CHANNEL_39,
         .rssi = 10,

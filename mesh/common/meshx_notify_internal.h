@@ -12,7 +12,8 @@
 
 MESHX_BEGIN_DECLS
 
-MESHX_EXTERN int32_t meshx_notify(uint8_t notify_type, const void *pdata, uint8_t len);
+MESHX_EXTERN int32_t meshx_notify(meshx_bearer_t bearer, uint8_t notify_type, const void *pdata,
+                                  uint8_t len);
 
 MESHX_END_DECLS
 

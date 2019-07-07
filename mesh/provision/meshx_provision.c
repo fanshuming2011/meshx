@@ -70,7 +70,7 @@ meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
     return prov_dev;
 }
 
-void meshx_provision_delete_device(meshx_provision_dev_t prov_dev)
+static void meshx_provision_delete_device(meshx_provision_dev_t prov_dev)
 {
     if (NULL == prov_dev)
     {
@@ -256,7 +256,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             notify_prov.metadata.prov_dev = prov_dev;
             notify_prov.metadata.prov_type = MESHX_PROVISION_TYPE_INVITE;
             notify_prov.invite = pprov_pdu->invite;
-            meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+            meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_invite_t));
         }
         break;
@@ -276,7 +276,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             notify_prov.metadata.prov_dev = prov_dev;
             notify_prov.metadata.prov_type = MESHX_PROVISION_TYPE_CAPABILITES;
             notify_prov.capabilites = pprov_pdu->capabilites;
-            meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+            meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_capabilites_t));
         }
         break;
@@ -296,7 +296,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             notify_prov.metadata.prov_dev = prov_dev;
             notify_prov.metadata.prov_type = MESHX_PROVISION_TYPE_START;
             notify_prov.start = pprov_pdu->start;
-            meshx_notify(MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+            meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_start_t));
         }
         break;
@@ -330,6 +330,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
 int32_t meshx_provision_handle_notify(meshx_bearer_t bearer, const meshx_notify_prov_t *pnotify,
                                       uint8_t len)
 {
+    bool prov_end = FALSE;
     switch (pnotify->metadata.prov_type)
     {
     case MESHX_PROV_NOTIFY_LINK_OPEN:
@@ -337,6 +338,11 @@ int32_t meshx_provision_handle_notify(meshx_bearer_t bearer, const meshx_notify_
         {
             /* stop pb-adv and pb-gatt */
             meshx_beacon_stop(MESHX_BEACON_TYPE_UDB);
+        }
+        else
+        {
+            /* provision failed */
+            prov_end = TRUE;
         }
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:
@@ -353,10 +359,16 @@ int32_t meshx_provision_handle_notify(meshx_bearer_t bearer, const meshx_notify_
             /* start pb-adv and pb-gatt */
             meshx_beacon_start(bearer, MESHX_BEACON_TYPE_UDB, udb_interval);
         }
+        prov_end = TRUE;
         break;
     default:
         break;
     }
-    return meshx_notify(MESHX_NOTIFY_TYPE_PROV, pnotify, len);
+    int32_t ret = meshx_notify(bearer, MESHX_NOTIFY_TYPE_PROV, pnotify, len);
+    if (prov_end)
+    {
+        meshx_provision_delete_device(pnotify->metadata.prov_dev);
+    }
+    return ret;
 }
 
