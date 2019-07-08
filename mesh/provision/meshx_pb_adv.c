@@ -30,7 +30,7 @@
 /* maximum trans segment number */
 #define MESHX_TRANS_SEG_NUM_MAX                 0x40
 
-#define MESHX_LINK_LOSS_TIME                    60000 /* unit is ms */
+#define MESHX_LINK_LOSS_TIME                    20000 /* unit is ms */
 #define MESHX_LINK_RETRY_PERIOD                 200 /* unit is ms */
 #define MESHX_LINK_MONITOR_PERIOD               1000 /* unit is ms */
 
@@ -323,15 +323,21 @@ static int32_t pb_adv_start(meshx_bearer_t bearer, uint32_t link_id, uint8_t tra
 static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
+    if (!meshx_pb_adv_is_device_valid(pdev))
+    {
+        MESHX_WARN("handle link loss timeout failed: device may be deleted!");
+        return;
+    }
+
     MESHX_WARN("link loss in state: %d", pdev->dev.state);
-    pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
-                      MESHX_LINK_CLOSE_REASON_TIMEOUT);
     /* stop timer */
     if (NULL != pdev->link_loss_timer)
     {
         meshx_timer_stop(pdev->link_loss_timer);
     }
 
+    pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
+                      MESHX_LINK_CLOSE_REASON_TIMEOUT);
     /* notify app link loss */
     meshx_notify_prov_t notify_prov;
     notify_prov.metadata.prov_dev = &pdev->dev;
@@ -339,18 +345,11 @@ static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
     notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_LINK_LOSS;
     meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                   sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
-    //meshx_pb_adv_delete_device(&pdev->dev);
 }
 
 static void meshx_link_loss_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
-    if (!meshx_pb_adv_is_device_valid(pdev))
-    {
-        MESHX_WARN("handle link loss timeout failed: device may be deleted!");
-        return;
-    }
-
     pdev->link_monitor_time += MESHX_LINK_MONITOR_PERIOD;
     if (pdev->link_monitor_time > MESHX_LINK_LOSS_TIME)
     {
@@ -365,6 +364,11 @@ static void meshx_link_loss_timeout_handler(void *pargs)
 static void meshx_pb_adv_retry_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
+    if (!meshx_pb_adv_is_device_valid(pdev))
+    {
+        MESHX_WARN("handle retry timeout failed: device may be deleted!");
+        return;
+    }
     if (MESHX_PROVISION_STATE_LINK_OPENING == pdev->dev.state)
     {
         pb_adv_link_open(pdev->dev.bearer, pdev->link_id, pdev->dev.dev_uuid);
@@ -416,14 +420,13 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
         if (pdev->retry_time > MESHX_TRANS_LOSS_TIME)
         {
             MESHX_WARN("provision failed: receive no ack of state(%d)", pdev->dev.state);
-            pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
-                              MESHX_LINK_CLOSE_REASON_TIMEOUT);
-
             /* stop retry timer */
             if (NULL != pdev->retry_timer)
             {
                 meshx_timer_stop(pdev->retry_timer);
             }
+            pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
+                              MESHX_LINK_CLOSE_REASON_TIMEOUT);
 
             /* notify app link close */
             meshx_notify_prov_t notify_prov;
@@ -432,7 +435,6 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
             notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_TIMEOUT;
             meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                           sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
-            //meshx_pb_adv_delete_device(&pdev->dev);
         }
     }
     else
@@ -443,13 +445,6 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
 
 static void meshx_retry_timeout_handler(void *pargs)
 {
-    meshx_pb_adv_dev_t *pdev = pargs;
-    /* valid device */
-    if (!meshx_pb_adv_is_device_valid(pdev))
-    {
-        MESHX_WARN("handle retry timeout failed: device may be deleted!");
-        return;
-    }
     meshx_async_msg_t msg;
     msg.type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY;
     msg.pdata = pargs;

@@ -35,7 +35,7 @@ static int32_t meshx_default_msg_notify(void)
 
 int32_t meshx_async_msg_init(uint32_t msg_max_num, meshx_async_msg_notify_t handler)
 {
-    if (NULL == meshx_async_msg_notify)
+    if (NULL == handler)
     {
         MESHX_INFO("use default async message notify");
         meshx_async_msg_notify = meshx_default_msg_notify;
