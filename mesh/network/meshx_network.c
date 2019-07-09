@@ -85,5 +85,5 @@ int32_t meshx_network_send(meshx_network_if_t network_if, const meshx_network_pd
         pkt_type = MESHX_BEARER_GATT_PKT_TYPE_NETWORK;
     }
 
-    return meshx_bearer_send(bearer, pkt_type, (const uint8_t *)ppdu, pdu_len);
+    return meshx_bearer_send(bearer, pkt_type, (const uint8_t *)ppdu, pdu_len, 0);
 }

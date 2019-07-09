@@ -254,7 +254,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             /* notify app invite value */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
-            notify_prov.metadata.prov_type = MESHX_PROVISION_TYPE_INVITE;
+            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_INVITE;
             notify_prov.invite = pprov_pdu->invite;
             meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_invite_t));
@@ -274,7 +274,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             /* notify app capabilites value */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
-            notify_prov.metadata.prov_type = MESHX_PROVISION_TYPE_CAPABILITES;
+            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_CAPABILITES;
             notify_prov.capabilites = pprov_pdu->capabilites;
             meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_capabilites_t));
@@ -294,7 +294,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             /* notify app start value */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
-            notify_prov.metadata.prov_type = MESHX_PROVISION_TYPE_START;
+            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_START;
             notify_prov.start = pprov_pdu->start;
             meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_start_t));
@@ -331,13 +331,15 @@ int32_t meshx_provision_handle_notify(meshx_bearer_t bearer, const meshx_notify_
                                       uint8_t len)
 {
     bool prov_end = FALSE;
-    switch (pnotify->metadata.prov_type)
+    switch (pnotify->metadata.notify_type)
     {
     case MESHX_PROV_NOTIFY_LINK_OPEN:
         if (MESHX_PROVISION_LINK_OPEN_SUCCESS == pnotify->link_open_result)
         {
+#if MESHX_SUPPORT_ROLE_DEVICE
             /* stop pb-adv and pb-gatt */
             meshx_beacon_stop(MESHX_BEACON_TYPE_UDB);
+#endif
         }
         else
         {

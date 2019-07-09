@@ -72,7 +72,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 {
     const meshx_notify_prov_t *pprov = pdata;
 
-    switch (pprov->metadata.prov_type)
+    switch (pprov->metadata.notify_type)
     {
     case MESHX_PROV_NOTIFY_LINK_OPEN:
         {
@@ -86,7 +86,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_INVITE:
         {
-            MESHX_DEBUG("invite: %d", pprov->invite.attention_duration);
+            meshx_tty_printf("invite: %d\r\n", pprov->invite.attention_duration);
             /* send capabilites */
             meshx_provision_capabilites_t cap;
             memset(&cap, 0, sizeof(meshx_provision_capabilites_t));
@@ -95,8 +95,9 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_START:
         {
-            MESHX_DEBUG("start:");
-            MESHX_DUMP_DEBUG(&pprov->start, sizeof(meshx_provision_start_t));
+            meshx_tty_printf("start:");
+            meshx_tty_dump((const uint8_t *)&pprov->start, sizeof(meshx_provision_start_t));
+            meshx_tty_printf("\r\n");
             /* send capabilites */
             /*
             meshx_provision_capabilites_t cap;
@@ -108,12 +109,12 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     case MESHX_PROV_NOTIFY_FAILED:
         {
             /* @ref meshx provisison failed error code macros */
-            MESHX_DEBUG("provision failed");
+            meshx_tty_printf("provision failed");
         }
         break;
     case MESHX_PROV_NOTIFY_COMPLETE:
         {
-            MESHX_DEBUG("provision complete");
+            meshx_tty_printf("provision complete");
         }
         break;
     }

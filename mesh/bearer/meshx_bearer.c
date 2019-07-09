@@ -100,7 +100,7 @@ void meshx_bearer_delete(meshx_bearer_t bearer)
 }
 
 int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
-                          const uint8_t *pdata, uint8_t len)
+                          const uint8_t *pdata, uint8_t len, uint32_t repeat_times)
 {
     if ((NULL == bearer) || (NULL == pdata))
     {
@@ -112,7 +112,7 @@ int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
     switch (bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
-        ret = meshx_bearer_adv_send(bearer, pkt_type, pdata, len);
+        ret = meshx_bearer_adv_send(bearer, pkt_type, pdata, len, repeat_times);
         break;
     case MESHX_BEARER_TYPE_GATT:
         ret = meshx_bearer_gatt_send(bearer, pkt_type, pdata, len);

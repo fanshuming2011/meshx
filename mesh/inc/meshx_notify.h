@@ -25,7 +25,7 @@ MESHX_BEGIN_DECLS
 typedef struct
 {
     meshx_provision_dev_t prov_dev;
-    uint8_t prov_type;
+    uint8_t notify_type;
 } __PACKED meshx_notify_prov_metadata_t;
 
 typedef struct

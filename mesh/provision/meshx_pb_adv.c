@@ -30,7 +30,7 @@
 /* maximum trans segment number */
 #define MESHX_TRANS_SEG_NUM_MAX                 0x40
 
-#define MESHX_LINK_LOSS_TIME                    20000 /* unit is ms */
+#define MESHX_LINK_LOSS_TIME                    60000 /* unit is ms */
 #define MESHX_LINK_RETRY_PERIOD                 200 /* unit is ms */
 #define MESHX_LINK_MONITOR_PERIOD               1000 /* unit is ms */
 
@@ -208,7 +208,7 @@ static int32_t pb_adv_send_trans(meshx_bearer_t bearer, uint32_t link_id, uint8_
             segment_len += sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_continue_metadata_t);
         }
         ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                                segment_len);
+                                segment_len, 0);
         if (MESHX_SUCCESS != ret)
         {
             break;
@@ -230,7 +230,7 @@ static int32_t pb_adv_link_open(meshx_bearer_t bearer, uint32_t link_id, meshx_d
 
     MESHX_INFO("link opening: %d", link_id);
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
-                             (const uint8_t *)&pb_adv_pkt, MESHX_LINK_OPEN_PDU_LEN);
+                             (const uint8_t *)&pb_adv_pkt, MESHX_LINK_OPEN_PDU_LEN, 0);
 }
 #endif
 
@@ -246,7 +246,7 @@ static int32_t pb_adv_link_ack(meshx_bearer_t bearer, uint32_t link_id)
     MESHX_INFO("link ack: %d", link_id);
 
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
-                             (const uint8_t *)&pb_adv_pkt, MESHX_LINK_ACK_PDU_LEN);
+                             (const uint8_t *)&pb_adv_pkt, MESHX_LINK_ACK_PDU_LEN, 0);
 }
 #endif
 
@@ -261,7 +261,7 @@ static int32_t pb_adv_link_close(meshx_bearer_t bearer, uint32_t link_id, uint8_
 
     MESHX_INFO("link close: %d", link_id);
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                             MESHX_LINK_CLOSE_PDU_LEN);
+                             MESHX_LINK_CLOSE_PDU_LEN, 0);
 }
 
 static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num)
@@ -273,7 +273,7 @@ static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t
     pb_adv_pkt.trans_ack.metadata.padding = 0;
     MESHX_INFO("trans ack: %d", trans_num);
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                             MESHX_TRANS_ACK_PDU_LEN);
+                             MESHX_TRANS_ACK_PDU_LEN, 0);
 }
 
 #if MESHX_SUPPORT_ROLE_PROVISIONER
@@ -320,6 +320,20 @@ static int32_t pb_adv_start(meshx_bearer_t bearer, uint32_t link_id, uint8_t tra
 }
 #endif
 
+#if 0
+static int32_t meshx_send_multi_pb_adv_link_close(meshx_bearer_t bearer, uint32_t link_id,
+                                                  uint8_t reason, uint8_t times)
+{
+    int32_t ret = MESHX_SUCCESS;
+    for (uint8_t i = 0; i < times; ++i)
+    {
+        ret = pb_adv_link_close(bearer, link_id, reason);
+    }
+
+    return ret;
+}
+#endif
+
 static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
@@ -336,12 +350,13 @@ static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
         meshx_timer_stop(pdev->link_loss_timer);
     }
 
+    //meshx_send_multi_pb_adv_link_close(pdev->bearer, pdev->link_id, uint8_t reason, uint8_t times)
     pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                       MESHX_LINK_CLOSE_REASON_TIMEOUT);
     /* notify app link loss */
     meshx_notify_prov_t notify_prov;
     notify_prov.metadata.prov_dev = &pdev->dev;
-    notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
+    notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
     notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_LINK_LOSS;
     meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                   sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
@@ -387,7 +402,7 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
             /* notify app link open failed, timeout */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = &pdev->dev;
-            notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_OPEN;
+            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_OPEN;
             notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_TIMEOUT;
             meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                           sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
@@ -431,7 +446,7 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
             /* notify app link close */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = &pdev->dev;
-            notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
+            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
             notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_TIMEOUT;
             meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                           sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
@@ -540,7 +555,7 @@ int32_t meshx_pb_adv_link_ack(meshx_provision_dev_t prov_dev)
         /* notify app link opened */
         meshx_notify_prov_t notify_prov;
         notify_prov.metadata.prov_dev = &pdev->dev;
-        notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_OPEN;
+        notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_OPEN;
         notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_SUCCESS;
         meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                       sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
@@ -584,7 +599,7 @@ int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
             /* notify app link close */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = &pdev->dev;
-            notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
+            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
             notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_FAIL;
             meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                           sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
@@ -782,7 +797,7 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *
     /* notify app link opened */
     meshx_notify_prov_t notify_prov;
     notify_prov.metadata.prov_dev = &pdev->dev;
-    notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_OPEN;
+    notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_OPEN;
     notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_SUCCESS;
     meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                   sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
@@ -825,7 +840,7 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
     /* notify app link closed */
     meshx_notify_prov_t notify_prov;
     notify_prov.metadata.prov_dev = &pdev->dev;
-    notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
+    notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
     notify_prov.link_close_reason = (meshx_provision_link_close_reason_t)(
                                         ppkt->bearer_ctl.link_close.reason);
     meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
@@ -916,7 +931,7 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
         /* notify app link closed */
         meshx_notify_prov_t notify_prov;
         notify_prov.metadata.prov_dev = &pdev->dev;
-        notify_prov.metadata.prov_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
+        notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
         notify_prov.link_close_reason = MESHX_PROVISION_LINK_CLOSE_FAIL;
         meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                       sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));

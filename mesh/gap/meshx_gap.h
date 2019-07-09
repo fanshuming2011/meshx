@@ -81,15 +81,10 @@ typedef struct
 
 typedef struct
 {
+    uint32_t send_times;
     meshx_gap_adv_type_t adv_type;
     uint8_t data[MESHX_GAP_ADV_DATA_MAX_LEN];
     uint8_t data_len;
-    /**
-     * >=0 means application will not get message when advertising finished,
-     *     need to wait adv_period(unit is ms) for advertising finished.
-     * <0 means application will get message when advertising finished
-     */
-    int8_t period;
 } meshx_gap_action_data_adv_t;
 
 typedef struct
@@ -109,6 +104,7 @@ MESHX_EXTERN int32_t meshx_gap_handle_bt_status(const meshx_gap_bt_status_t *pst
 MESHX_EXTERN int32_t meshx_gap_add_action(const meshx_gap_action_t *paction);
 MESHX_EXTERN int32_t meshx_gap_handle_adv_report(const uint8_t *pdata, uint16_t len,
                                                  const meshx_bearer_rx_metadata_t *prx_metadata);
+MESHX_EXTERN void meshx_gap_adv_done(void);
 
 
 MESHX_END_DECLS

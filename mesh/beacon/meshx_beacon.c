@@ -53,7 +53,7 @@ void meshx_beacon_async_handle_timeout(meshx_async_msg_t msg)
         {
             len = MESHX_OFFSET_OF(meshx_udb_t, uri_hash);
         }
-        meshx_bearer_send(msg.pdata, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&udb, len);
+        meshx_bearer_send(msg.pdata, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&udb, len, 0);
     }
     else
     {

@@ -73,7 +73,7 @@ int32_t meshx_init(void)
     meshx_network_init();
     meshx_provision_init();
 
-    meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV, .param_adv.adv_period = 0};
+    meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV};
     meshx_bearer_t adv_bearer = meshx_bearer_create(adv_param);
 
     meshx_network_if_t adv_network_if = meshx_network_if_create();
