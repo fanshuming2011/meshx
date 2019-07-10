@@ -81,7 +81,6 @@ typedef struct
 
 typedef struct
 {
-    uint32_t send_times;
     meshx_gap_adv_type_t adv_type;
     uint8_t data[MESHX_GAP_ADV_DATA_MAX_LEN];
     uint8_t data_len;

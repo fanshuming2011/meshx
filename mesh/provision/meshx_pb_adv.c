@@ -55,6 +55,8 @@
 
 #define MESHX_TRANS_DATA_VALID_MAX_LEN          64
 
+#define MESHX_LINK_CLOSE_REPEAT_TIMES           3
+
 typedef struct
 {
     struct _meshx_provision_dev dev;
@@ -69,6 +71,7 @@ typedef struct
     uint32_t link_monitor_time;
     meshx_timer_t link_loss_timer;
     meshx_timer_t retry_timer;
+    bool retry_interval_modify;
 
     union
     {
@@ -96,6 +99,18 @@ int32_t meshx_pb_adv_init(void)
 {
     meshx_list_init_head(&pb_adv_devs);
     return MESHX_SUCCESS;
+}
+
+static uint8_t meshx_pb_adv_rand(void)
+{
+    uint32_t val = MESHX_ABS(meshx_rand());
+    val %= 50;
+    if (val < 20)
+    {
+        val += 20;
+    }
+
+    return val;
 }
 
 static uint8_t meshx_calc_seg_num(uint16_t len)
@@ -208,7 +223,7 @@ static int32_t pb_adv_send_trans(meshx_bearer_t bearer, uint32_t link_id, uint8_
             segment_len += sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_continue_metadata_t);
         }
         ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                                segment_len, 0);
+                                segment_len);
         if (MESHX_SUCCESS != ret)
         {
             break;
@@ -229,8 +244,8 @@ static int32_t pb_adv_link_open(meshx_bearer_t bearer, uint32_t link_id, meshx_d
     memcpy(pb_adv_pkt.bearer_ctl.link_open.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
 
     MESHX_INFO("link opening: %d", link_id);
-    return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
-                             (const uint8_t *)&pb_adv_pkt, MESHX_LINK_OPEN_PDU_LEN, 0);
+    return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
+                             MESHX_LINK_OPEN_PDU_LEN);
 }
 #endif
 
@@ -246,7 +261,7 @@ static int32_t pb_adv_link_ack(meshx_bearer_t bearer, uint32_t link_id)
     MESHX_INFO("link ack: %d", link_id);
 
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
-                             (const uint8_t *)&pb_adv_pkt, MESHX_LINK_ACK_PDU_LEN, 0);
+                             (const uint8_t *)&pb_adv_pkt, MESHX_LINK_ACK_PDU_LEN);
 }
 #endif
 
@@ -261,10 +276,11 @@ static int32_t pb_adv_link_close(meshx_bearer_t bearer, uint32_t link_id, uint8_
 
     MESHX_INFO("link close: %d", link_id);
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                             MESHX_LINK_CLOSE_PDU_LEN, 0);
+                             MESHX_LINK_CLOSE_PDU_LEN);
 }
 
-static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num)
+static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
+                                uint8_t delay_time)
 {
     meshx_pb_adv_pkt_t pb_adv_pkt;
     pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
@@ -273,7 +289,7 @@ static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t
     pb_adv_pkt.trans_ack.metadata.padding = 0;
     MESHX_INFO("trans ack: %d", trans_num);
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                             MESHX_TRANS_ACK_PDU_LEN, 0);
+                             MESHX_TRANS_ACK_PDU_LEN);
 }
 
 #if MESHX_SUPPORT_ROLE_PROVISIONER
@@ -320,20 +336,6 @@ static int32_t pb_adv_start(meshx_bearer_t bearer, uint32_t link_id, uint8_t tra
 }
 #endif
 
-#if 0
-static int32_t meshx_send_multi_pb_adv_link_close(meshx_bearer_t bearer, uint32_t link_id,
-                                                  uint8_t reason, uint8_t times)
-{
-    int32_t ret = MESHX_SUCCESS;
-    for (uint8_t i = 0; i < times; ++i)
-    {
-        ret = pb_adv_link_close(bearer, link_id, reason);
-    }
-
-    return ret;
-}
-#endif
-
 static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
@@ -350,7 +352,6 @@ static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
         meshx_timer_stop(pdev->link_loss_timer);
     }
 
-    //meshx_send_multi_pb_adv_link_close(pdev->bearer, pdev->link_id, uint8_t reason, uint8_t times)
     pb_adv_link_close(pdev->dev.bearer, pdev->link_id,
                       MESHX_LINK_CLOSE_REASON_TIMEOUT);
     /* notify app link loss */
@@ -460,6 +461,12 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
 
 static void meshx_retry_timeout_handler(void *pargs)
 {
+    meshx_pb_adv_dev_t *pdev = pargs;
+    if (pdev->retry_interval_modify)
+    {
+        meshx_timer_change_interval(pdev->retry_timer, MESHX_TRANS_RETRY_PERIOD);
+        pdev->retry_interval_modify = FALSE;
+    }
     meshx_async_msg_t msg;
     msg.type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY;
     msg.pdata = pargs;
@@ -641,7 +648,8 @@ int32_t meshx_pb_adv_trans_ack(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    int32_t ret = pb_adv_trans_ack(prov_dev->bearer, pdev->link_id, pdev->rx_trans_num);
+    int32_t ret = pb_adv_trans_ack(prov_dev->bearer, pdev->link_id, pdev->rx_trans_num,
+                                   meshx_pb_adv_rand());
     if (MESHX_SUCCESS == ret)
     {
         pdev->acked_trans_num = pdev->rx_trans_num;
@@ -656,13 +664,15 @@ int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    pb_adv_invite(prov_dev->bearer, pdev->link_id, meshx_prov_require_trans_num(pdev), invite);
     pdev->dev.state = MESHX_PROVISION_STATE_INVITE;
     pdev->prov_tx_pdu.invite = invite;
+    meshx_prov_require_trans_num(pdev);
 
     /* start retry timer */
     pdev->retry_time = 0;
-    meshx_timer_start(pdev->retry_timer, MESHX_TRANS_RETRY_PERIOD);
+    pdev->retry_interval_modify = TRUE;
+    meshx_timer_start(pdev->retry_timer, meshx_pb_adv_rand());
+    //pb_adv_invite(prov_dev->bearer, pdev->link_id, meshx_prov_require_trans_num(pdev), invite);
 
     return MESHX_SUCCESS;
 }
@@ -674,13 +684,15 @@ int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    pb_adv_capabilites(prov_dev->bearer, pdev->link_id, meshx_dev_require_trans_num(pdev), pcap);
     pdev->dev.state = MESHX_PROVISION_STATE_CAPABILITES;
     pdev->prov_tx_pdu.capabilites = *pcap;
+    meshx_dev_require_trans_num(pdev);
 
     /* start retry timer */
     pdev->retry_time = 0;
-    meshx_timer_start(pdev->retry_timer, MESHX_TRANS_RETRY_PERIOD);
+    pdev->retry_interval_modify = TRUE;
+    meshx_timer_start(pdev->retry_timer, meshx_pb_adv_rand());
+    //pb_adv_capabilites(prov_dev->bearer, pdev->link_id, meshx_dev_require_trans_num(pdev), pcap);
 
     return MESHX_SUCCESS;
 }
@@ -692,13 +704,15 @@ int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    pb_adv_start(prov_dev->bearer, pdev->link_id, meshx_dev_require_trans_num(pdev), pstart);
     pdev->dev.state = MESHX_PROVISION_STATE_START;
     pdev->prov_tx_pdu.start = *pstart;
+    meshx_dev_require_trans_num(pdev);
 
     /* start retry timer */
     pdev->retry_time = 0;
-    meshx_timer_start(pdev->retry_timer, MESHX_TRANS_RETRY_PERIOD);
+    pdev->retry_interval_modify = TRUE;
+    meshx_timer_start(pdev->retry_timer, meshx_pb_adv_rand());
+    //pb_adv_start(prov_dev->bearer, pdev->link_id, meshx_dev_require_trans_num(pdev), pstart);
 
     return MESHX_SUCCESS;
 }
@@ -983,7 +997,7 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
     {
         MESHX_INFO("message(%d) has already been acked", ppkt->metadata.trans_num);
         /* ignore data and acked again */
-        pb_adv_trans_ack(pdev->dev.bearer, pdev->link_id, pdev->acked_trans_num);
+        pb_adv_trans_ack(pdev->dev.bearer, pdev->link_id, pdev->acked_trans_num, meshx_pb_adv_rand());
         return MESHX_SUCCESS;
     }
 
@@ -1087,7 +1101,7 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer, const uin
     {
         MESHX_INFO("message(%d) has already been acked", ppkt->metadata.trans_num);
         /* ignore data and acked again */
-        pb_adv_trans_ack(pdev->dev.bearer, pdev->link_id, pdev->acked_trans_num);
+        pb_adv_trans_ack(pdev->dev.bearer, pdev->link_id, pdev->acked_trans_num, meshx_pb_adv_rand());
         return MESHX_SUCCESS;
     }
 

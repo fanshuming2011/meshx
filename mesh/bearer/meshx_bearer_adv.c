@@ -69,7 +69,7 @@ void meshx_bearer_adv_delete(meshx_bearer_t bearer)
 }
 
 int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
-                              const uint8_t *pdata, uint8_t len, uint32_t repeat_times)
+                              const uint8_t *pdata, uint8_t len)
 {
     MESHX_ASSERT(NULL != bearer);
     MESHX_ASSERT(NULL != pdata);
@@ -96,7 +96,6 @@ int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
 
     meshx_gap_action_t action;
     action.action_type = MESHX_GAP_ACTION_TYPE_ADV;
-    action.action_adv_data.send_times = repeat_times + 1;
     action.action_adv_data.adv_type = MESHX_GAP_ADV_TYPE_NONCONN_IND;
     memcpy(action.action_adv_data.data, adv_data.buffer, len + 2);
     action.action_adv_data.data_len = len + 2;

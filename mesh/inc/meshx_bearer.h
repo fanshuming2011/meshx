@@ -61,7 +61,7 @@ MESHX_EXTERN uint8_t meshx_bearer_type_get(meshx_bearer_t bearer);
 MESHX_EXTERN meshx_bearer_t meshx_bearer_get(const meshx_bearer_rx_metadata_t *prx_metadata);
 
 MESHX_EXTERN int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
-                                       const uint8_t *pdata, uint8_t len, uint32_t repeat_times);
+                                       const uint8_t *pdata, uint8_t len);
 MESHX_EXTERN int32_t meshx_bearer_receive(const uint8_t *pdata, uint8_t len,
                                           const meshx_bearer_rx_metadata_t *prx_metadata);
 

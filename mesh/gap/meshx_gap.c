@@ -129,11 +129,7 @@ static void meshx_run_actions(void)
                 meshx_gap_adv_set_data(paction->gap_action.action_adv_data.data,
                                        paction->gap_action.action_adv_data.data_len);
                 meshx_gap_adv_start();
-                paction->gap_action.action_adv_data.send_times --;
-                if (0 == paction->gap_action.action_adv_data.send_times)
-                {
-                    action_done = TRUE;
-                }
+                action_done = TRUE;
             }
             break;
         default:
