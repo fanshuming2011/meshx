@@ -100,6 +100,19 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_provision_start(pprov->metadata.prov_dev, &start);
         }
         break;
+    case MESHX_PROV_NOTIFY_TRANS_ACK:
+        {
+            meshx_tty_printf("ack: %d\r\n", pprov->prov_state);
+            if (MESHX_PROVISION_STATE_START == pprov->prov_state)
+            {
+                meshx_tty_printf("send public key\r\n");
+                /* generate public key */
+                //meshx_provision_public_key_t pub_key;
+                /* send public key */
+                //meshx_provision_public_key(pprov->metadata.prov_dev, &pub_key, MESHX_ROLE_PROVISIONER);
+            }
+        }
+        break;
     case MESHX_PROV_NOTIFY_FAILED:
         {
             /* @ref meshx provisison failed error code macros */

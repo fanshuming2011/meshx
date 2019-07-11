@@ -98,12 +98,19 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("start:");
             meshx_tty_dump((const uint8_t *)&pprov->start, sizeof(meshx_provision_start_t));
             meshx_tty_printf("\r\n");
-            /* send capabilites */
+
+            /* send public key */
+
             /*
             meshx_provision_capabilites_t cap;
             memset(&cap, 0, sizeof(meshx_provision_capabilites_t));
             meshx_provision_capabilites(prov_dev, &cap);
             */
+        }
+        break;
+    case MESHX_PROV_NOTIFY_TRANS_ACK:
+        {
+            meshx_tty_printf("ack: %d\r\n", pprov->prov_state);
         }
         break;
     case MESHX_PROV_NOTIFY_FAILED:

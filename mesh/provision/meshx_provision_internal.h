@@ -20,18 +20,8 @@ struct _meshx_provision_dev
 {
     meshx_dev_uuid_t dev_uuid;
     meshx_bearer_t bearer;
-    uint8_t state;
+    meshx_provision_state_t state;
 };
-
-
-#define MESHX_PROVISION_STATE_IDLE                   0
-#define MESHX_PROVISION_STATE_LINK_OPENING           0x01
-#define MESHX_PROVISION_STATE_LINK_OPENED            0x02
-#define MESHX_PROVISION_STATE_INVITE                 0x03
-#define MESHX_PROVISION_STATE_CAPABILITES            0x04
-#define MESHX_PROVISION_STATE_START                  0x05
-#define MESHX_PROVISION_STATE_COMPLETE               0x0a
-#define MESHX_PROVISION_STATE_LINK_CLOSING           0x0b
 
 
 MESHX_EXTERN int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata,

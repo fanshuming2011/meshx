@@ -30,7 +30,7 @@
 /* maximum trans segment number */
 #define MESHX_TRANS_SEG_NUM_MAX                 0x40
 
-#define MESHX_LINK_LOSS_TIME                    3000 /* unit is ms */
+#define MESHX_LINK_LOSS_TIME                    60000 /* unit is ms */
 #define MESHX_LINK_OPEN_RETRY_PERIOD            200 /* unit is ms */
 #define MESHX_LINK_MONITOR_PERIOD               1000 /* unit is ms */
 #define MESHX_LINK_CLOSE_RETRY_PERIOD           20 /* unit is ms */
@@ -82,6 +82,7 @@ typedef struct
         meshx_provision_invite_t invite;
         meshx_provision_capabilites_t capabilites;
         meshx_provision_start_t start;
+        meshx_provision_public_key_t pub_key;
     } prov_tx_pdu;
 
     uint8_t last_seg_num;
@@ -340,6 +341,19 @@ static int32_t pb_adv_start(meshx_bearer_t bearer, uint32_t link_id, uint8_t tra
 }
 #endif
 
+static int32_t pb_adv_public_key(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
+                                 const meshx_provision_public_key_t *ppub_key)
+{
+    MESHX_INFO("public key:");
+    MESHX_DUMP_DEBUG(ppub_key, sizeof(meshx_provision_public_key_t));
+    meshx_provision_pdu_t prov_pdu;
+    prov_pdu.metadata.type = MESHX_PROVISION_TYPE_PUBLIC_KEY;
+    prov_pdu.metadata.padding = 0;
+    prov_pdu.pub_key = *ppub_key;
+    return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
+                             sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_public_key_t));
+}
+
 static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
 {
     meshx_pb_adv_dev_t *pdev = pargs;
@@ -449,6 +463,10 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
         case MESHX_PROVISION_STATE_START:
             pb_adv_start(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
                          &pdev->prov_tx_pdu.start);
+            break;
+        case MESHX_PROVISION_STATE_PUBLIC_KEY:
+            pb_adv_public_key(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
+                              &pdev->prov_tx_pdu.pub_key);
             break;
         default:
             /* should never reach here */
@@ -721,6 +739,30 @@ int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
     return MESHX_SUCCESS;
 }
 #endif
+
+int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev,
+                                const meshx_provision_public_key_t *ppub_key, uint8_t role)
+{
+    MESHX_ASSERT(NULL != prov_dev);
+    meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
+    pdev->dev.state = MESHX_PROVISION_STATE_PUBLIC_KEY;
+    pdev->prov_tx_pdu.pub_key = *ppub_key;
+    if (MESHX_ROLE_DEVICE == role)
+    {
+        meshx_dev_require_trans_num(pdev);
+    }
+    else
+    {
+        meshx_prov_require_trans_num(pdev);
+    }
+
+    /* start retry timer */
+    pdev->retry_time = 0;
+    pdev->retry_interval_modify = TRUE;
+    meshx_timer_start(pdev->retry_timer, meshx_pb_adv_rand());
+
+    return MESHX_SUCCESS;
+}
 
 static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
@@ -1183,6 +1225,14 @@ static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const uint8_t 
     pdev->retry_time = 0;
     /* reset link loss timer */
     pdev->link_monitor_time = 0;
+
+    /* notify app receive trans ack */
+    meshx_notify_prov_t notify_prov;
+    notify_prov.metadata.prov_dev = &pdev->dev;
+    notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_TRANS_ACK;
+    notify_prov.prov_state = pdev->dev.state;
+    meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
+                                  sizeof(meshx_notify_prov_metadata_t));
 
     return MESHX_SUCCESS;
 }

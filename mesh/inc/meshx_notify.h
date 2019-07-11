@@ -14,17 +14,23 @@
 MESHX_BEGIN_DECLS
 
 
-#define MESHX_PROV_NOTIFY_LINK_OPEN            0x00 /* @ref meshx_provision_link_open_t */
-#define MESHX_PROV_NOTIFY_LINK_CLOSE           0x01 /* @ref meshx_provision_link_close_t */
-#define MESHX_PROV_NOTIFY_INVITE               0x02 /* @ref meshx_provision_invite_t */
-#define MESHX_PROV_NOTIFY_CAPABILITES          0x03 /* @ref meshx_provision_capabilites_t */
-#define MESHX_PROV_NOTIFY_START                0x04 /* @ref meshx_provision_start_t */
-#define MESHX_PROV_NOTIFY_FAILED               0xfe /* @ref meshx provisison failed error code macros */
-#define MESHX_PROV_NOTIFY_COMPLETE             0xff /* @ref NULL */
+typedef enum
+{
+    MESHX_PROV_NOTIFY_LINK_OPEN, /* @ref meshx_provision_link_open_t */
+    MESHX_PROV_NOTIFY_LINK_CLOSE, /* @ref meshx_provision_link_close_t */
+    MESHX_PROV_NOTIFY_TRANS_ACK, /* @ref meshx_provision_state_t */
+    MESHX_PROV_NOTIFY_INVITE, /* @ref meshx_provision_invite_t */
+    MESHX_PROV_NOTIFY_CAPABILITES, /* @ref meshx_provision_capabilites_t */
+    MESHX_PROV_NOTIFY_START, /* @ref meshx_provision_start_t */
+    MESHX_PROV_NOTIFY_FAILED, /* @ref meshx provisison failed error code macros */
+    MESHX_PROV_NOTIFY_COMPLETE, /* @ref NULL */
+} meshx_prov_notify_type_t;
 
 typedef struct
 {
     meshx_provision_dev_t prov_dev;
+    /* TODO: why can not enum? */
+    //meshx_prov_notify_type_t notify_type;
     uint8_t notify_type;
 } __PACKED meshx_notify_prov_metadata_t;
 
@@ -38,6 +44,7 @@ typedef struct
         meshx_provision_invite_t invite;
         meshx_provision_capabilites_t capabilites;
         meshx_provision_start_t start;
+        meshx_provision_state_t prov_state;
         uint8_t prov_failed_reason;
     };
 } __PACKED meshx_notify_prov_t;

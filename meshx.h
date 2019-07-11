@@ -23,13 +23,10 @@
 #include "meshx_node.h"
 #include "meshx_beacon.h"
 #include "meshx_notify.h"
+#include "meshx_common.h"
 
 
 MESHX_BEGIN_DECLS
-
-#define MESHX_ROLE_DEVICE          0x01
-#define MESHX_ROLE_PROVISIONER     0x02
-#define MESHX_ROLE_ALL             (MESHX_ROLE_DEVICE | MESHX_ROLE_PROVISIONER)
 
 typedef struct
 {

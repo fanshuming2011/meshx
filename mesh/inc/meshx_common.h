@@ -13,6 +13,12 @@
 
 MESHX_BEGIN_DECLS
 
+/* mesh role */
+#define MESHX_ROLE_DEVICE          0x01
+#define MESHX_ROLE_PROVISIONER     0x02
+#define MESHX_ROLE_ALL             (MESHX_ROLE_DEVICE | MESHX_ROLE_PROVISIONER)
+
+
 #define MESHX_ADDRESS_UNASSIGNED                     0x0000
 #define MESHX_ADDRESS_ALL_PRXIES                     0xFFFC
 #define MESHX_ADDRESS_ALL_FRIENDS                    0xFFFD
