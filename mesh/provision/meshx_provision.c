@@ -107,7 +107,8 @@ int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev)
     return meshx_pb_adv_link_open(prov_dev);
 }
 
-int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
+int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev,
+                                   meshx_provision_link_close_reason_t reason)
 {
     if (NULL == prov_dev)
     {
