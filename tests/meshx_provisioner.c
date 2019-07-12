@@ -107,9 +107,14 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             {
                 meshx_tty_printf("send public key\r\n");
                 /* generate public key */
-                //meshx_provision_public_key_t pub_key;
+                meshx_provision_public_key_t pub_key;
+                for (uint8_t i = 0; i < sizeof(meshx_prov_pub_key_t); ++i)
+                {
+                    pub_key.pub_key_x[i] = i;
+                    pub_key.pub_key_y[i] = i + sizeof(meshx_prov_pub_key_t);
+                }
                 /* send public key */
-                //meshx_provision_public_key(pprov->metadata.prov_dev, &pub_key, MESHX_ROLE_PROVISIONER);
+                meshx_provision_public_key(pprov->metadata.prov_dev, &pub_key, MESHX_ROLE_PROVISIONER);
             }
         }
         break;

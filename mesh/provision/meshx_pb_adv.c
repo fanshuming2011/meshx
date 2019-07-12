@@ -55,7 +55,7 @@
 
 #define MESHX_TRANS_DATA_MAX_LEN                (MESHX_TRANS_START_DATA_MAX_LEN + MESHX_TRANS_SEG_NUM_MAX * MESHX_TRANS_CONTINUE_DATA_MAX_LEN)
 
-#define MESHX_TRANS_DATA_VALID_MAX_LEN          64
+#define MESHX_TRANS_DATA_VALID_MAX_LEN          65
 
 #define MESHX_LINK_CLOSE_REPEAT_TIMES           3
 
@@ -284,8 +284,7 @@ static int32_t pb_adv_link_close(meshx_bearer_t bearer, uint32_t link_id, uint8_
                              MESHX_LINK_CLOSE_PDU_LEN);
 }
 
-static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
-                                uint8_t delay_time)
+static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num)
 {
     meshx_pb_adv_pkt_t pb_adv_pkt;
     pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
@@ -670,8 +669,7 @@ int32_t meshx_pb_adv_trans_ack(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    int32_t ret = pb_adv_trans_ack(prov_dev->bearer, pdev->link_id, pdev->rx_trans_num,
-                                   meshx_pb_adv_rand());
+    int32_t ret = pb_adv_trans_ack(prov_dev->bearer, pdev->link_id, pdev->rx_trans_num);
     if (MESHX_SUCCESS == ret)
     {
         pdev->acked_trans_num = pdev->rx_trans_num;
@@ -1023,7 +1021,7 @@ static int32_t meshx_pb_adv_recv_trans_start(meshx_bearer_t bearer, const uint8_
     {
         MESHX_INFO("message(%d) has already been acked", ppkt->metadata.trans_num);
         /* ignore data and acked again */
-        pb_adv_trans_ack(pdev->dev.bearer, pdev->link_id, pdev->acked_trans_num, meshx_pb_adv_rand());
+        pb_adv_trans_ack(pdev->dev.bearer, pdev->link_id, pdev->acked_trans_num);
         return MESHX_SUCCESS;
     }
 
@@ -1127,7 +1125,7 @@ static int32_t meshx_pb_adv_recv_trans_continue(meshx_bearer_t bearer, const uin
     {
         MESHX_INFO("message(%d) has already been acked", ppkt->metadata.trans_num);
         /* ignore data and acked again */
-        pb_adv_trans_ack(pdev->dev.bearer, pdev->link_id, pdev->acked_trans_num, meshx_pb_adv_rand());
+        pb_adv_trans_ack(pdev->dev.bearer, pdev->link_id, pdev->acked_trans_num);
         return MESHX_SUCCESS;
     }
 

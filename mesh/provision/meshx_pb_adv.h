@@ -43,7 +43,7 @@ typedef struct
 } __PACKED meshx_pb_adv_trans_start_metadata_t;
 
 
-#define MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN       (MESHX_PB_ADV_PDU_MAX_LEN - sizeof(meshx_pb_adv_trans_start_metadata_t))
+#define MESHX_PB_ADV_TRANS_START_PDU_MAX_LEN       (MESHX_PB_ADV_PDU_MAX_LEN - sizeof(meshx_pb_adv_metadata_t) - sizeof(meshx_pb_adv_trans_start_metadata_t))
 typedef struct
 {
     meshx_pb_adv_trans_start_metadata_t metadata;
@@ -67,7 +67,7 @@ typedef struct
     uint8_t seg_index: 6;
 } __PACKED meshx_pb_adv_trans_continue_metadata_t;
 
-#define MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN       (MESHX_PB_ADV_PDU_MAX_LEN - sizeof(meshx_pb_adv_trans_continue_metadata_t))
+#define MESHX_PB_ADV_TRANS_CONTINUE_PDU_MAX_LEN       (MESHX_PB_ADV_PDU_MAX_LEN - sizeof(meshx_pb_adv_metadata_t) - sizeof(meshx_pb_adv_trans_continue_metadata_t))
 typedef struct
 {
     meshx_pb_adv_trans_continue_metadata_t metadata;
