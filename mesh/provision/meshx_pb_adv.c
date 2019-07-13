@@ -1010,19 +1010,6 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
     meshx_pb_adv_trans_ack(&pdev->dev);
 
     return MESHX_SUCCESS;
-#if 0
-    uint16_t data_len = pdev->trans_data_len;
-    /* clear trans data to enable receive new trans packet */
-    pdev->trans_data_len = 0;
-    int32_t ret = meshx_provision_pdu_process(&pdev->dev, pdev->prov_rx_pdu.data,
-                                              data_len);
-    if (ret < 0)
-    {
-        meshx_pb_adv_link_close(&pdev->dev, MESHX_LINK_CLOSE_REASON_FAIL);
-    }
-
-    return ret;
-#endif
 }
 
 bool meshx_pb_adv_is_recv_all_trans_seg(const meshx_pb_adv_dev_t *pdev)
