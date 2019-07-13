@@ -22,6 +22,7 @@ typedef enum
     MESHX_PROV_NOTIFY_INVITE, /* @ref meshx_provision_invite_t */
     MESHX_PROV_NOTIFY_CAPABILITES, /* @ref meshx_provision_capabilites_t */
     MESHX_PROV_NOTIFY_START, /* @ref meshx_provision_start_t */
+    MESHX_PROV_NOTIFY_PUBLIC_KEY, /* @ref meshx_provision_public_key_t */
     MESHX_PROV_NOTIFY_FAILED, /* @ref meshx provisison failed error code macros */
     MESHX_PROV_NOTIFY_COMPLETE, /* @ref NULL */
 } meshx_prov_notify_type_t;
@@ -37,16 +38,7 @@ typedef struct
 typedef struct
 {
     meshx_notify_prov_metadata_t metadata;
-    union
-    {
-        meshx_provision_link_close_reason_t link_close_reason;
-        meshx_provision_link_open_result_t link_open_result;
-        meshx_provision_invite_t invite;
-        meshx_provision_capabilites_t capabilites;
-        meshx_provision_start_t start;
-        meshx_provision_state_t prov_state;
-        uint8_t prov_failed_reason;
-    };
+    const void *pdata;
 } __PACKED meshx_notify_prov_t;
 
 typedef enum

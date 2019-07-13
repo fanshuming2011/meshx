@@ -359,6 +359,7 @@ static int32_t pb_adv_public_key(meshx_bearer_t bearer, uint32_t link_id, uint8_
 
 static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
 {
+    MESHX_INFO("delay timeout: %d", pdev->timer_delay_type);
     switch (pdev->timer_delay_type)
     {
     case MESHX_PB_ADV_TIMER_DELAY_TYPE_TRANS_ACK:
@@ -372,6 +373,17 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
             /* change timer period to monitor link */
             pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_LINK_MONITOR;
             meshx_timer_start(pdev->pb_adv_timer, MESHX_LINK_LOSS_TIME);
+
+            /* process provision pdu */
+            uint16_t data_len = pdev->trans_data_len;
+            /* clear trans data to enable receive new trans packet */
+            pdev->trans_data_len = 0;
+            ret = meshx_provision_pdu_process(&pdev->dev, pdev->prov_rx_pdu.data,
+                                              data_len);
+            if (ret < 0)
+            {
+                meshx_pb_adv_link_close(&pdev->dev, MESHX_LINK_CLOSE_REASON_FAIL);
+            }
         }
         break;
     case MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU:
@@ -440,10 +452,11 @@ static void meshx_pb_adv_handle_retry(meshx_pb_adv_dev_t *pdev)
             }
 
             /* notify app link open failed, timeout */
+            meshx_provision_link_open_result_t result = MESHX_PROVISION_LINK_OPEN_TIMEOUT;
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = &pdev->dev;
             notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_OPEN;
-            notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_TIMEOUT;
+            notify_prov.pdata = &result;
             meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                           sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
         }
@@ -471,7 +484,7 @@ static void meshx_pb_adv_handle_retry(meshx_pb_adv_dev_t *pdev)
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = &pdev->dev;
             notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
-            notify_prov.link_close_reason = pdev->link_close_reason;
+            notify_prov.pdata = &pdev->link_close_reason;
             meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                           sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
         }
@@ -632,10 +645,11 @@ int32_t meshx_pb_adv_link_ack(meshx_provision_dev_t prov_dev)
         MESHX_INFO("link opened: %d", pdev->link_id);
         pdev->dev.state = MESHX_PROVISION_STATE_LINK_OPENED;
         /* notify app link opened */
+        meshx_provision_link_open_result_t result = MESHX_PROVISION_LINK_OPEN_SUCCESS;
         meshx_notify_prov_t notify_prov;
         notify_prov.metadata.prov_dev = &pdev->dev;
         notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_OPEN;
-        notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_SUCCESS;
+        notify_prov.pdata = &result;
         meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                       sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
 
@@ -890,10 +904,11 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *
     pdev->dev.state = MESHX_PROVISION_STATE_LINK_OPENED;
 
     /* notify app link opened */
+    meshx_provision_link_open_result_t result = MESHX_PROVISION_LINK_OPEN_SUCCESS;
     meshx_notify_prov_t notify_prov;
     notify_prov.metadata.prov_dev = &pdev->dev;
     notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_OPEN;
-    notify_prov.link_open_result = MESHX_PROVISION_LINK_OPEN_SUCCESS;
+    notify_prov.pdata = &result;
     meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                   sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
 
@@ -926,11 +941,11 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
     }
 
     /* notify app link closed */
+    meshx_provision_link_close_reason_t reason = ppkt->bearer_ctl.link_close.reason;
     meshx_notify_prov_t notify_prov;
     notify_prov.metadata.prov_dev = &pdev->dev;
     notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
-    notify_prov.link_close_reason = (meshx_provision_link_close_reason_t)(
-                                        ppkt->bearer_ctl.link_close.reason);
+    notify_prov.pdata = &reason;
     meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                   sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
 
@@ -993,6 +1008,9 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
     }
 
     meshx_pb_adv_trans_ack(&pdev->dev);
+
+    return MESHX_SUCCESS;
+#if 0
     uint16_t data_len = pdev->trans_data_len;
     /* clear trans data to enable receive new trans packet */
     pdev->trans_data_len = 0;
@@ -1004,6 +1022,7 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
     }
 
     return ret;
+#endif
 }
 
 bool meshx_pb_adv_is_recv_all_trans_seg(const meshx_pb_adv_dev_t *pdev)
@@ -1253,7 +1272,7 @@ static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const uint8_t 
     meshx_notify_prov_t notify_prov;
     notify_prov.metadata.prov_dev = &pdev->dev;
     notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_TRANS_ACK;
-    notify_prov.prov_state = pdev->dev.state;
+    notify_prov.pdata = &pdev->dev.state;
     meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                   sizeof(meshx_notify_prov_metadata_t));
 

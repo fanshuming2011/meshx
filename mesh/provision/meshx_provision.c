@@ -296,7 +296,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
             notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_INVITE;
-            notify_prov.invite = pprov_pdu->invite;
+            notify_prov.pdata = &pprov_pdu->invite;
             meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_invite_t));
         }
@@ -317,7 +317,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
             notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_CAPABILITES;
-            notify_prov.capabilites = pprov_pdu->capabilites;
+            notify_prov.pdata = &pprov_pdu->capabilites;
             meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_capabilites_t));
         }
@@ -338,13 +338,30 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
             notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_START;
-            notify_prov.start = pprov_pdu->start;
+            notify_prov.pdata = &pprov_pdu->start;
             meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_start_t));
         }
         break;
 #endif
     case MESHX_PROVISION_TYPE_PUBLIC_KEY:
+        if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_public_key_t))
+        {
+            /* provision failed: invalid format */
+            MESHX_ERROR("invalid public key pdu length: %d", len);
+            ret = -MESHX_ERR_LENGTH;
+        }
+        else
+        {
+            prov_dev->state = MESHX_PROVISION_STATE_PUBLIC_KEY;
+            /* notify app public key value */
+            meshx_notify_prov_t notify_prov;
+            notify_prov.metadata.prov_dev = prov_dev;
+            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_PUBLIC_KEY;
+            notify_prov.pdata = &pprov_pdu->pub_key;
+            meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                         sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_public_key_t));
+        }
         break;
     case MESHX_PROVISION_TYPE_INPUT_COMPLETE:
         break;
@@ -377,17 +394,20 @@ int32_t meshx_provision_handle_notify(meshx_bearer_t bearer, const meshx_notify_
     switch (pnotify->metadata.notify_type)
     {
     case MESHX_PROV_NOTIFY_LINK_OPEN:
-        if (MESHX_PROVISION_LINK_OPEN_SUCCESS == pnotify->link_open_result)
         {
+            const meshx_provision_link_open_result_t *presult = pnotify->pdata;
+            if (MESHX_PROVISION_LINK_OPEN_SUCCESS == *presult)
+            {
 #if MESHX_SUPPORT_ROLE_DEVICE
-            /* stop pb-adv and pb-gatt */
-            meshx_beacon_stop(MESHX_BEACON_TYPE_UDB);
+                /* stop pb-adv and pb-gatt */
+                meshx_beacon_stop(MESHX_BEACON_TYPE_UDB);
 #endif
-        }
-        else
-        {
-            /* provision failed */
-            prov_end = TRUE;
+            }
+            else
+            {
+                /* provision failed */
+                prov_end = TRUE;
+            }
         }
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:

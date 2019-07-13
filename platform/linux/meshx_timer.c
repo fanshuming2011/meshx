@@ -100,6 +100,16 @@ int32_t meshx_timer_start(meshx_timer_t timer, uint32_t interval)
     return MESHX_SUCCESS;
 }
 
+int32_t meshx_timer_change_interval(meshx_timer_t timer, uint32_t interval)
+{
+    if (meshx_timer_is_active(timer))
+    {
+        meshx_timer_stop(timer);
+    }
+
+    return meshx_timer_start(timer, interval);
+}
+
 int32_t meshx_timer_stop(meshx_timer_t timer)
 {
     return meshx_timer_start(timer, 0);

@@ -75,8 +75,9 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     {
     case MESHX_PROV_NOTIFY_LINK_OPEN:
         {
-            meshx_tty_printf("link opened, result: %d\r\n", pprov->link_open_result);
-            if (pprov->link_open_result == MESHX_PROVISION_LINK_OPEN_SUCCESS)
+            const meshx_provision_link_open_result_t *presult = pprov->pdata;
+            meshx_tty_printf("link opened, result: %d\r\n", *presult);
+            if (*presult == MESHX_PROVISION_LINK_OPEN_SUCCESS)
             {
                 meshx_provision_invite_t invite = {0};
                 /* send invite */
@@ -86,13 +87,15 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:
         {
-            meshx_tty_printf("link closed, reason: %d\r\n", pprov->link_close_reason);
+            const meshx_provision_link_close_reason_t *preason = pprov->pdata;
+            meshx_tty_printf("link closed, reason: %d\r\n", *preason);
         }
         break;
     case MESHX_PROV_NOTIFY_CAPABILITES:
         {
+            const meshx_provision_capabilites_t *pcap = pprov->pdata;
             meshx_tty_printf("capabilites:");
-            meshx_tty_dump((const uint8_t *)&pprov->capabilites, sizeof(meshx_provision_capabilites_t));
+            meshx_tty_dump((const uint8_t *)pcap, sizeof(meshx_provision_capabilites_t));
             meshx_tty_printf("\r\n");
             /* send start */
             meshx_provision_start_t start;
@@ -102,8 +105,9 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_TRANS_ACK:
         {
-            meshx_tty_printf("ack: %d\r\n", pprov->prov_state);
-            if (MESHX_PROVISION_STATE_START == pprov->prov_state)
+            const meshx_provision_state_t *pstate = pprov->pdata;
+            meshx_tty_printf("ack: %d\r\n", *pstate);
+            if (MESHX_PROVISION_STATE_START == *pstate)
             {
                 meshx_tty_printf("send public key\r\n");
                 /* generate public key */

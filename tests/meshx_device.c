@@ -76,17 +76,20 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     {
     case MESHX_PROV_NOTIFY_LINK_OPEN:
         {
-            meshx_tty_printf("link opened, result: %d\r\n", pprov->link_open_result);
+            const meshx_provision_link_open_result_t *presult = pprov->pdata;
+            meshx_tty_printf("link opened, result: %d\r\n", *presult);
         }
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:
         {
-            meshx_tty_printf("link closed, reason: %d\r\n", pprov->link_close_reason);
+            const meshx_provision_link_close_reason_t *preason = pprov->pdata;
+            meshx_tty_printf("link closed, reason: %d\r\n", *preason);
         }
         break;
     case MESHX_PROV_NOTIFY_INVITE:
         {
-            meshx_tty_printf("invite: %d\r\n", pprov->invite.attention_duration);
+            const meshx_provision_invite_t *pinvite = pprov->pdata;
+            meshx_tty_printf("invite: %d\r\n", pinvite->attention_duration);
             /* send capabilites */
             meshx_provision_capabilites_t cap;
             memset(&cap, 0, sizeof(meshx_provision_capabilites_t));
@@ -95,8 +98,9 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_START:
         {
+            const meshx_provision_start_t *pstart = pprov->pdata;
             meshx_tty_printf("start:");
-            meshx_tty_dump((const uint8_t *)&pprov->start, sizeof(meshx_provision_start_t));
+            meshx_tty_dump((const uint8_t *)pstart, sizeof(meshx_provision_start_t));
             meshx_tty_printf("\r\n");
 
             /* send public key */
@@ -110,7 +114,8 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_TRANS_ACK:
         {
-            meshx_tty_printf("ack: %d\r\n", pprov->prov_state);
+            const meshx_provision_state_t *pstate = pprov->pdata;
+            meshx_tty_printf("ack: %d\r\n", *pstate);
         }
         break;
     case MESHX_PROV_NOTIFY_FAILED:

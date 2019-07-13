@@ -24,6 +24,7 @@ typedef enum
 MESHX_EXTERN int32_t meshx_timer_create(meshx_timer_t *ptimer, meshx_timer_mode_t mode,
                                         meshx_timer_handler_t phandler, void *pargs);
 MESHX_EXTERN int32_t meshx_timer_start(meshx_timer_t timer, uint32_t interval);
+MESHX_EXTERN int32_t meshx_timer_change_interval(meshx_timer_t timer, uint32_t interval);
 MESHX_EXTERN int32_t meshx_timer_stop(meshx_timer_t timer);
 MESHX_EXTERN void meshx_timer_delete(meshx_timer_t timer);
 MESHX_EXTERN bool meshx_timer_is_active(meshx_timer_t timer);
