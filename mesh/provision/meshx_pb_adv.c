@@ -32,12 +32,11 @@
 
 #define MESHX_LINK_LOSS_TIME                    60000 /* unit is ms */
 #define MESHX_LINK_OPEN_RETRY_PERIOD            200 /* unit is ms */
-#define MESHX_LINK_MONITOR_PERIOD               1000 /* unit is ms */
 #define MESHX_LINK_CLOSE_RETRY_PERIOD           20 /* unit is ms */
 #define MESHX_LINK_CLOSE_TIME                   90 /* unit is ms */
 
 #define MESHX_TRANS_LOSS_TIME                   30000 /* unit is ms */
-#define MESHX_TRANS_RETRY_PERIOD                500 /* unit is ms */
+#define MESHX_TRANS_RETRY_PERIOD                300 /* unit is ms */
 
 #define MESHX_BEARER_CTL_TRANS_NUM              0
 
@@ -59,6 +58,12 @@
 
 #define MESHX_LINK_CLOSE_REPEAT_TIMES           3
 
+#define MESHX_PB_ADV_TIMER_STATE_DELAY                 0
+#define MESHX_PB_ADV_TIMER_STATE_LINK_MONITOR          1
+#define MESHX_PB_ADV_TIMER_STATE_RETRY                 2
+
+#define MESHX_PB_ADV_TIMER_DELAY_TYPE_TRANS_ACK        0
+#define MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU         1
 typedef struct
 {
     struct _meshx_provision_dev dev;
@@ -70,10 +75,9 @@ typedef struct
     uint8_t acked_trans_num;
 
     uint32_t retry_time;
-    uint32_t link_monitor_time;
-    meshx_timer_t link_loss_timer;
-    meshx_timer_t retry_timer;
-    bool retry_interval_modify;
+    meshx_timer_t pb_adv_timer;
+    uint8_t timer_state;
+    uint8_t timer_delay_type;
 
     uint8_t link_close_reason;
 
@@ -160,15 +164,11 @@ void meshx_pb_adv_delete_device(meshx_provision_dev_t prov_dev)
     }
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     meshx_list_remove(&pdev->node);
-    if (NULL != pdev->link_loss_timer)
+    if (NULL != pdev->pb_adv_timer)
     {
-        meshx_timer_delete(pdev->link_loss_timer);
+        meshx_timer_delete(pdev->pb_adv_timer);
     }
 
-    if (NULL != pdev->retry_timer)
-    {
-        meshx_timer_delete(pdev->retry_timer);
-    }
     meshx_free(pdev);
 }
 
@@ -241,14 +241,14 @@ static int32_t pb_adv_send_trans(meshx_bearer_t bearer, uint32_t link_id, uint8_
 #if MESHX_SUPPORT_ROLE_PROVISIONER
 static int32_t pb_adv_link_open(meshx_bearer_t bearer, uint32_t link_id, meshx_dev_uuid_t dev_uuid)
 {
+    MESHX_INFO("link opening: %d", link_id);
+
     meshx_pb_adv_pkt_t pb_adv_pkt;
     pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
     pb_adv_pkt.metadata.trans_num = MESHX_BEARER_CTL_TRANS_NUM;
     pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_OPEN;
     memcpy(pb_adv_pkt.bearer_ctl.link_open.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
-
-    MESHX_INFO("link opening: %d", link_id);
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
                              MESHX_LINK_OPEN_PDU_LEN);
 }
@@ -257,14 +257,13 @@ static int32_t pb_adv_link_open(meshx_bearer_t bearer, uint32_t link_id, meshx_d
 #if MESHX_SUPPORT_ROLE_DEVICE
 static int32_t pb_adv_link_ack(meshx_bearer_t bearer, uint32_t link_id)
 {
+    MESHX_INFO("link ack: %d", link_id);
+
     meshx_pb_adv_pkt_t pb_adv_pkt;
     pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
     pb_adv_pkt.metadata.trans_num = MESHX_BEARER_CTL_TRANS_NUM;
     pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_ACK;
-
-    MESHX_INFO("link ack: %d", link_id);
-
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
                              (const uint8_t *)&pb_adv_pkt, MESHX_LINK_ACK_PDU_LEN);
 }
@@ -272,26 +271,27 @@ static int32_t pb_adv_link_ack(meshx_bearer_t bearer, uint32_t link_id)
 
 static int32_t pb_adv_link_close(meshx_bearer_t bearer, uint32_t link_id, uint8_t reason)
 {
+    MESHX_INFO("link close: %d", link_id);
+
     meshx_pb_adv_pkt_t pb_adv_pkt;
     pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
     pb_adv_pkt.metadata.trans_num = MESHX_BEARER_CTL_TRANS_NUM;
     pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_CLOSE;
     pb_adv_pkt.bearer_ctl.link_close.reason = reason;
-
-    MESHX_INFO("link close: %d", link_id);
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
                              MESHX_LINK_CLOSE_PDU_LEN);
 }
 
 static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num)
 {
+    MESHX_INFO("trans ack: %d", trans_num);
+
     meshx_pb_adv_pkt_t pb_adv_pkt;
     pb_adv_pkt.metadata.link_id = MESHX_HOST_TO_BE32(link_id);
     pb_adv_pkt.metadata.trans_num = trans_num;
     pb_adv_pkt.trans_ack.metadata.gpcf = MESHX_GPCF_TRANS_ACK;
     pb_adv_pkt.trans_ack.metadata.padding = 0;
-    MESHX_INFO("trans ack: %d", trans_num);
     return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
                              MESHX_TRANS_ACK_PDU_LEN);
 }
@@ -301,6 +301,7 @@ static int32_t pb_adv_invite(meshx_bearer_t bearer, uint32_t link_id, uint8_t tr
                              meshx_provision_invite_t invite)
 {
     MESHX_INFO("invite: %d", invite.attention_duration);
+
     meshx_provision_pdu_t prov_pdu;
     prov_pdu.metadata.type = MESHX_PROVISION_TYPE_INVITE;
     prov_pdu.metadata.padding = 0;
@@ -316,6 +317,7 @@ static int32_t pb_adv_capabilites(meshx_bearer_t bearer, uint32_t link_id, uint8
 {
     MESHX_INFO("capabilites:");
     MESHX_DUMP_DEBUG(pcap, sizeof(meshx_provision_capabilites_t));
+
     meshx_provision_pdu_t prov_pdu;
     prov_pdu.metadata.type = MESHX_PROVISION_TYPE_CAPABILITES;
     prov_pdu.metadata.padding = 0;
@@ -331,6 +333,7 @@ static int32_t pb_adv_start(meshx_bearer_t bearer, uint32_t link_id, uint8_t tra
 {
     MESHX_INFO("start:");
     MESHX_DUMP_DEBUG(pstart, sizeof(meshx_provision_start_t));
+
     meshx_provision_pdu_t prov_pdu;
     prov_pdu.metadata.type = MESHX_PROVISION_TYPE_START;
     prov_pdu.metadata.padding = 0;
@@ -345,6 +348,7 @@ static int32_t pb_adv_public_key(meshx_bearer_t bearer, uint32_t link_id, uint8_
 {
     MESHX_INFO("public key:");
     MESHX_DUMP_DEBUG(ppub_key, sizeof(meshx_provision_public_key_t));
+
     meshx_provision_pdu_t prov_pdu;
     prov_pdu.metadata.type = MESHX_PROVISION_TYPE_PUBLIC_KEY;
     prov_pdu.metadata.padding = 0;
@@ -353,47 +357,73 @@ static int32_t pb_adv_public_key(meshx_bearer_t bearer, uint32_t link_id, uint8_
                              sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_public_key_t));
 }
 
-static void meshx_pb_adv_link_loss_timeout_handler(void *pargs)
+static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
 {
-    meshx_pb_adv_dev_t *pdev = pargs;
-    if (!meshx_pb_adv_is_device_valid(pdev))
+    switch (pdev->timer_delay_type)
     {
-        MESHX_WARN("handle link loss timeout failed: device may be deleted!");
-        return;
-    }
+    case MESHX_PB_ADV_TIMER_DELAY_TYPE_TRANS_ACK:
+        {
+            int32_t ret = pb_adv_trans_ack(pdev->dev.bearer, pdev->link_id, pdev->rx_trans_num);
+            if (MESHX_SUCCESS == ret)
+            {
+                pdev->acked_trans_num = pdev->rx_trans_num;
+            }
 
+            /* change timer period to monitor link */
+            pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_LINK_MONITOR;
+            meshx_timer_start(pdev->pb_adv_timer, MESHX_LINK_LOSS_TIME);
+        }
+        break;
+    case MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU:
+        switch (pdev->dev.state)
+        {
+        case MESHX_PROVISION_STATE_INVITE:
+            pb_adv_invite(pdev->dev.bearer, pdev->link_id,
+                          pdev->tx_trans_num, pdev->prov_tx_pdu.invite);
+            break;
+        case MESHX_PROVISION_STATE_CAPABILITES:
+            pb_adv_capabilites(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
+                               &pdev->prov_tx_pdu.capabilites);
+            break;
+        case MESHX_PROVISION_STATE_START:
+            pb_adv_start(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
+                         &pdev->prov_tx_pdu.start);
+            break;
+        case MESHX_PROVISION_STATE_PUBLIC_KEY:
+            pb_adv_public_key(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
+                              &pdev->prov_tx_pdu.pub_key);
+            break;
+        default:
+            /* should never reach here */
+            MESHX_ASSERT(0);
+            break;
+        }
+
+        /* change timer period to retry */
+        pdev->retry_time = 0;
+        pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_RETRY;
+        meshx_timer_start(pdev->pb_adv_timer, MESHX_TRANS_RETRY_PERIOD);
+        break;
+    default:
+        MESHX_ERROR("invalid delay type: %d", pdev->timer_delay_type);
+        break;
+    }
+}
+
+static void meshx_pb_adv_handle_link_loss(meshx_pb_adv_dev_t *pdev)
+{
     MESHX_WARN("link loss in state: %d", pdev->dev.state);
-    /* stop timer */
-    if (NULL != pdev->link_loss_timer)
+    /* stop pb adv timer */
+    if (NULL != pdev->pb_adv_timer)
     {
-        meshx_timer_stop(pdev->link_loss_timer);
+        meshx_timer_stop(pdev->pb_adv_timer);
     }
 
     meshx_pb_adv_link_close(&pdev->dev, MESHX_PROVISION_LINK_CLOSE_LINK_LOSS);
 }
 
-static void meshx_link_loss_timeout_handler(void *pargs)
+static void meshx_pb_adv_handle_retry(meshx_pb_adv_dev_t *pdev)
 {
-    meshx_pb_adv_dev_t *pdev = pargs;
-    pdev->link_monitor_time += MESHX_LINK_MONITOR_PERIOD;
-    if (pdev->link_monitor_time > MESHX_LINK_LOSS_TIME)
-    {
-        meshx_async_msg_t msg;
-        msg.type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_LINK_LOSS;
-        msg.pdata = pargs;
-        msg.data_len = 0;
-        meshx_async_msg_send(&msg);
-    }
-}
-
-static void meshx_pb_adv_retry_timeout_handler(void *pargs)
-{
-    meshx_pb_adv_dev_t *pdev = pargs;
-    if (!meshx_pb_adv_is_device_valid(pdev))
-    {
-        MESHX_WARN("handle retry timeout failed: device may be deleted!");
-        return;
-    }
     if (MESHX_PROVISION_STATE_LINK_OPENING == pdev->dev.state)
     {
         pb_adv_link_open(pdev->dev.bearer, pdev->link_id, pdev->dev.dev_uuid);
@@ -403,10 +433,10 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
             MESHX_WARN("provision failed: receive no link ack from device uuid:");
             MESHX_DUMP_ERROR(pdev->dev.dev_uuid, sizeof(meshx_dev_uuid_t));
 
-            /* stop retry timer */
-            if (NULL != pdev->retry_timer)
+            /* stop pb adv timer */
+            if (NULL != pdev->pb_adv_timer)
             {
-                meshx_timer_stop(pdev->retry_timer);
+                meshx_timer_stop(pdev->pb_adv_timer);
             }
 
             /* notify app link open failed, timeout */
@@ -431,10 +461,10 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
         {
             MESHX_WARN("link closed: id %d reason %d", pdev->link_id, pdev->link_close_reason);
 
-            /* stop retry timer */
-            if (NULL != pdev->retry_timer)
+            /* stop pb adv timer */
+            if (NULL != pdev->pb_adv_timer)
             {
-                meshx_timer_stop(pdev->retry_timer);
+                meshx_timer_stop(pdev->pb_adv_timer);
             }
 
             /* notify app link close */
@@ -475,6 +505,11 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
         pdev->retry_time += MESHX_TRANS_RETRY_PERIOD;
         if (pdev->retry_time > MESHX_TRANS_LOSS_TIME)
         {
+            /* stop pb adv timer */
+            if (NULL != pdev->pb_adv_timer)
+            {
+                meshx_timer_stop(pdev->pb_adv_timer);
+            }
             MESHX_WARN("provision failed: receive no ack of state(%d)", pdev->dev.state);
             meshx_pb_adv_link_close(&pdev->dev, MESHX_LINK_CLOSE_REASON_TIMEOUT);
         }
@@ -485,34 +520,44 @@ static void meshx_pb_adv_retry_timeout_handler(void *pargs)
     }
 }
 
-static void meshx_retry_timeout_handler(void *pargs)
+static void meshx_pb_adv_timeout_handler(void *pargs)
 {
-    meshx_pb_adv_dev_t *pdev = pargs;
-    if (pdev->retry_interval_modify)
-    {
-        meshx_timer_change_interval(pdev->retry_timer, MESHX_TRANS_RETRY_PERIOD);
-        pdev->retry_interval_modify = FALSE;
-    }
     meshx_async_msg_t msg;
-    msg.type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY;
+    msg.type = MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV;
     msg.pdata = pargs;
     msg.data_len = 0;
     meshx_async_msg_send(&msg);
 }
 
-void meshx_pb_adv_async_handle_timeout(meshx_async_msg_t msg)
+static void meshx_pb_adv_handle_timeout(void *pargs)
 {
-    switch (msg.type)
+    meshx_pb_adv_dev_t *pdev = pargs;
+    if (!meshx_pb_adv_is_device_valid(pdev))
     {
-    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_LINK_LOSS:
-        meshx_pb_adv_link_loss_timeout_handler(msg.pdata);
+        MESHX_WARN("handle pb adv timeout failed: device may be deleted!");
+        return;
+    }
+
+    switch (pdev->timer_state)
+    {
+    case MESHX_PB_ADV_TIMER_STATE_DELAY:
+        meshx_pb_adv_handle_delay(pdev);
         break;
-    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY:
-        meshx_pb_adv_retry_timeout_handler(msg.pdata);
+    case MESHX_PB_ADV_TIMER_STATE_RETRY:
+        meshx_pb_adv_handle_retry(pdev);
+        break;
+    case MESHX_PB_ADV_TIMER_STATE_LINK_MONITOR:
+        meshx_pb_adv_handle_link_loss(pdev);
         break;
     default:
+        MESHX_ERROR("invalid timer state: %d", pdev->timer_state);
         break;
     }
+}
+
+void meshx_pb_adv_async_handle_timeout(meshx_async_msg_t msg)
+{
+    meshx_pb_adv_handle_timeout(msg.pdata);
 }
 
 static meshx_pb_adv_dev_t *meshx_find_prov_dev_by_link_id(uint32_t link_id)
@@ -562,9 +607,10 @@ int32_t meshx_pb_adv_link_open(meshx_provision_dev_t prov_dev)
     /* start link open */
     pb_adv_link_open(prov_dev->bearer, pdev->link_id, prov_dev->dev_uuid);
 
-    /* start retry timer */
+    /* start timer for retry */
     pdev->retry_time = 0;
-    meshx_timer_start(pdev->retry_timer, MESHX_LINK_OPEN_RETRY_PERIOD);
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_RETRY;
+    meshx_timer_start(pdev->pb_adv_timer, MESHX_LINK_OPEN_RETRY_PERIOD);
 
     return MESHX_SUCCESS;
 }
@@ -593,9 +639,9 @@ int32_t meshx_pb_adv_link_ack(meshx_provision_dev_t prov_dev)
         meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                       sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
 
-        /* start link loss timer */
-        pdev->link_monitor_time = 0;
-        meshx_timer_start(pdev->link_loss_timer, MESHX_LINK_MONITOR_PERIOD);
+        /* start timer for link monitor */
+        pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_LINK_MONITOR;
+        meshx_timer_start(pdev->pb_adv_timer, MESHX_LINK_LOSS_TIME);
     }
 
     return ret;
@@ -624,19 +670,12 @@ int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
     }
     pb_adv_link_close(prov_dev->bearer, pdev->link_id, reason);
 
-    /* start retry timer */
+    /* start timer for retry */
     pdev->retry_time = 0;
-    if (!meshx_timer_is_active(pdev->retry_timer))
-    {
-        meshx_timer_start(pdev->retry_timer, MESHX_LINK_CLOSE_RETRY_PERIOD);
-    }
-    else
-    {
-        meshx_timer_change_interval(pdev->retry_timer, MESHX_LINK_CLOSE_RETRY_PERIOD);
-    }
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_RETRY;
+    meshx_timer_start(pdev->pb_adv_timer, MESHX_LINK_CLOSE_RETRY_PERIOD);
 
     return MESHX_SUCCESS;
-
 }
 
 #if MESHX_SUPPORT_ROLE_PROVISIONER
@@ -669,13 +708,13 @@ int32_t meshx_pb_adv_trans_ack(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    int32_t ret = pb_adv_trans_ack(prov_dev->bearer, pdev->link_id, pdev->rx_trans_num);
-    if (MESHX_SUCCESS == ret)
-    {
-        pdev->acked_trans_num = pdev->rx_trans_num;
-    }
 
-    return ret;
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_TRANS_ACK;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
+
+    return MESHX_SUCCESS;
 }
 
 #if MESHX_SUPPORT_ROLE_PROVISIONER
@@ -688,11 +727,10 @@ int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
     pdev->prov_tx_pdu.invite = invite;
     meshx_prov_require_trans_num(pdev);
 
-    /* start retry timer */
-    pdev->retry_time = 0;
-    pdev->retry_interval_modify = TRUE;
-    meshx_timer_start(pdev->retry_timer, meshx_pb_adv_rand());
-    //pb_adv_invite(prov_dev->bearer, pdev->link_id, meshx_prov_require_trans_num(pdev), invite);
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
 
     return MESHX_SUCCESS;
 }
@@ -708,11 +746,10 @@ int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
     pdev->prov_tx_pdu.capabilites = *pcap;
     meshx_dev_require_trans_num(pdev);
 
-    /* start retry timer */
-    pdev->retry_time = 0;
-    pdev->retry_interval_modify = TRUE;
-    meshx_timer_start(pdev->retry_timer, meshx_pb_adv_rand());
-    //pb_adv_capabilites(prov_dev->bearer, pdev->link_id, meshx_dev_require_trans_num(pdev), pcap);
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
 
     return MESHX_SUCCESS;
 }
@@ -728,11 +765,10 @@ int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
     pdev->prov_tx_pdu.start = *pstart;
     meshx_dev_require_trans_num(pdev);
 
-    /* start retry timer */
-    pdev->retry_time = 0;
-    pdev->retry_interval_modify = TRUE;
-    meshx_timer_start(pdev->retry_timer, meshx_pb_adv_rand());
-    //pb_adv_start(prov_dev->bearer, pdev->link_id, meshx_dev_require_trans_num(pdev), pstart);
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
 
     return MESHX_SUCCESS;
 }
@@ -754,10 +790,10 @@ int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev,
         meshx_prov_require_trans_num(pdev);
     }
 
-    /* start retry timer */
-    pdev->retry_time = 0;
-    pdev->retry_interval_modify = TRUE;
-    meshx_timer_start(pdev->retry_timer, meshx_pb_adv_rand());
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
 
     return MESHX_SUCCESS;
 }
@@ -846,9 +882,10 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *
 
     MESHX_INFO("link established: %d", link_id);
 
-    /* stop retry timer */
-    meshx_timer_stop(pdev->retry_timer);
+    /* start timer for link monitor */
     pdev->retry_time = 0;
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_LINK_MONITOR;
+    meshx_timer_start(pdev->pb_adv_timer, MESHX_LINK_LOSS_TIME);
 
     pdev->dev.state = MESHX_PROVISION_STATE_LINK_OPENED;
 
@@ -860,9 +897,6 @@ static int32_t meshx_pb_adv_recv_link_ack(meshx_bearer_t bearer, const uint8_t *
     meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                   sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_open_result_t));
 
-    /* start link loss timer */
-    pdev->link_monitor_time = 0;
-    meshx_timer_start(pdev->link_loss_timer, MESHX_LINK_MONITOR_PERIOD);
     return MESHX_SUCCESS;
 }
 
@@ -886,13 +920,9 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
 
     MESHX_INFO("link closed: %d", link_id);
     /* stop timer */
-    if (NULL != pdev->link_loss_timer)
+    if (NULL != pdev->pb_adv_timer)
     {
-        meshx_timer_stop(pdev->link_loss_timer);
-    }
-    if (NULL != pdev->retry_timer)
-    {
-        meshx_timer_stop(pdev->retry_timer);
+        meshx_timer_stop(pdev->pb_adv_timer);
     }
 
     /* notify app link closed */
@@ -903,8 +933,6 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
                                         ppkt->bearer_ctl.link_close.reason);
     meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
                                   sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
-
-    //meshx_pb_adv_delete_device(&pdev->dev);
 
     return MESHX_SUCCESS;
 }
@@ -968,8 +996,6 @@ static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
     uint16_t data_len = pdev->trans_data_len;
     /* clear trans data to enable receive new trans packet */
     pdev->trans_data_len = 0;
-    /* reset link loss timer */
-    pdev->link_monitor_time = 0;
     int32_t ret = meshx_provision_pdu_process(&pdev->dev, pdev->prov_rx_pdu.data,
                                               data_len);
     if (ret < 0)
@@ -1218,11 +1244,10 @@ static int32_t meshx_pb_adv_recv_trans_ack(meshx_bearer_t bearer, const uint8_t 
 
     MESHX_INFO("link(%d) receive trans ack(%d)", link_id, ppkt->metadata.trans_num);
 
-    /* stop retry timer */
-    meshx_timer_stop(pdev->retry_timer);
+    /* start timer for link monitor */
     pdev->retry_time = 0;
-    /* reset link loss timer */
-    pdev->link_monitor_time = 0;
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_LINK_MONITOR;
+    meshx_timer_start(pdev->pb_adv_timer, MESHX_LINK_LOSS_TIME);
 
     /* notify app receive trans ack */
     meshx_notify_prov_t notify_prov;
@@ -1279,22 +1304,12 @@ meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_de
     }
     memset(pdev, 0, sizeof(meshx_pb_adv_dev_t));
 
-    /* create link loss and retry timer */
-    int32_t ret = meshx_timer_create(&pdev->link_loss_timer, MESHX_TIMER_MODE_REPEATED,
-                                     meshx_link_loss_timeout_handler, pdev);
+    /* create pb adv timer */
+    int32_t ret = meshx_timer_create(&pdev->pb_adv_timer, MESHX_TIMER_MODE_REPEATED,
+                                     meshx_pb_adv_timeout_handler, pdev);
     if (MESHX_SUCCESS != ret)
     {
-        MESHX_ERROR("create pb adv device failed: create link timer failed!");
-        meshx_free(pdev);
-        return NULL;
-    }
-
-    ret = meshx_timer_create(&pdev->retry_timer, MESHX_TIMER_MODE_REPEATED,
-                             meshx_retry_timeout_handler, pdev);
-    if (MESHX_SUCCESS != ret)
-    {
-        MESHX_ERROR("create pb adv device failed: create trans timer failed!");
-        meshx_timer_delete(pdev->link_loss_timer);
+        MESHX_ERROR("create pb adv device failed: create pb adv timer failed!");
         meshx_free(pdev);
         return NULL;
     }

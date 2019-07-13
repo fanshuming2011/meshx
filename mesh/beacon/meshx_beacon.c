@@ -103,14 +103,7 @@ int32_t meshx_beacon_start(meshx_bearer_t bearer, uint8_t beacon_type, uint32_t 
         }
         else
         {
-            if (!meshx_timer_is_active(beacon_timer))
-            {
-                meshx_timer_start(beacon_timer, interval);
-            }
-            else
-            {
-                meshx_timer_change_interval(beacon_timer, interval);
-            }
+            meshx_timer_start(beacon_timer, interval);
         }
     }
 

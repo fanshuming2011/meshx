@@ -106,8 +106,7 @@ void meshx_async_msg_process(void)
     MESHX_INFO("processing message: %d", pmsg->msg.type);
     switch (pmsg->msg.type)
     {
-    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_RETRY:
-    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV_LINK_LOSS:
+    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV:
         meshx_pb_adv_async_handle_timeout(pmsg->msg);
         break;
     case MESHX_ASYNC_MSG_TYPE_TIMEOUT_BEACON:
