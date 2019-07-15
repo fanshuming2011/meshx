@@ -9,8 +9,13 @@ include_directories(../common
                     ../mesh/beacon
                     ../platform
                     ../platform/linux
+                    ../thirdpart/aes_cmac
+                    ../thirdpart/micro-ecc
+                    ../thirdpart/tiny-AES-c
                     ../)
 set(COMMON_SRC_LIST
+    ../thirdpart/aes_cmac/aes_cmac.c
+    ../thirdpart/tiny-AES-c/aes.c
     ../meshx.c
     ../platform/linux/meshx_mem.c
     ../platform/linux/meshx_system.c
@@ -19,6 +24,7 @@ set(COMMON_SRC_LIST
     ../platform/linux/meshx_tty.c
     ../platform/linux/msg_queue.c
     ../platform/linux/meshx_trace_io.c
+    ../platform/linux/meshx_security_wrapper.c
     ../common/meshx_trace.c
     ../common/meshx_assert.c
     ../common/meshx_list.c

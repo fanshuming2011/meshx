@@ -13,8 +13,10 @@
 
 MESHX_BEGIN_DECLS
 
-MESHX_EXTERN int32_t meshx_aes_cmac(const uint8_t key[16], const uint8_t *pinput, uint32_t len,
-                                    uint8_t mac[16])
+MESHX_EXTERN int32_t meshx_sw_aes_cmac(const uint8_t key[16], const uint8_t *pinput, uint32_t len,
+                                       uint8_t mac[16])
+MESHX_EXTERN int32_t meshx_sw_aes_ccm(void);
+
 
 MESHX_END_DECLS
 
