@@ -678,7 +678,7 @@ int32_t meshx_pb_adv_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
     pdev->link_close_reason = reason;
 
     /* start link close */
-    if (reason == MESHX_PROVISION_LINK_CLOSE_LINK_LOSS);
+    if (reason == MESHX_PROVISION_LINK_CLOSE_LINK_LOSS)
     {
         reason = MESHX_PROVISION_LINK_CLOSE_TIMEOUT;
     }

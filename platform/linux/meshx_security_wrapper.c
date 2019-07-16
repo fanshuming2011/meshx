@@ -40,7 +40,8 @@ int32_t meshx_aes_cmac(const uint8_t key[16], const uint8_t *pinput, uint32_t le
     return MESHX_SUCCESS;
 }
 
-void AES_128(const unsigned char key[16], const unsigned char input[16], unsigned char output[16])
+void aes128_encrypt(const unsigned char key[16], const unsigned char input[16],
+                    unsigned char output[16])
 {
     meshx_aes128_encrypt(input, key, output);
 }

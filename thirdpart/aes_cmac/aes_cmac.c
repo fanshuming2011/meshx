@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include "aes_cmac.h"
 
-extern void AES_128(const unsigned char key[16], const unsigned char input[16],
-                    unsigned char output[16]);
+extern void aes128_encrypt(const unsigned char key[16], const unsigned char input[16],
+                           unsigned char output[16]);
 
 /* For CMAC Calculation */
 unsigned char const_Rb[16] =
@@ -49,7 +49,7 @@ void generate_subkey(unsigned char *key, unsigned char *K1, unsigned
     unsigned char tmp[16];
     int i;
     for (i = 0; i < 16; i++) { Z[i] = 0; }
-    AES_128(key, Z, L);
+    aes128_encrypt(key, Z, L);
     if ((L[0] & 0x80) == 0)     /* If MSB(L) = 0, then K1 = L << 1 */
     {
         leftshift_onebit(L, K1);
@@ -129,10 +129,10 @@ void AES_CMAC(unsigned char *key, unsigned char *input, int length,
     for (i = 0; i < n - 1; i++)
     {
         xor_128(X, &input[16 * i], Y); /* Y := Mi (+) X */
-        AES_128(key, Y, X); /* X := AES-128(KEY, Y); */
+        aes128_encrypt(key, Y, X); /* X := AES-128(KEY, Y); */
     }
     xor_128(X, M_last, Y);
-    AES_128(key, Y, X);
+    aes128_encrypt(key, Y, X);
     for (i = 0; i < 16; i++)
     {
         mac[i] = X[i];

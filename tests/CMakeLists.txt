@@ -16,6 +16,7 @@ include_directories(../common
 set(COMMON_SRC_LIST
     ../thirdpart/aes_cmac/aes_cmac.c
     ../thirdpart/tiny-AES-c/aes.c
+    ../thirdpart/mbedtls/aes_ccm.c
     ../meshx.c
     ../platform/linux/meshx_mem.c
     ../platform/linux/meshx_system.c
