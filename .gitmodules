@@ -1,0 +1,6 @@
+[submodule "thirdpart/tiny-AES-c"]
+	path = thirdpart/tiny-AES-c
+	url = git@github.com:semerlin/tiny-AES-c.git
+[submodule "thirdpart/micro-ecc"]
+	path = thirdpart/micro-ecc
+	url = git@github.com:semerlin/micro-ecc.git
