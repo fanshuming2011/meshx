@@ -40,6 +40,7 @@ set(COMMON_SRC_LIST
     ../mesh/common/meshx_node.c
     ../mesh/common/meshx_async.c
     ../mesh/common/meshx_notify.c
+    ../mesh/security/meshx_security.c
     ../mesh/gap/meshx_gap.c
     ../mesh/bearer/meshx_bearer.c
     ../mesh/bearer/meshx_bearer_adv.c
