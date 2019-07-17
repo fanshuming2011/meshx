@@ -18,6 +18,18 @@ MESHX_EXTERN int32_t meshx_aes128_decrypt(const uint8_t input[16], const uint8_t
                                           uint8_t output[16]);
 MESHX_EXTERN int32_t meshx_aes_cmac(const uint8_t key[16], const uint8_t *pinput, uint32_t len,
                                     uint8_t mac[16]);
+MESHX_EXTERN int32_t meshx_aes_ccm_encrypt(const uint8_t key[16], const uint8_t *piv,
+                                           uint32_t iv_len,
+                                           const uint8_t *padd, uint32_t add_len,
+                                           const uint8_t *pinput, uint32_t length, uint8_t *poutput,
+                                           uint8_t *ptag, uint32_t tag_len);
+MESHX_EXTERN int32_t meshx_aes_ccm_decrypt(const uint8_t key[16], const uint8_t *piv,
+                                           uint32_t iv_len,
+                                           const uint8_t *padd, uint32_t add_len,
+                                           const uint8_t *pinput, uint32_t length, uint8_t *poutput,
+                                           const uint8_t *ptag, uint32_t tag_len);
+
+
 
 MESHX_END_DECLS
 

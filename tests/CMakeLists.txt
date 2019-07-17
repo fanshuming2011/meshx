@@ -12,6 +12,7 @@ include_directories(../common
                     ../thirdpart/aes_cmac
                     ../thirdpart/micro-ecc
                     ../thirdpart/tiny-AES-c
+                    ../thirdpart/mbedtls
                     ../)
 set(COMMON_SRC_LIST
     ../thirdpart/aes_cmac/aes_cmac.c
