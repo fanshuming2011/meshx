@@ -11,7 +11,34 @@
 #include "aes.h"
 #include "aes_cmac.h"
 #include "aes_ccm.h"
+#include "uECC.h"
 
+int32_t meshx_ecc_make_key(uint8_t public_key[64], uint8_t private_key[64])
+{
+    int32_t ret = MESHX_SUCCESS;
+    if (0 == uECC_make_key(public_key, private_key, uECC_secp256r1()))
+    {
+        ret = -MESHX_ERR_FAIL;
+    }
+
+    return ret;
+}
+
+bool meshx_ecc_is_valid_public_key(uint8_t public_key[64])
+{
+    return (1 == uECC_valid_public_key(public_key, uECC_secp256r1()));
+}
+
+int32_t meshx_ecc_shared_secret(uint8_t public_key[64], uint8_t private_key[64], uint8_t secret[32])
+{
+    int32_t ret = MESHX_SUCCESS;
+    if (0 == uECC_shared_secret(public_key, private_key, secret, uECC_secp256r1()))
+    {
+        ret = -MESHX_ERR_FAIL;
+    }
+
+    return ret;
+}
 
 int32_t meshx_aes128_encrypt(const uint8_t input[16], const uint8_t key[16], uint8_t output[16])
 {

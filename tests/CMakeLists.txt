@@ -13,11 +13,13 @@ include_directories(../common
                     ../thirdpart/micro-ecc
                     ../thirdpart/tiny-AES-c
                     ../thirdpart/mbedtls
+                    ../thirdpart/micro-ecc
                     ../)
 set(COMMON_SRC_LIST
     ../thirdpart/aes_cmac/aes_cmac.c
     ../thirdpart/tiny-AES-c/aes.c
     ../thirdpart/mbedtls/aes_ccm.c
+    ../thirdpart/micro-ecc/uECC.c
     ../meshx.c
     ../platform/linux/meshx_mem.c
     ../platform/linux/meshx_system.c
