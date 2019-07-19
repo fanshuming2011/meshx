@@ -5,6 +5,7 @@ include_directories(../common
                     ../mesh/inc
                     ../mesh/gap
                     ../mesh/common
+                    ../mesh/security
                     ../cmd
                     ../mesh/beacon
                     ../platform

@@ -382,6 +382,7 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
                                               data_len);
             if (ret < 0)
             {
+                /* TODO: send provision failed first */
                 meshx_pb_adv_link_close(&pdev->dev, MESHX_LINK_CLOSE_REASON_FAIL);
             }
         }

@@ -21,6 +21,9 @@ struct _meshx_provision_dev
     meshx_dev_uuid_t dev_uuid;
     meshx_bearer_t bearer;
     meshx_provision_state_t state;
+    uint8_t public_key[64];
+    uint8_t private_key[64];
+    uint8_t share_secret[32];
 };
 
 

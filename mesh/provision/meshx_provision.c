@@ -19,7 +19,7 @@
 #include "meshx_list.h"
 #include "meshx_notify.h"
 #include "meshx_notify_internal.h"
-
+#include "meshx_security.h"
 
 int32_t meshx_provision_init(void)
 {
@@ -68,6 +68,49 @@ meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
     }
 
     return prov_dev;
+}
+
+int32_t meshx_provision_make_key(meshx_provision_dev_t prov_dev)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("invalid provision device!");
+        return -MESHX_ERR_INVAL;
+    }
+    return meshx_ecc_make_key(prov_dev->public_key, prov_dev->private_key);
+}
+
+bool meshx_provision_validate_public_key(const meshx_provision_public_key_t *pkey)
+{
+    return meshx_ecc_validate_public_key((const uint8_t *)pkey);
+}
+
+int32_t meshx_provision_get_local_public_key(meshx_provision_dev_t prov_dev,
+                                             meshx_provision_public_key_t *pkey)
+{
+    if ((NULL == pkey) || (NULL == prov_dev))
+    {
+        MESHX_ERROR("invalid parameter: prov_dev 0x%x, pkey 0x%x!", prov_dev, pkey);
+        return -MESHX_ERR_INVAL;
+    }
+
+    memcpy(pkey, prov_dev->public_key, sizeof(meshx_provision_public_key_t));
+
+    return MESHX_SUCCESS;
+}
+
+int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t prov_dev,
+                                              const meshx_provision_public_key_t *pkey)
+{
+    if ((NULL == pkey) || (NULL == prov_dev))
+    {
+        MESHX_ERROR("invalid parameter: prov_dev 0x%x, pkey 0x%x!", prov_dev, pkey);
+        return -MESHX_ERR_INVAL;
+    }
+
+    memcpy(prov_dev->public_key, pkey, sizeof(meshx_provision_public_key_t));
+
+    return MESHX_SUCCESS;
 }
 
 static void meshx_provision_delete_device(meshx_provision_dev_t prov_dev)
@@ -251,12 +294,6 @@ int32_t meshx_provision_public_key(meshx_provision_dev_t prov_dev,
         return -MESHX_ERR_STATE;
     }
 
-    if (MESHX_PROVISION_STATE_PUBLIC_KEY == prov_dev->state)
-    {
-        MESHX_WARN("already in public key procedure");
-        return -MESHX_ERR_ALREADY;
-    }
-
     int32_t ret = MESHX_SUCCESS;
     switch (prov_dev->bearer->type)
     {
@@ -353,14 +390,29 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         }
         else
         {
-            prov_dev->state = MESHX_PROVISION_STATE_PUBLIC_KEY;
-            /* notify app public key value */
-            meshx_notify_prov_t notify_prov;
-            notify_prov.metadata.prov_dev = prov_dev;
-            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_PUBLIC_KEY;
-            notify_prov.pdata = &pprov_pdu->pub_key;
-            meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
-                         sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_public_key_t));
+            if (meshx_provision_validate_public_key(&pprov_pdu->pub_key))
+            {
+                prov_dev->state = MESHX_PROVISION_STATE_PUBLIC_KEY;
+                /* notify app public key value */
+                meshx_notify_prov_t notify_prov;
+                notify_prov.metadata.prov_dev = prov_dev;
+                notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_PUBLIC_KEY;
+                notify_prov.pdata = &pprov_pdu->pub_key;
+                meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                             sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_public_key_t));
+
+                /* generate secret */
+                meshx_ecc_shared_secret((const uint8_t *)&pprov_pdu->pub_key, prov_dev->private_key,
+                                        prov_dev->share_secret);
+                MESHX_INFO("shared secret:");
+                MESHX_DUMP_INFO(prov_dev->share_secret, 32);
+            }
+            else
+            {
+                MESHX_ERROR("invalid public key!");
+                ret = -MESHX_ERR_INVAL;
+            }
+
         }
         break;
     case MESHX_PROVISION_TYPE_INPUT_COMPLETE:

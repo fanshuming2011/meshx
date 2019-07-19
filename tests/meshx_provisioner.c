@@ -101,6 +101,17 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_provision_start_t start;
             memset(&start, 0, sizeof(meshx_provision_start_t));
             meshx_provision_start(pprov->metadata.prov_dev, &start);
+
+            /* generate public key */
+            meshx_provision_make_key(pprov->metadata.prov_dev);
+        }
+        break;
+    case MESHX_PROV_NOTIFY_PUBLIC_KEY:
+        {
+            const meshx_provision_public_key_t *ppub_key = pprov->pdata;
+            meshx_tty_printf("public key:");
+            meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_provision_public_key_t));
+            meshx_tty_printf("\r\n");
         }
         break;
     case MESHX_PROV_NOTIFY_TRANS_ACK:
@@ -110,14 +121,10 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             if (MESHX_PROVISION_STATE_START == *pstate)
             {
                 meshx_tty_printf("send public key\r\n");
-                /* generate public key */
-                meshx_provision_public_key_t pub_key;
-                for (uint8_t i = 0; i < sizeof(meshx_prov_pub_key_t); ++i)
-                {
-                    pub_key.pub_key_x[i] = i;
-                    pub_key.pub_key_y[i] = i + sizeof(meshx_prov_pub_key_t);
-                }
+
                 /* send public key */
+                meshx_provision_public_key_t pub_key;
+                meshx_provision_get_local_public_key(pprov->metadata.prov_dev, &pub_key);
                 meshx_provision_public_key(pprov->metadata.prov_dev, &pub_key, MESHX_ROLE_PROVISIONER);
             }
         }
