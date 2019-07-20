@@ -26,6 +26,8 @@ struct _meshx_provision_dev
     uint8_t private_key[64];
     uint8_t share_secret[32];
     uint8_t public_key_remote[64];
+    uint8_t random[16];
+    uint8_t confirmation[16];
     meshx_provision_invite_t invite;
     meshx_provision_capabilites_t capabilites;
     meshx_provision_start_t start;

@@ -20,6 +20,7 @@
 #include "meshx_notify.h"
 #include "meshx_notify_internal.h"
 #include "meshx_security.h"
+#include "meshx_mem.h"
 
 int32_t meshx_provision_init(void)
 {
@@ -117,7 +118,51 @@ int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t prov_dev,
 int32_t meshx_provision_generate_confirmation(meshx_provision_dev_t prov_dev,
                                               uint8_t auth_value[16])
 {
-    //salt = meshx_s1();
+    uint16_t cfm_inputs_len = sizeof(meshx_provision_invite_t) + sizeof(meshx_provision_capabilites_t) +
+                              sizeof(meshx_provision_start_t) + 128;
+
+    uint8_t *pcfm_inputs = meshx_malloc(cfm_inputs_len);
+    if (NULL == pcfm_inputs)
+    {
+        MESHX_ERROR("out of memory!");
+        return -MESHX_ERR_MEM;
+    }
+
+    uint8_t *pdata = pcfm_inputs;
+
+    memcpy(pdata, &prov_dev->invite, sizeof(meshx_provision_invite_t));
+    pdata += sizeof(meshx_provision_invite_t);
+    memcpy(pdata, &prov_dev->capabilites, sizeof(meshx_provision_capabilites_t));
+    pdata += sizeof(meshx_provision_capabilites_t);
+    memcpy(pdata, &prov_dev->start, sizeof(meshx_provision_start_t));
+    pdata += sizeof(meshx_provision_start_t);
+    if (MESHX_ROLE_DEVICE == prov_dev->role)
+    {
+        memcpy(pdata, prov_dev->public_key_remote, 64);
+        pdata += 64;
+        memcpy(pdata, prov_dev->public_key, 64);
+    }
+    else
+    {
+        memcpy(pdata, prov_dev->public_key, 64);
+        pdata += 64;
+        memcpy(pdata, prov_dev->public_key_remote, 64);
+    }
+    uint8_t cfm_salt[16];
+    meshx_s1(pcfm_inputs, cfm_inputs_len, cfm_salt);
+    uint8_t cfm_key[16];
+    uint8_t N[] = {'p', 'r', 'c', 'k'};
+    meshx_k1(prov_dev->share_secret, 32, cfm_salt, N, sizeof(N), cfm_key);
+
+    uint32_t *prandom = (uint32_t *)prov_dev->random;
+    for (uint8_t i = 0; i < 4; ++i)
+    {
+        *prandom = MESHX_ABS(meshx_rand());
+    }
+    uint8_t cfm_data[32];
+    memcpy(cfm_data, prov_dev->random, 16);
+    memcpy(cfm_data + 16, auth_value, 16);
+    meshx_aes_cmac(cfm_key, cfm_data, sizeof(cfm_data), prov_dev->confirmation);
 
     return MESHX_SUCCESS;
 }
