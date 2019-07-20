@@ -28,35 +28,37 @@
 
 
 /* maximum trans segment number */
-#define MESHX_TRANS_SEG_NUM_MAX                 0x40
+#define MESHX_TRANS_SEG_NUM_MAX                        0x40
 
-#define MESHX_LINK_LOSS_TIME                    60000 /* unit is ms */
-#define MESHX_LINK_OPEN_RETRY_PERIOD            200 /* unit is ms */
-#define MESHX_LINK_CLOSE_RETRY_PERIOD           20 /* unit is ms */
-#define MESHX_LINK_CLOSE_TIME                   90 /* unit is ms */
+#define MESHX_LINK_LOSS_TIME                           60000 /* unit is ms */
+#define MESHX_LINK_OPEN_RETRY_PERIOD                   200 /* unit is ms */
+#define MESHX_LINK_CLOSE_RETRY_PERIOD                  20 /* unit is ms */
+#define MESHX_LINK_CLOSE_TIME                          90 /* unit is ms */
 
-#define MESHX_TRANS_LOSS_TIME                   30000 /* unit is ms */
-#define MESHX_TRANS_RETRY_PERIOD                300 /* unit is ms */
+#define MESHX_TRANS_LOSS_TIME                          30000 /* unit is ms */
+#define MESHX_TRANS_RETRY_PERIOD                       300 /* unit is ms */
 
-#define MESHX_BEARER_CTL_TRANS_NUM              0
+#define MESHX_BEARER_CTL_TRANS_NUM                     0
 
+#define MESHX_IS_VALID_DEVICE_TRANS_NUM(num)           (((num) >= 0x80) && ((num) <= 0xff))
+#define MESHX_IS_VALID_PROVISIONER_TRANS_NUM(num)      (((num) >= 0) && ((num) <= 0x7f))
 
-#define MESHX_BEARER_CTL_METADATA_LEN           (sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_bearer_ctl_metadata_t))
-#define MESHX_LINK_OPEN_PDU_LEN                 (MESHX_BEARER_CTL_METADATA_LEN + sizeof(meshx_pb_adv_link_open_t))
-#define MESHX_LINK_ACK_PDU_LEN                  (MESHX_BEARER_CTL_METADATA_LEN + sizeof(meshx_pb_adv_link_ack_t))
-#define MESHX_LINK_CLOSE_PDU_LEN                (MESHX_BEARER_CTL_METADATA_LEN + sizeof(meshx_pb_adv_link_close_t))
-#define MESHX_TRANS_ACK_PDU_LEN                 (sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_ack_metadata_t))
+#define MESHX_BEARER_CTL_METADATA_LEN                  (sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_bearer_ctl_metadata_t))
+#define MESHX_LINK_OPEN_PDU_LEN                        (MESHX_BEARER_CTL_METADATA_LEN + sizeof(meshx_pb_adv_link_open_t))
+#define MESHX_LINK_ACK_PDU_LEN                         (MESHX_BEARER_CTL_METADATA_LEN + sizeof(meshx_pb_adv_link_ack_t))
+#define MESHX_LINK_CLOSE_PDU_LEN                       (MESHX_BEARER_CTL_METADATA_LEN + sizeof(meshx_pb_adv_link_close_t))
+#define MESHX_TRANS_ACK_PDU_LEN                        (sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_ack_metadata_t))
 
-#define MESHX_TRANS_START_METADATA_LEN          (sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_start_metadata_t))
-#define MESHX_TRANS_START_DATA_MAX_LEN          (MESHX_PB_ADV_PDU_MAX_LEN - MESHX_TRANS_START_METADATA_LEN)
-#define MESHX_TRANS_CONTINUE_METADATA_LEN       (sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_continue_metadata_t))
-#define MESHX_TRANS_CONTINUE_DATA_MAX_LEN       (MESHX_PB_ADV_PDU_MAX_LEN - MESHX_TRANS_CONTINUE_METADATA_LEN)
+#define MESHX_TRANS_START_METADATA_LEN                 (sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_start_metadata_t))
+#define MESHX_TRANS_START_DATA_MAX_LEN                 (MESHX_PB_ADV_PDU_MAX_LEN - MESHX_TRANS_START_METADATA_LEN)
+#define MESHX_TRANS_CONTINUE_METADATA_LEN              (sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_continue_metadata_t))
+#define MESHX_TRANS_CONTINUE_DATA_MAX_LEN              (MESHX_PB_ADV_PDU_MAX_LEN - MESHX_TRANS_CONTINUE_METADATA_LEN)
 
-#define MESHX_TRANS_DATA_MAX_LEN                (MESHX_TRANS_START_DATA_MAX_LEN + MESHX_TRANS_SEG_NUM_MAX * MESHX_TRANS_CONTINUE_DATA_MAX_LEN)
+#define MESHX_TRANS_DATA_MAX_LEN                       (MESHX_TRANS_START_DATA_MAX_LEN + MESHX_TRANS_SEG_NUM_MAX * MESHX_TRANS_CONTINUE_DATA_MAX_LEN)
 
-#define MESHX_TRANS_DATA_VALID_MAX_LEN          65
+#define MESHX_TRANS_DATA_VALID_MAX_LEN                 65
 
-#define MESHX_LINK_CLOSE_REPEAT_TIMES           3
+#define MESHX_LINK_CLOSE_REPEAT_TIMES                  3
 
 #define MESHX_PB_ADV_TIMER_STATE_DELAY                 0
 #define MESHX_PB_ADV_TIMER_STATE_LINK_MONITOR          1
@@ -80,15 +82,6 @@ typedef struct
     uint8_t timer_delay_type;
 
     uint8_t link_close_reason;
-
-    union
-    {
-        meshx_provision_invite_t invite;
-        meshx_provision_capabilites_t capabilites;
-        meshx_provision_start_t start;
-        meshx_provision_public_key_t pub_key;
-        uint8_t err_code;
-    } prov_tx_pdu;
 
     uint8_t last_seg_num;
     uint8_t fcs;
@@ -353,7 +346,7 @@ static int32_t pb_adv_public_key(meshx_bearer_t bearer, uint32_t link_id, uint8_
     meshx_provision_pdu_t prov_pdu;
     prov_pdu.metadata.type = MESHX_PROVISION_TYPE_PUBLIC_KEY;
     prov_pdu.metadata.padding = 0;
-    prov_pdu.pub_key = *ppub_key;
+    prov_pdu.public_key = *ppub_key;
     return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
                              sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_public_key_t));
 }
@@ -392,6 +385,26 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
             uint16_t data_len = pdev->trans_data_len;
             /* clear trans data to enable receive new trans packet */
             pdev->trans_data_len = 0;
+            /* check trans num */
+            if (MESHX_ROLE_DEVICE == pdev->dev.role)
+            {
+                if (!MESHX_IS_VALID_PROVISIONER_TRANS_NUM(pdev->rx_trans_num))
+                {
+                    /* invalid trans num */
+                    meshx_pb_adv_failed(&pdev->dev, MESHX_PROVISION_FAILED_UNEXPECTED_ERROR);
+                    return ;
+                }
+            }
+            else
+            {
+                if (!MESHX_IS_VALID_DEVICE_TRANS_NUM(pdev->rx_trans_num))
+                {
+                    /* invalid trans num */
+                    meshx_pb_adv_failed(&pdev->dev, MESHX_PROVISION_FAILED_UNEXPECTED_ERROR);
+                    return ;
+                }
+            }
+
             meshx_provision_pdu_process(&pdev->dev, pdev->prov_rx_pdu.data,
                                         data_len);
         }
@@ -401,22 +414,22 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
         {
         case MESHX_PROVISION_STATE_INVITE:
             pb_adv_invite(pdev->dev.bearer, pdev->link_id,
-                          pdev->tx_trans_num, pdev->prov_tx_pdu.invite);
+                          pdev->tx_trans_num, pdev->dev.invite);
             break;
         case MESHX_PROVISION_STATE_CAPABILITES:
             pb_adv_capabilites(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
-                               &pdev->prov_tx_pdu.capabilites);
+                               &pdev->dev.capabilites);
             break;
         case MESHX_PROVISION_STATE_START:
             pb_adv_start(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
-                         &pdev->prov_tx_pdu.start);
+                         &pdev->dev.start);
             break;
         case MESHX_PROVISION_STATE_PUBLIC_KEY:
             pb_adv_public_key(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
-                              &pdev->prov_tx_pdu.pub_key);
+                              (const meshx_provision_public_key_t *)&pdev->dev.public_key);
             break;
         case MESHX_PROVISION_STATE_FAILED:
-            pb_adv_failed(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, pdev->prov_tx_pdu.err_code);
+            pb_adv_failed(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, pdev->dev.err_code);
             break;
         default:
             /* should never reach here */
@@ -509,22 +522,22 @@ static void meshx_pb_adv_handle_retry(meshx_pb_adv_dev_t *pdev)
         {
         case MESHX_PROVISION_STATE_INVITE:
             pb_adv_invite(pdev->dev.bearer, pdev->link_id,
-                          pdev->tx_trans_num, pdev->prov_tx_pdu.invite);
+                          pdev->tx_trans_num, pdev->dev.invite);
             break;
         case MESHX_PROVISION_STATE_CAPABILITES:
             pb_adv_capabilites(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
-                               &pdev->prov_tx_pdu.capabilites);
+                               &pdev->dev.capabilites);
             break;
         case MESHX_PROVISION_STATE_START:
             pb_adv_start(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
-                         &pdev->prov_tx_pdu.start);
+                         &pdev->dev.start);
             break;
         case MESHX_PROVISION_STATE_PUBLIC_KEY:
             pb_adv_public_key(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
-                              &pdev->prov_tx_pdu.pub_key);
+                              (const meshx_provision_public_key_t *)&pdev->dev.public_key);
             break;
         case MESHX_PROVISION_STATE_FAILED:
-            pb_adv_failed(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, pdev->prov_tx_pdu.err_code);
+            pb_adv_failed(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, pdev->dev.err_code);
             break;
         default:
             /* should never reach here */
@@ -754,7 +767,6 @@ int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     pdev->dev.state = MESHX_PROVISION_STATE_INVITE;
-    pdev->prov_tx_pdu.invite = invite;
     meshx_prov_require_trans_num(pdev);
 
     /* start timer for delay */
@@ -773,7 +785,6 @@ int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     pdev->dev.state = MESHX_PROVISION_STATE_CAPABILITES;
-    pdev->prov_tx_pdu.capabilites = *pcap;
     meshx_dev_require_trans_num(pdev);
 
     /* start timer for delay */
@@ -792,7 +803,6 @@ int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     pdev->dev.state = MESHX_PROVISION_STATE_START;
-    pdev->prov_tx_pdu.start = *pstart;
     meshx_dev_require_trans_num(pdev);
 
     /* start timer for delay */
@@ -805,13 +815,12 @@ int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
 #endif
 
 int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev,
-                                const meshx_provision_public_key_t *ppub_key, uint8_t role)
+                                const meshx_provision_public_key_t *ppub_key)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     pdev->dev.state = MESHX_PROVISION_STATE_PUBLIC_KEY;
-    pdev->prov_tx_pdu.pub_key = *ppub_key;
-    if (MESHX_ROLE_DEVICE == role)
+    if (MESHX_ROLE_DEVICE == prov_dev->role)
     {
         meshx_dev_require_trans_num(pdev);
     }
@@ -833,7 +842,6 @@ int32_t meshx_pb_adv_failed(meshx_provision_dev_t prov_dev, uint8_t err_code)
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     pdev->dev.state = MESHX_PROVISION_STATE_FAILED;
-    pdev->prov_tx_pdu.err_code = err_code;
     meshx_dev_require_trans_num(pdev);
 
     /* start timer for delay */
@@ -862,7 +870,7 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
         return -MESHX_ERR_DIFF;
     }
 
-    meshx_provision_dev_t prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid);
+    meshx_provision_dev_t prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid, MESHX_ROLE_DEVICE);
     if (NULL == prov_dev)
     {
         MESHX_ERROR("can't handle link open message now");
@@ -1324,7 +1332,8 @@ int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
     return ret;
 }
 
-meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
+meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid,
+                                                 meshx_role_t role)
 {
     meshx_provision_dev_t prov_dev = meshx_pb_adv_find_device(bearer, dev_uuid);
     if (NULL != prov_dev)
@@ -1355,6 +1364,7 @@ meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_de
     /* copy data */
     pdev->dev.bearer = bearer;
     memcpy(pdev->dev.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
+    pdev->dev.role = role;
 
     meshx_list_append(&pb_adv_devs, &pdev->node);
 

@@ -26,7 +26,7 @@ MESHX_BEGIN_DECLS
 #define MESHX_PROVISION_FAILED_PROHIBITED                  0x00
 #define MESHX_PROVISION_FAILED_INVALID_PDU                 0x01
 #define MESHX_PROVISION_FAILED_INVALID_FORMAT              0x02
-#define MESHX_PROVISION_FAILED_UNEXPPECTED_PDU             0x03
+#define MESHX_PROVISION_FAILED_UNEXPECTED_PDU              0x03
 #define MESHX_PROVISION_FAILED_CONFIMATION_FAILED          0x04
 #define MESHX_PROVISION_FAILED_OUT_OF_RESOURCE             0x05
 #define MESHX_PROVISION_FAILED_DECRYPTION_FAILED           0x06
@@ -106,7 +106,7 @@ typedef struct
         meshx_provision_invite_t invite;
         meshx_provision_capabilites_t capabilites;
         meshx_provision_start_t start;
-        meshx_provision_public_key_t pub_key;
+        meshx_provision_public_key_t public_key;
         uint8_t err_code;
     };
 } __PACKED meshx_provision_pdu_t;
@@ -116,7 +116,7 @@ typedef struct _meshx_provision_dev *meshx_provision_dev_t;
 MESHX_EXTERN int32_t meshx_provision_init(void);
 
 MESHX_EXTERN meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
-                                                                 meshx_dev_uuid_t dev_uuid);
+                                                                 meshx_dev_uuid_t dev_uuid, meshx_role_t role);
 
 MESHX_EXTERN int32_t meshx_provision_make_key(meshx_provision_dev_t prov_dev);
 MESHX_EXTERN bool meshx_provision_validate_public_key(const meshx_provision_public_key_t *pkey);
@@ -124,6 +124,8 @@ MESHX_EXTERN int32_t meshx_provision_get_local_public_key(meshx_provision_dev_t 
                                                           meshx_provision_public_key_t *pkey);
 MESHX_EXTERN int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t prov_dev,
                                                            const meshx_provision_public_key_t *pkey);
+MESHX_EXTERN int32_t meshx_provision_generate_confirmation(meshx_provision_dev_t prov_dev,
+                                                           uint8_t auth_value[16]);
 
 MESHX_EXTERN int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev);
 MESHX_EXTERN int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reason);
@@ -135,7 +137,7 @@ MESHX_EXTERN int32_t meshx_provision_capabilites(meshx_provision_dev_t prov_dev,
 MESHX_EXTERN int32_t meshx_provision_start(meshx_provision_dev_t prov_dev,
                                            const meshx_provision_start_t *pstart);
 MESHX_EXTERN int32_t meshx_provision_public_key(meshx_provision_dev_t prov_dev,
-                                                const meshx_provision_public_key_t *ppub_key, uint8_t role);
+                                                const meshx_provision_public_key_t *ppub_key);
 MESHX_EXTERN int32_t meshx_provision_failed(meshx_provision_dev_t prov_dev, uint8_t err_code);
 
 

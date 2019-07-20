@@ -14,9 +14,12 @@
 MESHX_BEGIN_DECLS
 
 /* mesh role */
-#define MESHX_ROLE_DEVICE          0x01
-#define MESHX_ROLE_PROVISIONER     0x02
-#define MESHX_ROLE_ALL             (MESHX_ROLE_DEVICE | MESHX_ROLE_PROVISIONER)
+typedef enum
+{
+    MESHX_ROLE_DEVICE = 0x01,
+    MESHX_ROLE_PROVISIONER = 0x02,
+    MESHX_ROLE_ALL = (MESHX_ROLE_DEVICE | MESHX_ROLE_PROVISIONER),
+} meshx_role_t;
 
 
 #define MESHX_ADDRESS_UNASSIGNED                     0x0000

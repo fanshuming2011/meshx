@@ -18,12 +18,18 @@ MESHX_BEGIN_DECLS
 
 struct _meshx_provision_dev
 {
+    meshx_role_t role;
     meshx_dev_uuid_t dev_uuid;
     meshx_bearer_t bearer;
     meshx_provision_state_t state;
     uint8_t public_key[64];
     uint8_t private_key[64];
     uint8_t share_secret[32];
+    uint8_t public_key_remote[64];
+    meshx_provision_invite_t invite;
+    meshx_provision_capabilites_t capabilites;
+    meshx_provision_start_t start;
+    uint8_t err_code; /* provision failed error code */
 };
 
 

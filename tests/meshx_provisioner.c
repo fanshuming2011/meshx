@@ -125,7 +125,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
                 /* send public key */
                 meshx_provision_public_key_t pub_key;
                 meshx_provision_get_local_public_key(pprov->metadata.prov_dev, &pub_key);
-                meshx_provision_public_key(pprov->metadata.prov_dev, &pub_key, MESHX_ROLE_PROVISIONER);
+                meshx_provision_public_key(pprov->metadata.prov_dev, &pub_key);
             }
         }
         break;

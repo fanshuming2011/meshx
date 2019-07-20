@@ -24,7 +24,7 @@ int32_t meshx_cmd_prov_conn(const meshx_cmd_parsed_data_t *pparsed_data)
     meshx_dev_uuid_t dev_uuid;
     meshx_bin2hex(pparsed_data->param_ptr[0], dev_uuid, sizeof(meshx_dev_uuid_t) * 2);
     meshx_provision_dev_t prov_dev = meshx_provision_create_device(meshx_bearer_get(&rx_meatadata),
-                                                                   dev_uuid);
+                                                                   dev_uuid, MESHX_ROLE_PROVISIONER);
     meshx_provision_link_open(prov_dev);
     return MESHX_SUCCESS;
 }

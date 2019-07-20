@@ -46,7 +46,8 @@ int32_t meshx_provision_receive(meshx_bearer_t bearer, const uint8_t *pdata, uin
 }
 
 meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
-                                                    meshx_dev_uuid_t dev_uuid)
+                                                    meshx_dev_uuid_t dev_uuid,
+                                                    meshx_role_t role)
 {
     if (NULL == bearer)
     {
@@ -58,7 +59,7 @@ meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
     switch (bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
-        prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid);
+        prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid, role);
         break;
     case MESHX_BEARER_TYPE_GATT:
         break;
@@ -109,6 +110,14 @@ int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t prov_dev,
     }
 
     memcpy(prov_dev->public_key, pkey, sizeof(meshx_provision_public_key_t));
+
+    return MESHX_SUCCESS;
+}
+
+int32_t meshx_provision_generate_confirmation(meshx_provision_dev_t prov_dev,
+                                              uint8_t auth_value[16])
+{
+    //salt = meshx_s1();
 
     return MESHX_SUCCESS;
 }
@@ -183,6 +192,7 @@ int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
     }
 
     int32_t ret = MESHX_SUCCESS;
+    prov_dev->invite = invite;
     switch (prov_dev->bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
@@ -222,6 +232,7 @@ int32_t meshx_provision_capabilites(meshx_provision_dev_t prov_dev,
     }
 
     int32_t ret = MESHX_SUCCESS;
+    prov_dev->capabilites = *pcap;
     switch (prov_dev->bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
@@ -261,6 +272,7 @@ int32_t meshx_provision_start(meshx_provision_dev_t prov_dev,
     }
 
     int32_t ret = MESHX_SUCCESS;
+    prov_dev->start = *pstart;
     switch (prov_dev->bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
@@ -278,7 +290,7 @@ int32_t meshx_provision_start(meshx_provision_dev_t prov_dev,
 }
 
 int32_t meshx_provision_public_key(meshx_provision_dev_t prov_dev,
-                                   const meshx_provision_public_key_t *ppub_key, uint8_t role)
+                                   const meshx_provision_public_key_t *ppub_key)
 {
     if (NULL == prov_dev)
     {
@@ -294,10 +306,11 @@ int32_t meshx_provision_public_key(meshx_provision_dev_t prov_dev,
     }
 
     int32_t ret = MESHX_SUCCESS;
+    memcpy(prov_dev->public_key, ppub_key, 64);
     switch (prov_dev->bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
-        ret = meshx_pb_adv_public_key(prov_dev, ppub_key, role);
+        ret = meshx_pb_adv_public_key(prov_dev, ppub_key);
         break;
     case MESHX_BEARER_TYPE_GATT:
         break;
@@ -332,6 +345,7 @@ int32_t meshx_provision_failed(meshx_provision_dev_t prov_dev, uint8_t err_code)
     }
 
     int32_t ret = MESHX_SUCCESS;
+    prov_dev->err_code = err_code;
     switch (prov_dev->bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
@@ -365,9 +379,16 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
             ret = -MESHX_ERR_LENGTH;
         }
+        else if (prov_dev->state > MESHX_PROVISION_STATE_INVITE)
+        {
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_UNEXPECTED_PDU);
+            ret = -MESHX_ERR_STATE;
+        }
         else
         {
             prov_dev->state = MESHX_PROVISION_STATE_INVITE;
+            prov_dev->invite = pprov_pdu->invite;
             /* notify app invite value */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
@@ -388,9 +409,16 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
             ret = -MESHX_ERR_LENGTH;
         }
+        else if (prov_dev->state > MESHX_PROVISION_STATE_CAPABILITES)
+        {
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_UNEXPECTED_PDU);
+            ret = -MESHX_ERR_STATE;
+        }
         else
         {
             prov_dev->state = MESHX_PROVISION_STATE_CAPABILITES;
+            prov_dev->capabilites = pprov_pdu->capabilites;
             /* notify app capabilites value */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
@@ -411,9 +439,16 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
             ret = -MESHX_ERR_LENGTH;
         }
+        else if (prov_dev->state > MESHX_PROVISION_STATE_START)
+        {
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_UNEXPECTED_PDU);
+            ret = -MESHX_ERR_STATE;
+        }
         else
         {
             prov_dev->state = MESHX_PROVISION_STATE_START;
+            prov_dev->start = pprov_pdu->start;
             /* notify app start value */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
@@ -433,21 +468,28 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
             ret = -MESHX_ERR_LENGTH;
         }
+        else if (prov_dev->state > MESHX_PROVISION_STATE_PUBLIC_KEY)
+        {
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_UNEXPECTED_PDU);
+            ret = -MESHX_ERR_STATE;
+        }
         else
         {
-            if (meshx_provision_validate_public_key(&pprov_pdu->pub_key))
+            if (meshx_provision_validate_public_key(&pprov_pdu->public_key))
             {
                 prov_dev->state = MESHX_PROVISION_STATE_PUBLIC_KEY;
+                memcpy(prov_dev->public_key_remote, &pprov_pdu->public_key, 64);
                 /* notify app public key value */
                 meshx_notify_prov_t notify_prov;
                 notify_prov.metadata.prov_dev = prov_dev;
                 notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_PUBLIC_KEY;
-                notify_prov.pdata = &pprov_pdu->pub_key;
+                notify_prov.pdata = &pprov_pdu->public_key;
                 meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                              sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_public_key_t));
 
                 /* generate secret */
-                meshx_ecc_shared_secret((const uint8_t *)&pprov_pdu->pub_key, prov_dev->private_key,
+                meshx_ecc_shared_secret((const uint8_t *)&pprov_pdu->public_key, prov_dev->private_key,
                                         prov_dev->share_secret);
                 MESHX_INFO("shared secret:");
                 MESHX_DUMP_INFO(prov_dev->share_secret, 32);
