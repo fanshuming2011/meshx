@@ -43,18 +43,16 @@ typedef enum
     MESHX_PROVISION_STATE_START,
     MESHX_PROVISION_STATE_PUBLIC_KEY,
     MESHX_PROVISION_STATE_COMPLETE,
+    MESHX_PROVISION_STATE_FAILED,
     MESHX_PROVISION_STATE_LINK_CLOSING,
 } meshx_provision_state_t;
 
 typedef uint8_t meshx_prov_pub_key_t[32];
 
-typedef enum
-{
-    MESHX_PROVISION_LINK_CLOSE_SUCCESS,
-    MESHX_PROVISION_LINK_CLOSE_TIMEOUT,
-    MESHX_PROVISION_LINK_CLOSE_FAIL,
-    MESHX_PROVISION_LINK_CLOSE_LINK_LOSS,
-} meshx_provision_link_close_reason_t;
+#define MESHX_PROVISION_LINK_CLOSE_SUCCESS         0
+#define MESHX_PROVISION_LINK_CLOSE_TIMEOUT         1
+#define MESHX_PROVISION_LINK_CLOSE_FAIL            2
+#define MESHX_PROVISION_LINK_CLOSE_LINK_LOSS       3
 
 typedef enum
 {
@@ -109,6 +107,7 @@ typedef struct
         meshx_provision_capabilites_t capabilites;
         meshx_provision_start_t start;
         meshx_provision_public_key_t pub_key;
+        uint8_t err_code;
     };
 } __PACKED meshx_provision_pdu_t;
 
@@ -127,8 +126,7 @@ MESHX_EXTERN int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t
                                                            const meshx_provision_public_key_t *pkey);
 
 MESHX_EXTERN int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev);
-MESHX_EXTERN int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev,
-                                                meshx_provision_link_close_reason_t reason);
+MESHX_EXTERN int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reason);
 
 MESHX_EXTERN int32_t meshx_provision_invite(meshx_provision_dev_t prov_dev,
                                             meshx_provision_invite_t invite);
@@ -138,6 +136,7 @@ MESHX_EXTERN int32_t meshx_provision_start(meshx_provision_dev_t prov_dev,
                                            const meshx_provision_start_t *pstart);
 MESHX_EXTERN int32_t meshx_provision_public_key(meshx_provision_dev_t prov_dev,
                                                 const meshx_provision_public_key_t *ppub_key, uint8_t role);
+MESHX_EXTERN int32_t meshx_provision_failed(meshx_provision_dev_t prov_dev, uint8_t err_code);
 
 
 MESHX_END_DECLS

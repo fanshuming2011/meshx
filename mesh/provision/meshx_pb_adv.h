@@ -146,7 +146,7 @@ MESHX_EXTERN int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
                                         const meshx_provision_start_t *pstart);
 MESHX_EXTERN int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev,
                                              const meshx_provision_public_key_t *ppub_key, uint8_t role);
-
+MESHX_EXTERN int32_t meshx_pb_adv_failed(meshx_provision_dev_t prov_dev, uint8_t err_code);
 
 
 

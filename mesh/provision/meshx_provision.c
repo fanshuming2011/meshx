@@ -150,8 +150,7 @@ int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev)
     return meshx_pb_adv_link_open(prov_dev);
 }
 
-int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev,
-                                   meshx_provision_link_close_reason_t reason)
+int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reason)
 {
     if (NULL == prov_dev)
     {
@@ -311,6 +310,44 @@ int32_t meshx_provision_public_key(meshx_provision_dev_t prov_dev,
     return ret;
 }
 
+int32_t meshx_provision_failed(meshx_provision_dev_t prov_dev, uint8_t err_code)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("provision device value is NULL");
+        return -MESHX_ERR_INVAL;
+    }
+
+    if (prov_dev->state < MESHX_PROVISION_STATE_INVITE)
+    {
+        MESHX_ERROR("invalid state: %d", prov_dev->state);
+        return -MESHX_ERR_STATE;
+    }
+
+    if ((MESHX_PROVISION_STATE_COMPLETE == prov_dev->state) ||
+        (MESHX_PROVISION_STATE_FAILED == prov_dev->state))
+    {
+        MESHX_WARN("already in provision finishing procedure: %d", prov_dev->state);
+        return -MESHX_ERR_ALREADY;
+    }
+
+    int32_t ret = MESHX_SUCCESS;
+    switch (prov_dev->bearer->type)
+    {
+    case MESHX_BEARER_TYPE_ADV:
+        ret = meshx_pb_adv_failed(prov_dev, err_code);
+        break;
+    case MESHX_BEARER_TYPE_GATT:
+        break;
+    default:
+        MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
+        ret = -MESHX_ERR_INVAL;
+        break;
+    }
+
+    return ret;
+}
+
 int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
                                     const uint8_t *pdata, uint8_t len)
 {
@@ -324,6 +361,8 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         {
             /* provision failed: invalid format */
             MESHX_ERROR("invalid ivnvite pdu length: %d", len);
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
             ret = -MESHX_ERR_LENGTH;
         }
         else
@@ -345,6 +384,8 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         {
             /* provision failed: invalid format */
             MESHX_ERROR("invalid capabilites pdu length: %d", len);
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
             ret = -MESHX_ERR_LENGTH;
         }
         else
@@ -366,6 +407,8 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         {
             /* provision failed: invalid format */
             MESHX_ERROR("invalid start pdu length: %d", len);
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
             ret = -MESHX_ERR_LENGTH;
         }
         else
@@ -386,6 +429,8 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         {
             /* provision failed: invalid format */
             MESHX_ERROR("invalid public key pdu length: %d", len);
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
             ret = -MESHX_ERR_LENGTH;
         }
         else
@@ -410,6 +455,8 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             else
             {
                 MESHX_ERROR("invalid public key!");
+                /* send provision failed */
+                meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
                 ret = -MESHX_ERR_INVAL;
             }
 
@@ -425,13 +472,32 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
     case MESHX_PROVISION_TYPE_DATA:
         break;
 #endif
+#if MESHX_SUPPORT_ROLE_PROVISIONER
     case MESHX_PROVISION_TYPE_COMPLETE:
         break;
     case MESHX_PROVISION_TYPE_FAILED:
+        if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(uint8_t))
+        {
+            /* provision failed: invalid format */
+            MESHX_ERROR("invalid provision failed pdu length: %d", len);
+            ret = -MESHX_ERR_LENGTH;
+        }
+        else
+        {
+            prov_dev->state = MESHX_PROVISION_STATE_FAILED;
+            /* notify app provision failed error code */
+            meshx_notify_prov_t notify_prov;
+            notify_prov.metadata.prov_dev = prov_dev;
+            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_FAILED;
+            notify_prov.pdata = &pprov_pdu->err_code;
+            meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                         sizeof(meshx_notify_prov_metadata_t) + sizeof(uint8_t));
+        }
         break;
+#endif
     default:
-        /* TODO: provision failed: invalid pdu */
-
+        /* send provision failed */
+        meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_PDU);
         break;
     }
 
@@ -477,6 +543,34 @@ int32_t meshx_provision_handle_notify(meshx_bearer_t bearer, const meshx_notify_
             meshx_beacon_start(bearer, MESHX_BEACON_TYPE_UDB, udb_interval);
         }
         prov_end = TRUE;
+        break;
+    case MESHX_PROV_NOTIFY_TRANS_ACK:
+        {
+            const meshx_provision_state_t *pstate = pnotify->pdata;
+            if ((MESHX_PROVISION_STATE_FAILED == *pstate) ||
+                (MESHX_PROVISION_STATE_COMPLETE == *pstate))
+            {
+                switch (bearer->type)
+                {
+                case MESHX_BEARER_TYPE_ADV:
+                    {
+                        uint8_t reason = MESHX_PROVISION_LINK_CLOSE_FAIL;
+                        /* send link close */
+                        if (MESHX_PROVISION_STATE_COMPLETE == *pstate)
+                        {
+                            reason = MESHX_PROVISION_LINK_CLOSE_SUCCESS;
+                        }
+                        meshx_pb_adv_link_close(pnotify->metadata.prov_dev, reason);
+                    }
+                    break;
+                case MESHX_BEARER_TYPE_GATT:
+                    break;
+                default:
+                    MESHX_ERROR("invalid bearer type: %d", bearer->type);
+                    break;
+                }
+            }
+        }
         break;
     default:
         break;

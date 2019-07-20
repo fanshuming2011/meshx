@@ -82,7 +82,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:
         {
-            const meshx_provision_link_close_reason_t *preason = pprov->pdata;
+            const uint8_t *preason = pprov->pdata;
             meshx_tty_printf("link closed, reason: %d\r\n", *preason);
         }
         break;

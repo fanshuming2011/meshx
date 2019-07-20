@@ -87,6 +87,7 @@ typedef struct
         meshx_provision_capabilites_t capabilites;
         meshx_provision_start_t start;
         meshx_provision_public_key_t pub_key;
+        uint8_t err_code;
     } prov_tx_pdu;
 
     uint8_t last_seg_num;
@@ -357,6 +358,19 @@ static int32_t pb_adv_public_key(meshx_bearer_t bearer, uint32_t link_id, uint8_
                              sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_public_key_t));
 }
 
+static int32_t pb_adv_failed(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
+                             uint8_t err_code)
+{
+    MESHX_INFO("error code: %d", err_code);
+
+    meshx_provision_pdu_t prov_pdu;
+    prov_pdu.metadata.type = MESHX_PROVISION_TYPE_FAILED;
+    prov_pdu.metadata.padding = 0;
+    prov_pdu.err_code = err_code;
+    return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
+                             sizeof(meshx_provision_pdu_metadata_t) + sizeof(uint8_t));
+}
+
 static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
 {
     MESHX_INFO("delay timeout: %d", pdev->timer_delay_type);
@@ -378,13 +392,8 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
             uint16_t data_len = pdev->trans_data_len;
             /* clear trans data to enable receive new trans packet */
             pdev->trans_data_len = 0;
-            ret = meshx_provision_pdu_process(&pdev->dev, pdev->prov_rx_pdu.data,
-                                              data_len);
-            if (ret < 0)
-            {
-                /* TODO: send provision failed first */
-                meshx_pb_adv_link_close(&pdev->dev, MESHX_LINK_CLOSE_REASON_FAIL);
-            }
+            meshx_provision_pdu_process(&pdev->dev, pdev->prov_rx_pdu.data,
+                                        data_len);
         }
         break;
     case MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU:
@@ -405,6 +414,9 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
         case MESHX_PROVISION_STATE_PUBLIC_KEY:
             pb_adv_public_key(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
                               &pdev->prov_tx_pdu.pub_key);
+            break;
+        case MESHX_PROVISION_STATE_FAILED:
+            pb_adv_failed(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, pdev->prov_tx_pdu.err_code);
             break;
         default:
             /* should never reach here */
@@ -487,7 +499,7 @@ static void meshx_pb_adv_handle_retry(meshx_pb_adv_dev_t *pdev)
             notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
             notify_prov.pdata = &pdev->link_close_reason;
             meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
-                                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
+                                          sizeof(meshx_notify_prov_metadata_t) + sizeof(uint8_t));
         }
     }
     else if ((pdev->dev.state >= MESHX_PROVISION_STATE_INVITE) &&
@@ -510,6 +522,9 @@ static void meshx_pb_adv_handle_retry(meshx_pb_adv_dev_t *pdev)
         case MESHX_PROVISION_STATE_PUBLIC_KEY:
             pb_adv_public_key(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
                               &pdev->prov_tx_pdu.pub_key);
+            break;
+        case MESHX_PROVISION_STATE_FAILED:
+            pb_adv_failed(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, pdev->prov_tx_pdu.err_code);
             break;
         default:
             /* should never reach here */
@@ -813,6 +828,22 @@ int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev,
     return MESHX_SUCCESS;
 }
 
+int32_t meshx_pb_adv_failed(meshx_provision_dev_t prov_dev, uint8_t err_code)
+{
+    MESHX_ASSERT(NULL != prov_dev);
+    meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
+    pdev->dev.state = MESHX_PROVISION_STATE_FAILED;
+    pdev->prov_tx_pdu.err_code = err_code;
+    meshx_dev_require_trans_num(pdev);
+
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
+
+    return MESHX_SUCCESS;
+}
+
 static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
     if (len < MESHX_LINK_OPEN_PDU_LEN)
@@ -942,13 +973,13 @@ static int32_t meshx_pb_adv_recv_link_close(meshx_bearer_t bearer, const uint8_t
     }
 
     /* notify app link closed */
-    meshx_provision_link_close_reason_t reason = ppkt->bearer_ctl.link_close.reason;
+    uint8_t reason = ppkt->bearer_ctl.link_close.reason;
     meshx_notify_prov_t notify_prov;
     notify_prov.metadata.prov_dev = &pdev->dev;
     notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_LINK_CLOSE;
     notify_prov.pdata = &reason;
     meshx_provision_handle_notify(pdev->dev.bearer, &notify_prov,
-                                  sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_link_close_reason_t));
+                                  sizeof(meshx_notify_prov_metadata_t) + sizeof(uint8_t));
 
     return MESHX_SUCCESS;
 }
