@@ -23,6 +23,8 @@ typedef enum
     MESHX_PROV_NOTIFY_CAPABILITES, /* @ref meshx_provision_capabilites_t */
     MESHX_PROV_NOTIFY_START, /* @ref meshx_provision_start_t */
     MESHX_PROV_NOTIFY_PUBLIC_KEY, /* @ref meshx_provision_public_key_t */
+    MESHX_PROV_NOTIFY_CONFIRMATION, /* @ref meshx_provision_confirmation_t */
+    MESHX_PROV_NOTIFY_RANDOM, /* @ref meshx_provision_random_t */
     MESHX_PROV_NOTIFY_FAILED, /* @ref meshx provisison failed error code macros */
     MESHX_PROV_NOTIFY_COMPLETE, /* @ref NULL */
 } meshx_prov_notify_type_t;

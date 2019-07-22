@@ -147,6 +147,10 @@ MESHX_EXTERN int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
                                         const meshx_provision_start_t *pstart);
 MESHX_EXTERN int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev,
                                              const meshx_provision_public_key_t *ppub_key);
+MESHX_EXTERN int32_t meshx_pb_adv_confirmation(meshx_provision_dev_t prov_dev,
+                                               const meshx_provision_confirmation_t *pcfm);
+MESHX_EXTERN int32_t meshx_pb_adv_random(meshx_provision_dev_t prov_dev,
+                                         const meshx_provision_random_t *prandom);
 MESHX_EXTERN int32_t meshx_pb_adv_failed(meshx_provision_dev_t prov_dev, uint8_t err_code);
 
 

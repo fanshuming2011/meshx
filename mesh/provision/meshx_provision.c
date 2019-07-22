@@ -82,23 +82,23 @@ int32_t meshx_provision_make_key(meshx_provision_dev_t prov_dev)
     return meshx_ecc_make_key(prov_dev->public_key, prov_dev->private_key);
 }
 
-bool meshx_provision_validate_public_key(const meshx_provision_public_key_t *pkey)
-{
-    return meshx_ecc_validate_public_key((const uint8_t *)pkey);
-}
-
 int32_t meshx_provision_get_local_public_key(meshx_provision_dev_t prov_dev,
                                              meshx_provision_public_key_t *pkey)
 {
-    if ((NULL == pkey) || (NULL == prov_dev))
+    if ((NULL == prov_dev) || (NULL == pkey))
     {
-        MESHX_ERROR("invalid parameter: prov_dev 0x%x, pkey 0x%x!", prov_dev, pkey);
+        MESHX_ERROR("invalid parameter: prov_dev 0x%x, pkey 0x%x");
         return -MESHX_ERR_INVAL;
     }
 
     memcpy(pkey, prov_dev->public_key, sizeof(meshx_provision_public_key_t));
 
     return MESHX_SUCCESS;
+}
+
+bool meshx_provision_validate_public_key(const meshx_provision_public_key_t *pkey)
+{
+    return meshx_ecc_validate_public_key((const uint8_t *)pkey);
 }
 
 int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t prov_dev,
@@ -115,9 +115,117 @@ int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t prov_dev,
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_provision_generate_confirmation(meshx_provision_dev_t prov_dev,
-                                              uint8_t auth_value[16])
+int32_t meshx_provision_generate_auth_value(meshx_provision_dev_t prov_dev,
+                                            const uint8_t *pauth_value, uint8_t len)
 {
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("invalid provision device!");
+        return -MESHX_ERR_INVAL;
+    }
+
+    int32_t ret = MESHX_SUCCESS;
+    switch (prov_dev->start.auth_method)
+    {
+    case MESHX_PROVISION_AUTH_METHOD_NO_OOB:
+        memset(&prov_dev->auth_value, 0, sizeof(meshx_provision_auth_value_t));
+        break;
+    case MESHX_PROVISION_AUTH_METHOD_STATIC_OOB:
+        if ((len >= sizeof(meshx_provision_auth_value_t)) && (NULL != pauth_value))
+        {
+            memcpy(&prov_dev->auth_value, pauth_value, sizeof(meshx_provision_auth_value_t));
+        }
+        else
+        {
+            MESHX_ERROR("invalid value or length: 0x%x, %d", pauth_value, len);
+            ret = -MESHX_ERR_LENGTH;
+        }
+        break;
+    case MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB:
+    case MESHX_PROVISION_AUTH_METHOD_INPUT_OOB:
+        if (NULL != pauth_value)
+        {
+            if ((MESHX_PROVISION_AUTH_ACTION_BLINK == prov_dev->start.auth_action) ||
+                (MESHX_PROVISION_AUTH_ACTION_BEEP == prov_dev->start.auth_action) ||
+                (MESHX_PROVISION_AUTH_ACTION_VIBRATE == prov_dev->start.auth_action) ||
+                (MESHX_PROVISION_AUTH_ACTION_OUT_NUMERIC == prov_dev->start.auth_action))
+            {
+                uint32_t value = *((const uint32_t *)pauth_value);
+                for (int8_t i = 15; i > 0; i--)
+                {
+                    if (0 != value)
+                    {
+                        prov_dev->auth_value.auth_value[i] = (value & 0xff);
+                        value >>= 8;
+                    }
+                    else
+                    {
+                        prov_dev->auth_value.auth_value[i] = 0x00;
+                    }
+                }
+            }
+            else
+            {
+                for (uint8_t i = 0; i < 16; ++i)
+                {
+                    if (len > 0)
+                    {
+                        prov_dev->auth_value.auth_value[i] = pauth_value[i];
+                        len --;
+                    }
+                    else
+                    {
+                        prov_dev->auth_value.auth_value[i] = 0x00;
+                    }
+
+                }
+            }
+        }
+        else
+        {
+            MESHX_ERROR("auth value is NULL");
+            ret = -MESHX_ERR_INVAL;
+        }
+        break;
+    default:
+        break;
+    }
+    return ret;
+}
+
+int32_t meshx_provision_generate_random(meshx_provision_dev_t prov_dev,
+                                        meshx_provision_random_t *pout)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("invalid provision device!");
+        return -MESHX_ERR_INVAL;
+    }
+
+    uint32_t *prandom = (uint32_t *)&prov_dev->random;
+    for (uint8_t i = 0; i < 4; ++i)
+    {
+        *prandom = MESHX_ABS(meshx_rand());
+    }
+
+    if (NULL != pout)
+    {
+        memcpy(pout, &prov_dev->random, sizeof(meshx_provision_random_t));
+    }
+
+    return MESHX_SUCCESS;
+}
+
+int32_t meshx_provision_generate_confirmation(meshx_provision_dev_t prov_dev,
+                                              const meshx_provision_random_t *prandom,
+                                              meshx_provision_confirmation_t *pcfm)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("invalid provision device!");
+        return -MESHX_ERR_INVAL;
+    }
+
     uint16_t cfm_inputs_len = sizeof(meshx_provision_invite_t) + sizeof(meshx_provision_capabilites_t) +
                               sizeof(meshx_provision_start_t) + 128;
 
@@ -150,21 +258,28 @@ int32_t meshx_provision_generate_confirmation(meshx_provision_dev_t prov_dev,
     }
     uint8_t cfm_salt[16];
     meshx_s1(pcfm_inputs, cfm_inputs_len, cfm_salt);
+    meshx_free(pcfm_inputs);
+
     uint8_t cfm_key[16];
     uint8_t N[] = {'p', 'r', 'c', 'k'};
     meshx_k1(prov_dev->share_secret, 32, cfm_salt, N, sizeof(N), cfm_key);
 
-    uint32_t *prandom = (uint32_t *)prov_dev->random;
-    for (uint8_t i = 0; i < 4; ++i)
-    {
-        *prandom = MESHX_ABS(meshx_rand());
-    }
-    uint8_t cfm_data[32];
-    memcpy(cfm_data, prov_dev->random, 16);
-    memcpy(cfm_data + 16, auth_value, 16);
-    meshx_aes_cmac(cfm_key, cfm_data, sizeof(cfm_data), prov_dev->confirmation);
+    uint8_t cfm_data[sizeof(meshx_provision_random_t) + sizeof(meshx_provision_auth_value_t)];
+    memcpy(cfm_data, prandom, sizeof(meshx_provision_random_t));
+
+    memcpy(cfm_data + sizeof(meshx_provision_random_t), &prov_dev->auth_value,
+           sizeof(meshx_provision_auth_value_t));
+    meshx_aes_cmac(cfm_key, cfm_data, sizeof(cfm_data), (uint8_t *)pcfm);
 
     return MESHX_SUCCESS;
+}
+
+bool meshx_provision_verify_confirmation(meshx_provision_dev_t prov_dev,
+                                         const meshx_provision_random_t *prandom)
+{
+    meshx_provision_confirmation_t cfm;
+    meshx_provision_generate_confirmation(prov_dev, prandom, &cfm);
+    return (0 == memcmp(&cfm, &prov_dev->confirmation_remote, sizeof(meshx_provision_confirmation_t)));
 }
 
 static void meshx_provision_delete_device(meshx_provision_dev_t prov_dev)
@@ -351,11 +466,79 @@ int32_t meshx_provision_public_key(meshx_provision_dev_t prov_dev,
     }
 
     int32_t ret = MESHX_SUCCESS;
-    memcpy(prov_dev->public_key, ppub_key, 64);
+    memcpy(prov_dev->public_key, ppub_key, sizeof(meshx_provision_public_key_t));
     switch (prov_dev->bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
         ret = meshx_pb_adv_public_key(prov_dev, ppub_key);
+        break;
+    case MESHX_BEARER_TYPE_GATT:
+        break;
+    default:
+        MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
+        ret = -MESHX_ERR_INVAL;
+        break;
+    }
+
+    return ret;
+}
+
+int32_t meshx_provision_confirmation(meshx_provision_dev_t prov_dev,
+                                     const meshx_provision_confirmation_t *pcfm)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("provision device value is NULL");
+        return -MESHX_ERR_INVAL;
+    }
+
+    if ((prov_dev->state < MESHX_PROVISION_STATE_PUBLIC_KEY) ||
+        (prov_dev->state > MESHX_PROVISION_STATE_CONFIRMATION))
+    {
+        MESHX_ERROR("invalid state: %d", prov_dev->state);
+        return -MESHX_ERR_STATE;
+    }
+
+    int32_t ret = MESHX_SUCCESS;
+    prov_dev->confirmation = *pcfm;
+    switch (prov_dev->bearer->type)
+    {
+    case MESHX_BEARER_TYPE_ADV:
+        ret = meshx_pb_adv_confirmation(prov_dev, pcfm);
+        break;
+    case MESHX_BEARER_TYPE_GATT:
+        break;
+    default:
+        MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
+        ret = -MESHX_ERR_INVAL;
+        break;
+    }
+
+    return ret;
+}
+
+int32_t meshx_provision_random(meshx_provision_dev_t prov_dev,
+                               const meshx_provision_random_t *prandom)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("provision device value is NULL");
+        return -MESHX_ERR_INVAL;
+    }
+
+    if ((prov_dev->state < MESHX_PROVISION_STATE_CONFIRMATION) ||
+        (prov_dev->state > MESHX_PROVISION_STATE_RANDOM))
+    {
+        MESHX_ERROR("invalid state: %d", prov_dev->state);
+        return -MESHX_ERR_STATE;
+    }
+
+    int32_t ret = MESHX_SUCCESS;
+    prov_dev->random = *prandom;
+    switch (prov_dev->bearer->type)
+    {
+    case MESHX_BEARER_TYPE_ADV:
+        ret = meshx_pb_adv_random(prov_dev, prandom);
         break;
     case MESHX_BEARER_TYPE_GATT:
         break;
@@ -406,6 +589,114 @@ int32_t meshx_provision_failed(meshx_provision_dev_t prov_dev, uint8_t err_code)
 
     return ret;
 }
+
+static bool meshx_provision_validate_start(meshx_provision_dev_t prov_dev,
+                                           const meshx_provision_start_t *pstart)
+{
+    /* validate value range */
+    if (pstart->algorithm >= MESHX_PROVISION_CAP_ALGORITHM_RFU)
+    {
+        return FALSE;
+    }
+
+    if (pstart->public_key >= MESHX_PROVISION_CAP_PUBLIC_KEY_RFU)
+    {
+        return FALSE;
+    }
+
+    if (pstart->auth_method >= MESHX_PROVISION_AUTH_METHOD_PROHIBITED)
+    {
+        return FALSE;
+    }
+
+    if (pstart->auth_action >= MESHX_PROVISION_AUTH_ACTION_RFU)
+    {
+        return FALSE;
+    }
+
+    if ((pstart->auth_size < MESHX_PROVISION_AUTH_SIZE_MIN) ||
+        (pstart->auth_size >= MESHX_PROVISION_AUTH_SIZE_MAX))
+    {
+        return FALSE;
+    }
+
+    /* validate value and capabilites */
+    if (pstart->algorithm != prov_dev->capabilites.algorithms)
+    {
+        return FALSE;
+    }
+
+    if (pstart->public_key != prov_dev->capabilites.public_key_type)
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+#if MESHX_SUPPORT_ROLE_DEVICE
+static bool meshx_provision_is_start_supported(meshx_provision_dev_t prov_dev,
+                                               const meshx_provision_start_t *pstart)
+{
+    if (MESHX_PROVISION_AUTH_METHOD_STATIC_OOB == pstart->auth_method)
+    {
+        if (MESHX_PROVISION_CAP_STATIC_OOB_NOT_AVAIABLE == prov_dev->capabilites.static_oob_type)
+        {
+            return FALSE;
+        }
+    }
+    else if (MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB == pstart->auth_method)
+    {
+        if (MESHX_PROVISION_CAP_NOT_SUPPORT_OUTPUT_OOB == prov_dev->capabilites.output_oob_size)
+        {
+            return FALSE;
+        }
+        else if (pstart->auth_size > prov_dev->capabilites.output_oob_size)
+        {
+            return FALSE;
+        }
+        else
+        {
+            uint16_t auth_action = pstart->auth_action;
+            if (0 != auth_action)
+            {
+                auth_action = (1 << (auth_action - 1));
+            }
+
+            if (0 == (auth_action & prov_dev->capabilites.output_oob_action))
+            {
+                return FALSE;
+            }
+        }
+    }
+    else if (MESHX_PROVISION_AUTH_METHOD_INPUT_OOB == pstart->auth_method)
+    {
+        if (MESHX_PROVISION_CAP_NOT_SUPPORT_INPUT_OOB == prov_dev->capabilites.output_oob_size)
+        {
+            return FALSE;
+        }
+        else if (pstart->auth_size > prov_dev->capabilites.input_oob_size)
+        {
+            return FALSE;
+        }
+        else
+        {
+            uint16_t auth_action = pstart->auth_action;
+            if (0 != auth_action)
+            {
+                auth_action = (1 << (auth_action - 1));
+            }
+
+            if (0 == (auth_action & prov_dev->capabilites.input_oob_action))
+            {
+                return FALSE;
+            }
+        }
+    }
+
+    return TRUE;
+}
+#endif
 
 int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
                                     const uint8_t *pdata, uint8_t len)
@@ -490,6 +781,18 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_UNEXPECTED_PDU);
             ret = -MESHX_ERR_STATE;
         }
+        else if (!meshx_provision_validate_start(prov_dev, &pprov_pdu->start))
+        {
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
+            ret = -MESHX_ERR_INVAL;
+        }
+        else if (!meshx_provision_is_start_supported(prov_dev, &pprov_pdu->start))
+        {
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_OUT_OF_RESOURCE);
+            ret = -MESHX_ERR_RESOURCE;
+        }
         else
         {
             prov_dev->state = MESHX_PROVISION_STATE_START;
@@ -546,14 +849,82 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
                 meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
                 ret = -MESHX_ERR_INVAL;
             }
-
         }
         break;
     case MESHX_PROVISION_TYPE_INPUT_COMPLETE:
         break;
     case MESHX_PROVISION_TYPE_CONFIRMATION:
+        if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_confirmation_t))
+        {
+            /* provision failed: invalid format */
+            MESHX_ERROR("invalid confirmaiton pdu length: %d", len);
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
+            ret = -MESHX_ERR_LENGTH;
+        }
+        else if (prov_dev->state > MESHX_PROVISION_STATE_CONFIRMATION)
+        {
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_UNEXPECTED_PDU);
+            ret = -MESHX_ERR_STATE;
+        }
+        else
+        {
+            prov_dev->state = MESHX_PROVISION_STATE_CONFIRMATION;
+            prov_dev->confirmation_remote = pprov_pdu->confirmation;
+            /* notify app confirmation vlaue */
+            meshx_notify_prov_t notify_prov;
+            notify_prov.metadata.prov_dev = prov_dev;
+            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_CONFIRMATION;
+            notify_prov.pdata = &pprov_pdu->confirmation;
+            meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                         sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_confirmation_t));
+        }
         break;
     case MESHX_PROVISION_TYPE_RANDOM:
+        if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_confirmation_t))
+        {
+            /* provision failed: invalid format */
+            MESHX_ERROR("invalid confirmaiton pdu length: %d", len);
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
+            ret = -MESHX_ERR_LENGTH;
+        }
+        else if (prov_dev->state > MESHX_PROVISION_STATE_RANDOM)
+        {
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_UNEXPECTED_PDU);
+            ret = -MESHX_ERR_STATE;
+        }
+        else
+        {
+            if (meshx_provision_verify_confirmation(prov_dev, &pprov_pdu->random))
+            {
+                prov_dev->state = MESHX_PROVISION_STATE_CONFIRMATION;
+                memcpy(prov_dev->public_key_remote, &pprov_pdu->public_key, 64);
+                /* notify app public key value */
+                meshx_notify_prov_t notify_prov;
+                notify_prov.metadata.prov_dev = prov_dev;
+                notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_PUBLIC_KEY;
+                notify_prov.pdata = &pprov_pdu->public_key;
+                meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                             sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_public_key_t));
+
+                /* generate secret */
+                meshx_ecc_shared_secret((const uint8_t *)&pprov_pdu->public_key, prov_dev->private_key,
+                                        prov_dev->share_secret);
+                MESHX_INFO("shared secret:");
+                MESHX_DUMP_INFO(prov_dev->share_secret, 32);
+            }
+            else
+            {
+                MESHX_ERROR("invalid public key!");
+                /* send provision failed */
+                meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
+                ret = -MESHX_ERR_INVAL;
+            }
+        }
+
         break;
 #if MESHX_SUPPORT_ROLE_DEVICE
     case MESHX_PROVISION_TYPE_DATA:

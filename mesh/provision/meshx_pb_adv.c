@@ -351,6 +351,35 @@ static int32_t pb_adv_public_key(meshx_bearer_t bearer, uint32_t link_id, uint8_
                              sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_public_key_t));
 }
 
+static int32_t pb_adv_confirmation(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
+                                   const meshx_provision_confirmation_t *pcfm)
+{
+    MESHX_INFO("confirmation:");
+    MESHX_DUMP_DEBUG(pcfm, sizeof(meshx_provision_confirmation_t));
+
+    meshx_provision_pdu_t prov_pdu;
+    prov_pdu.metadata.type = MESHX_PROVISION_TYPE_CONFIRMATION;
+    prov_pdu.metadata.padding = 0;
+    prov_pdu.confirmation = *pcfm;
+    return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
+                             sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_confirmation_t));
+}
+
+static int32_t pb_adv_random(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
+                             const meshx_provision_random_t *prandom)
+{
+    MESHX_INFO("random:");
+    MESHX_DUMP_DEBUG(prandom, sizeof(meshx_provision_random_t));
+
+    meshx_provision_pdu_t prov_pdu;
+    prov_pdu.metadata.type = MESHX_PROVISION_TYPE_RANDOM;
+    prov_pdu.metadata.padding = 0;
+    prov_pdu.random = *prandom;
+    return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
+                             sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_random_t));
+}
+
+#if MESHX_SUPPORT_ROLE_DEVICE
 static int32_t pb_adv_failed(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
                              uint8_t err_code)
 {
@@ -363,6 +392,7 @@ static int32_t pb_adv_failed(meshx_bearer_t bearer, uint32_t link_id, uint8_t tr
     return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
                              sizeof(meshx_provision_pdu_metadata_t) + sizeof(uint8_t));
 }
+#endif
 
 static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
 {
@@ -427,6 +457,12 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
         case MESHX_PROVISION_STATE_PUBLIC_KEY:
             pb_adv_public_key(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
                               (const meshx_provision_public_key_t *)&pdev->dev.public_key);
+            break;
+        case MESHX_PROVISION_STATE_CONFIRMATION:
+            pb_adv_confirmation(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, &pdev->dev.confirmation);
+            break;
+        case MESHX_PROVISION_STATE_RANDOM:
+            pb_adv_random(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, &pdev->dev.random);
             break;
         case MESHX_PROVISION_STATE_FAILED:
             pb_adv_failed(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, pdev->dev.err_code);
@@ -535,6 +571,12 @@ static void meshx_pb_adv_handle_retry(meshx_pb_adv_dev_t *pdev)
         case MESHX_PROVISION_STATE_PUBLIC_KEY:
             pb_adv_public_key(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
                               (const meshx_provision_public_key_t *)&pdev->dev.public_key);
+            break;
+        case MESHX_PROVISION_STATE_CONFIRMATION:
+            pb_adv_confirmation(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, &pdev->dev.confirmation);
+            break;
+        case MESHX_PROVISION_STATE_RANDOM:
+            pb_adv_random(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, &pdev->dev.random);
             break;
         case MESHX_PROVISION_STATE_FAILED:
             pb_adv_failed(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, pdev->dev.err_code);
@@ -820,6 +862,52 @@ int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev,
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     pdev->dev.state = MESHX_PROVISION_STATE_PUBLIC_KEY;
+    if (MESHX_ROLE_DEVICE == prov_dev->role)
+    {
+        meshx_dev_require_trans_num(pdev);
+    }
+    else
+    {
+        meshx_prov_require_trans_num(pdev);
+    }
+
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
+
+    return MESHX_SUCCESS;
+}
+
+int32_t meshx_pb_adv_confirmation(meshx_provision_dev_t prov_dev,
+                                  const meshx_provision_confirmation_t *pcfm)
+{
+    MESHX_ASSERT(NULL != prov_dev);
+    meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
+    pdev->dev.state = MESHX_PROVISION_STATE_CONFIRMATION;
+    if (MESHX_ROLE_DEVICE == prov_dev->role)
+    {
+        meshx_dev_require_trans_num(pdev);
+    }
+    else
+    {
+        meshx_prov_require_trans_num(pdev);
+    }
+
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
+
+    return MESHX_SUCCESS;
+}
+
+int32_t meshx_pb_adv_random(meshx_provision_dev_t prov_dev,
+                            const meshx_provision_random_t *prandom)
+{
+    MESHX_ASSERT(NULL != prov_dev);
+    meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
+    pdev->dev.state = MESHX_PROVISION_STATE_RANDOM;
     if (MESHX_ROLE_DEVICE == prov_dev->role)
     {
         meshx_dev_require_trans_num(pdev);
