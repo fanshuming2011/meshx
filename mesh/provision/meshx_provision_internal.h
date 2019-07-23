@@ -33,6 +33,7 @@ struct _meshx_provision_dev
     meshx_provision_confirmation_t confirmation_remote;
     meshx_provision_confirmation_t confirmation;
     meshx_provision_random_t random;
+    meshx_provision_random_t random_remote;
     uint8_t err_code; /* provision failed error code */
 };
 

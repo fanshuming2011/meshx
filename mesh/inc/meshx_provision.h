@@ -194,13 +194,13 @@ MESHX_EXTERN int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t
                                                            const meshx_provision_public_key_t *pkey);
 MESHX_EXTERN int32_t meshx_provision_generate_auth_value(meshx_provision_dev_t prov_dev,
                                                          const uint8_t *pauth_value, uint8_t len);
-MESHX_EXTERN int32_t meshx_provision_generate_random(meshx_provision_dev_t prov_dev,
-                                                     meshx_provision_random_t *pout);
+MESHX_EXTERN int32_t meshx_provision_generate_random(meshx_provision_dev_t prov_dev);
+MESHX_EXTERN int32_t meshx_provision_get_random(meshx_provision_dev_t prov_dev,
+                                                meshx_provision_random_t *prandom);
 MESHX_EXTERN int32_t meshx_provision_generate_confirmation(meshx_provision_dev_t prov_dev,
-                                                           const meshx_provision_random_t *prandom,
-                                                           meshx_provision_confirmation_t *pcfm);
-MESHX_EXTERN bool meshx_provision_verify_confirmation(meshx_provision_dev_t prov_dev,
-                                                      const meshx_provision_random_t *prandom);
+                                                           const meshx_provision_random_t *prandom);
+MESHX_EXTERN int32_t meshx_provision_get_confirmation(meshx_provision_dev_t prov_dev,
+                                                      meshx_provision_confirmation_t *pcfm);
 
 
 MESHX_EXTERN int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev);

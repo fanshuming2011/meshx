@@ -112,6 +112,41 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("public key:");
             meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_provision_public_key_t));
             meshx_tty_printf("\r\n");
+
+            /* generate random */
+            meshx_provision_generate_random(pprov->metadata.prov_dev);
+            /* generate auth value */
+            meshx_provision_generate_auth_value(pprov->metadata.prov_dev, NULL, 0);
+            /* generate confirmation */
+            meshx_provision_random_t random;
+            meshx_provision_get_random(pprov->metadata.prov_dev, &random);
+            meshx_provision_generate_confirmation(pprov->metadata.prov_dev, &random);
+
+            /* send confirmation */
+            meshx_provision_confirmation_t cfm;
+            meshx_provision_get_confirmation(pprov->metadata.prov_dev, &cfm);
+            meshx_provision_confirmation(pprov->metadata.prov_dev, &cfm);
+        }
+        break;
+    case MESHX_PROV_NOTIFY_CONFIRMATION:
+        {
+            const meshx_provision_confirmation_t *pcfm = pprov->pdata;
+            meshx_tty_printf("confirmation:");
+            meshx_tty_dump((const uint8_t *)pcfm, sizeof(meshx_provision_confirmation_t));
+            meshx_tty_printf("\r\n");
+
+            /* send random */
+            meshx_provision_random_t random;
+            meshx_provision_get_random(pprov->metadata.prov_dev, &random);
+            meshx_provision_random(pprov->metadata.prov_dev, &random);
+        }
+        break;
+    case MESHX_PROV_NOTIFY_RANDOM:
+        {
+            const meshx_provision_random_t *prandom = pprov->pdata;
+            meshx_tty_printf("random:");
+            meshx_tty_dump((const uint8_t *)prandom, sizeof(meshx_provision_random_t));
+            meshx_tty_printf("\r\n");
         }
         break;
     case MESHX_PROV_NOTIFY_TRANS_ACK:
