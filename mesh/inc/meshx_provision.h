@@ -44,6 +44,7 @@ typedef enum
     MESHX_PROVISION_STATE_PUBLIC_KEY,
     MESHX_PROVISION_STATE_CONFIRMATION,
     MESHX_PROVISION_STATE_RANDOM,
+    MESHX_PROVISION_STATE_DATA,
     MESHX_PROVISION_STATE_COMPLETE,
     MESHX_PROVISION_STATE_FAILED,
     MESHX_PROVISION_STATE_LINK_CLOSING,
@@ -166,6 +167,17 @@ typedef struct
 
 typedef struct
 {
+    uint8_t network_key[16];
+    uint16_t key_index;
+    uint8_t key_refresh_flag : 1;
+    uint8_t iv_update_flag : 1;
+    uint8_t rfu : 6;
+    uint32_t iv_index;
+    uint16_t unicast_address;
+} __PACKED meshx_provision_data_t;
+
+typedef struct
+{
     meshx_provision_pdu_metadata_t metadata;
     union
     {
@@ -175,6 +187,7 @@ typedef struct
         meshx_provision_public_key_t public_key;
         meshx_provision_confirmation_t confirmation;
         meshx_provision_random_t random;
+        meshx_provision_data_t data;
         uint8_t err_code;
     };
 } __PACKED meshx_provision_pdu_t;
@@ -218,6 +231,9 @@ MESHX_EXTERN int32_t meshx_provision_confirmation(meshx_provision_dev_t prov_dev
                                                   const meshx_provision_confirmation_t *pcfm);
 MESHX_EXTERN int32_t meshx_provision_random(meshx_provision_dev_t prov_dev,
                                             const meshx_provision_random_t *prandom);
+MESHX_EXTERN int32_t meshx_provision_data(meshx_provision_dev_t prov_dev,
+                                          const meshx_provision_data_t *pdata);
+MESHX_EXTERN int32_t meshx_provision_complete(meshx_provision_dev_t prov_dev);
 MESHX_EXTERN int32_t meshx_provision_failed(meshx_provision_dev_t prov_dev, uint8_t err_code);
 
 

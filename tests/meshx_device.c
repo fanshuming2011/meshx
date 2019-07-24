@@ -156,6 +156,17 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_provision_random(pprov->metadata.prov_dev, &random);
         }
         break;
+    case MESHX_PROV_NOTIFY_DATA:
+        {
+            const meshx_provision_data_t *pdata = pprov->pdata;
+            meshx_tty_printf("data:");
+            meshx_tty_dump((const uint8_t *)pdata, sizeof(meshx_provision_data_t));
+            meshx_tty_printf("\r\n");
+
+            /* send complete */
+            meshx_provision_complete(pprov->metadata.prov_dev);
+        }
+        break;
     case MESHX_PROV_NOTIFY_TRANS_ACK:
         {
             const meshx_provision_state_t *pstate = pprov->pdata;
@@ -169,10 +180,8 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("provision failed: %d\r\n", err_code);
         }
         break;
-    case MESHX_PROV_NOTIFY_COMPLETE:
-        {
-            meshx_tty_printf("provision complete\r\n");
-        }
+    default:
+        meshx_tty_printf("unknown provision type: %d\r\n", pprov->metadata.notify_type);
         break;
     }
     return MESHX_SUCCESS;

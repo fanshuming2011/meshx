@@ -379,7 +379,34 @@ static int32_t pb_adv_random(meshx_bearer_t bearer, uint32_t link_id, uint8_t tr
                              sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_random_t));
 }
 
+#if MESHX_SUPPORT_ROLE_PROVISIONER
+static int32_t pb_adv_data(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
+                           const meshx_provision_data_t *pdata)
+{
+    MESHX_INFO("data:");
+    MESHX_DUMP_DEBUG(pdata, sizeof(meshx_provision_data_t));
+
+    meshx_provision_pdu_t prov_pdu;
+    prov_pdu.metadata.type = MESHX_PROVISION_TYPE_DATA;
+    prov_pdu.metadata.padding = 0;
+    prov_pdu.data = *pdata;
+    return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
+                             sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_data_t));
+}
+#endif
+
 #if MESHX_SUPPORT_ROLE_DEVICE
+static int32_t pb_adv_complete(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num)
+{
+    MESHX_INFO("complete");
+
+    meshx_provision_pdu_t prov_pdu;
+    prov_pdu.metadata.type = MESHX_PROVISION_TYPE_COMPLETE;
+    prov_pdu.metadata.padding = 0;
+    return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
+                             sizeof(meshx_provision_pdu_metadata_t));
+}
+
 static int32_t pb_adv_failed(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
                              uint8_t err_code)
 {
@@ -421,7 +448,8 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
                 if (!MESHX_IS_VALID_PROVISIONER_TRANS_NUM(pdev->rx_trans_num))
                 {
                     /* invalid trans num */
-                    meshx_pb_adv_failed(&pdev->dev, MESHX_PROVISION_FAILED_UNEXPECTED_ERROR);
+                    pdev->dev.err_code = MESHX_PROVISION_FAILED_UNEXPECTED_ERROR;
+                    meshx_pb_adv_failed(&pdev->dev);
                     return ;
                 }
             }
@@ -430,7 +458,8 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
                 if (!MESHX_IS_VALID_DEVICE_TRANS_NUM(pdev->rx_trans_num))
                 {
                     /* invalid trans num */
-                    meshx_pb_adv_failed(&pdev->dev, MESHX_PROVISION_FAILED_UNEXPECTED_ERROR);
+                    pdev->dev.err_code = MESHX_PROVISION_FAILED_UNEXPECTED_ERROR;
+                    meshx_pb_adv_failed(&pdev->dev);
                     return ;
                 }
             }
@@ -463,6 +492,12 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
             break;
         case MESHX_PROVISION_STATE_RANDOM:
             pb_adv_random(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, &pdev->dev.random);
+            break;
+        case MESHX_PROVISION_STATE_DATA:
+            pb_adv_data(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, &pdev->dev.data);
+            break;
+        case MESHX_PROVISION_STATE_COMPLETE:
+            pb_adv_complete(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num);
             break;
         case MESHX_PROVISION_STATE_FAILED:
             pb_adv_failed(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, pdev->dev.err_code);
@@ -580,6 +615,12 @@ static void meshx_pb_adv_handle_retry(meshx_pb_adv_dev_t *pdev)
             break;
         case MESHX_PROVISION_STATE_FAILED:
             pb_adv_failed(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, pdev->dev.err_code);
+            break;
+        case MESHX_PROVISION_STATE_DATA:
+            pb_adv_data(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, &pdev->dev.data);
+            break;
+        case MESHX_PROVISION_STATE_COMPLETE:
+            pb_adv_complete(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num);
             break;
         default:
             /* should never reach here */
@@ -803,12 +844,10 @@ int32_t meshx_pb_adv_trans_ack(meshx_provision_dev_t prov_dev)
 }
 
 #if MESHX_SUPPORT_ROLE_PROVISIONER
-int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
-                            meshx_provision_invite_t invite)
+int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    pdev->dev.state = MESHX_PROVISION_STATE_INVITE;
     meshx_prov_require_trans_num(pdev);
 
     /* start timer for delay */
@@ -821,12 +860,10 @@ int32_t meshx_pb_adv_invite(meshx_provision_dev_t prov_dev,
 #endif
 
 #if MESHX_SUPPORT_ROLE_DEVICE
-int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
-                                 const meshx_provision_capabilites_t *pcap)
+int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    pdev->dev.state = MESHX_PROVISION_STATE_CAPABILITES;
     meshx_dev_require_trans_num(pdev);
 
     /* start timer for delay */
@@ -839,12 +876,10 @@ int32_t meshx_pb_adv_capabilites(meshx_provision_dev_t prov_dev,
 #endif
 
 #if MESHX_SUPPORT_ROLE_PROVISIONER
-int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
-                           const meshx_provision_start_t *pstart)
+int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    pdev->dev.state = MESHX_PROVISION_STATE_START;
     meshx_dev_require_trans_num(pdev);
 
     /* start timer for delay */
@@ -856,12 +891,10 @@ int32_t meshx_pb_adv_start(meshx_provision_dev_t prov_dev,
 }
 #endif
 
-int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev,
-                                const meshx_provision_public_key_t *ppub_key)
+int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    pdev->dev.state = MESHX_PROVISION_STATE_PUBLIC_KEY;
     if (MESHX_ROLE_DEVICE == prov_dev->role)
     {
         meshx_dev_require_trans_num(pdev);
@@ -879,12 +912,10 @@ int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev,
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_pb_adv_confirmation(meshx_provision_dev_t prov_dev,
-                                  const meshx_provision_confirmation_t *pcfm)
+int32_t meshx_pb_adv_confirmation(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    pdev->dev.state = MESHX_PROVISION_STATE_CONFIRMATION;
     if (MESHX_ROLE_DEVICE == prov_dev->role)
     {
         meshx_dev_require_trans_num(pdev);
@@ -902,12 +933,10 @@ int32_t meshx_pb_adv_confirmation(meshx_provision_dev_t prov_dev,
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_pb_adv_random(meshx_provision_dev_t prov_dev,
-                            const meshx_provision_random_t *prandom)
+int32_t meshx_pb_adv_random(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    pdev->dev.state = MESHX_PROVISION_STATE_RANDOM;
     if (MESHX_ROLE_DEVICE == prov_dev->role)
     {
         meshx_dev_require_trans_num(pdev);
@@ -925,11 +954,38 @@ int32_t meshx_pb_adv_random(meshx_provision_dev_t prov_dev,
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_pb_adv_failed(meshx_provision_dev_t prov_dev, uint8_t err_code)
+int32_t meshx_pb_adv_data(meshx_provision_dev_t prov_dev)
 {
     MESHX_ASSERT(NULL != prov_dev);
     meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
-    pdev->dev.state = MESHX_PROVISION_STATE_FAILED;
+    meshx_dev_require_trans_num(pdev);
+
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
+
+    return MESHX_SUCCESS;
+}
+
+int32_t meshx_pb_adv_complete(meshx_provision_dev_t prov_dev)
+{
+    MESHX_ASSERT(NULL != prov_dev);
+    meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
+    meshx_dev_require_trans_num(pdev);
+
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
+
+    return MESHX_SUCCESS;
+}
+
+int32_t meshx_pb_adv_failed(meshx_provision_dev_t prov_dev)
+{
+    MESHX_ASSERT(NULL != prov_dev);
+    meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
     meshx_dev_require_trans_num(pdev);
 
     /* start timer for delay */

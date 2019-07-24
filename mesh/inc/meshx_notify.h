@@ -25,8 +25,9 @@ typedef enum
     MESHX_PROV_NOTIFY_PUBLIC_KEY, /* @ref meshx_provision_public_key_t */
     MESHX_PROV_NOTIFY_CONFIRMATION, /* @ref meshx_provision_confirmation_t */
     MESHX_PROV_NOTIFY_RANDOM, /* @ref meshx_provision_random_t */
-    MESHX_PROV_NOTIFY_FAILED, /* @ref meshx provisison failed error code macros */
+    MESHX_PROV_NOTIFY_DATA, /* @ref meshx_provision_data_t */
     MESHX_PROV_NOTIFY_COMPLETE, /* @ref NULL */
+    MESHX_PROV_NOTIFY_FAILED, /* @ref meshx provisison failed error code macros */
 } meshx_prov_notify_type_t;
 
 typedef struct
