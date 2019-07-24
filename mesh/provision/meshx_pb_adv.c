@@ -1123,6 +1123,12 @@ static int32_t meshx_pb_adv_recv_bearer_ctl(meshx_bearer_t bearer, const uint8_t
 
 static int32_t meshx_pb_adv_recv_prov_pdu(meshx_pb_adv_dev_t *pdev)
 {
+    if (MESHX_PROVISION_STATE_FAILED ==  pdev->dev.state)
+    {
+        MESHX_WARN("alreay in provision failed procedure, do not process provision data!");
+        return -MESHX_ERR_STATE;
+    }
+
     MESHX_DEBUG("receive provision data: ");
     MESHX_DUMP_DEBUG(pdev->prov_rx_pdu.data, pdev->trans_data_len);
 
