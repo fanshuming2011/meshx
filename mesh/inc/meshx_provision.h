@@ -174,6 +174,7 @@ typedef struct
     uint8_t rfu : 6;
     uint32_t iv_index;
     uint16_t unicast_address;
+    uint8_t mic[8];
 } __PACKED meshx_provision_data_t;
 
 typedef struct

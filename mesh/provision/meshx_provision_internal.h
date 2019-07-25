@@ -23,7 +23,7 @@ struct _meshx_provision_dev
     meshx_bearer_t bearer;
     meshx_provision_state_t state;
     uint8_t public_key[64];
-    uint8_t private_key[64];
+    uint8_t private_key[32];
     uint8_t share_secret[32];
     uint8_t public_key_remote[64];
     uint8_t confirmation_salt[16];

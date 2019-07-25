@@ -13,10 +13,10 @@
 MESHX_BEGIN_DECLS
 
 
-MESHX_EXTERN int32_t meshx_ecc_make_key(uint8_t public_key[64], uint8_t private_key[64]);
+MESHX_EXTERN int32_t meshx_ecc_make_key(uint8_t public_key[64], uint8_t private_key[32]);
 MESHX_EXTERN bool meshx_ecc_validate_public_key(const uint8_t public_key[64]);
 MESHX_EXTERN int32_t meshx_ecc_shared_secret(const uint8_t public_key[64],
-                                             const uint8_t private_key[64],
+                                             const uint8_t private_key[32],
                                              uint8_t secret[32]);
 MESHX_EXTERN int32_t meshx_aes128_encrypt(const uint8_t input[16], const uint8_t key[16],
                                           uint8_t output[16]);

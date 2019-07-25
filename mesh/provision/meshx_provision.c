@@ -22,6 +22,9 @@
 #include "meshx_security.h"
 #include "meshx_mem.h"
 
+const uint8_t sample_public_key[64] = {};
+const uint8_t sample_private_key[16] = {};
+
 int32_t meshx_provision_init(void)
 {
     meshx_pb_adv_init();
@@ -645,7 +648,10 @@ int32_t meshx_provision_data(meshx_provision_dev_t prov_dev,
 
     prov_dev->state = MESHX_PROVISION_STATE_DATA;
     int32_t ret = MESHX_SUCCESS;
-    prov_dev->data = *pdata;
+    /* encrypt data */
+    meshx_aes_ccm_encrypt(prov_dev->session_key, prov_dev->session_nonce, 13, NULL, 0,
+                          (const uint8_t *)pdata, sizeof(prov_dev->data) - sizeof(prov_dev->data.mic),
+                          (uint8_t *)&prov_dev->data, prov_dev->data.mic, sizeof(prov_dev->data.mic));
     switch (prov_dev->bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
@@ -1113,15 +1119,29 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         }
         else
         {
-            prov_dev->data = pprov_pdu->data;
-            prov_dev->state = MESHX_PROVISION_STATE_DATA;
-            /* notify app data value */
-            meshx_notify_prov_t notify_prov;
-            notify_prov.metadata.prov_dev = prov_dev;
-            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_DATA;
-            notify_prov.pdata = &pprov_pdu->data;
-            meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
-                         sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_data_t));
+            /* decrypt data */
+            if (MESHX_SUCCESS == meshx_aes_ccm_decrypt(prov_dev->session_key, prov_dev->session_nonce, 13, NULL,
+                                                       0,
+                                                       (const uint8_t *)&pprov_pdu->data, sizeof(prov_dev->data) - sizeof(prov_dev->data.mic),
+                                                       (uint8_t *)&prov_dev->data, pprov_pdu->data.mic, sizeof(prov_dev->data.mic)))
+            {
+
+                prov_dev->state = MESHX_PROVISION_STATE_DATA;
+                /* notify app data value */
+                meshx_notify_prov_t notify_prov;
+                notify_prov.metadata.prov_dev = prov_dev;
+                notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_DATA;
+                notify_prov.pdata = &prov_dev->data;
+                meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                             sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_data_t));
+            }
+            else
+            {
+                MESHX_ERROR("decrypt provision data failed!");
+                /* send provision failed */
+                meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_DECRYPTION_FAILED);
+                ret = -MESHX_ERR_STATE;
+            }
         }
         break;
 #endif

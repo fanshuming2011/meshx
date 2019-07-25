@@ -13,7 +13,7 @@
 #include "aes_ccm.h"
 #include "uECC.h"
 
-int32_t meshx_ecc_make_key(uint8_t public_key[64], uint8_t private_key[64])
+int32_t meshx_ecc_make_key(uint8_t public_key[64], uint8_t private_key[32])
 {
     int32_t ret = MESHX_SUCCESS;
     if (0 == uECC_make_key(public_key, private_key, uECC_secp256r1()))
