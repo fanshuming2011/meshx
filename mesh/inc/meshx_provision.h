@@ -73,8 +73,8 @@ typedef struct
     uint8_t attention_duration;
 } __PACKED meshx_provision_invite_t;
 
-#define MESHX_PROVISION_CAP_ALGORITHM_P256_CURVE                    0x00
-#define MESHX_PROVISION_CAP_ALGORITHM_RFU                           0x01
+#define MESHX_PROVISION_CAP_ALGORITHM_P256_CURVE                    0x01
+#define MESHX_PROVISION_CAP_ALGORITHM_RFU                           0x02
 
 #define MESHX_PROVISION_CAP_PUBLIC_KEY_NO_OOB                       0x00
 #define MESHX_PROVISION_CAP_PUBLIC_KEY_OOB                          0x01
@@ -116,7 +116,7 @@ typedef struct
     uint8_t output_oob_size;
     uint16_t output_oob_action;
     uint8_t input_oob_size;
-    uint8_t input_oob_action;
+    uint16_t input_oob_action;
 } __PACKED meshx_provision_capabilites_t;
 
 #define MESHX_PROVISION_AUTH_METHOD_NO_OOB                      0x00
