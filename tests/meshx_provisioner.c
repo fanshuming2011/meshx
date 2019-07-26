@@ -6,6 +6,8 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #define MESHX_TRACE_MODULE "PROVISIONER"
+#include <time.h>
+#include <sys/time.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +25,8 @@
 //#include "meshx_mem.h"
 
 
+static struct timeval tv_prov_begin;
+static struct timeval tv_prov_end;
 meshx_msg_queue_t msg_queue = NULL;
 
 #define ASYNC_DATA_TYPE_ADV_DATA   0
@@ -75,6 +79,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     {
     case MESHX_PROV_NOTIFY_LINK_OPEN:
         {
+            gettimeofday(&tv_prov_begin, NULL);
             const meshx_provision_link_open_result_t *presult = pprov->pdata;
             meshx_tty_printf("link opened, result: %d\r\n", *presult);
             if (*presult == MESHX_PROVISION_LINK_OPEN_SUCCESS)
@@ -179,6 +184,19 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     case MESHX_PROV_NOTIFY_COMPLETE:
         {
             meshx_tty_printf("provision complete\r\n");
+
+            gettimeofday(&tv_prov_end, NULL);
+            uint32_t time = (tv_prov_end.tv_sec - tv_prov_begin.tv_sec) * 1000;
+            if (tv_prov_end.tv_usec < tv_prov_begin.tv_usec)
+            {
+                time -= ((tv_prov_begin.tv_usec - tv_prov_end.tv_usec) / 1000);
+            }
+            else
+            {
+                time += ((tv_prov_end.tv_usec - tv_prov_begin.tv_usec) / 1000);
+            }
+
+            meshx_tty_printf("prov time: %dms\r\n", time);
         }
         break;
     default:

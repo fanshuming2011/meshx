@@ -1083,19 +1083,17 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             prov_dev->state = MESHX_PROVISION_STATE_CAPABILITES;
             prov_dev->capabilites = pprov_pdu->capabilites;
 
-#if 0
+            meshx_provision_capabilites_t capabilites = prov_dev->capabilites;
             /* convert endianness */
-            prov_dev->capabilites.algorithms = MESHX_BE16_TO_HOST(prov_dev->capabilites.algorithms);
-            prov_dev->capabilites.output_oob_action = MESHX_BE16_TO_HOST(
-                                                          prov_dev->capabilites.output_oob_action);
-            prov_dev->capabilites.input_oob_action = MESHX_BE16_TO_HOST(prov_dev->capabilites.input_oob_action);
-#endif
+            capabilites.algorithms = MESHX_BE16_TO_HOST(capabilites.algorithms);
+            capabilites.output_oob_action = MESHX_BE16_TO_HOST(capabilites.output_oob_action);
+            capabilites.input_oob_action = MESHX_BE16_TO_HOST(capabilites.input_oob_action);
 
             /* notify app capabilites value */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
             notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_CAPABILITES;
-            notify_prov.pdata = &pprov_pdu->capabilites;
+            notify_prov.pdata = &capabilites;
             meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                          sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_capabilites_t));
         }
@@ -1300,17 +1298,17 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
 
                 prov_dev->state = MESHX_PROVISION_STATE_DATA;
 
-#if 0
+                meshx_provision_data_t data = prov_dev->data;
                 /* convert endianness */
-                prov_dev->data.key_index = MESHX_BE16_TO_HOST(prov_dev->data.key_index);
-                prov_dev->data.iv_index = MESHX_BE32_TO_HOST(prov_dev->data.iv_index);
-                prov_dev->data.unicast_address = MESHX_BE16_TO_HOST(prov_dev->data.unicast_address);
-#endif
+                data.key_index = MESHX_BE16_TO_HOST(data.key_index);
+                data.iv_index = MESHX_BE32_TO_HOST(data.iv_index);
+                data.unicast_address = MESHX_BE16_TO_HOST(data.unicast_address);
+
                 /* notify app data value */
                 meshx_notify_prov_t notify_prov;
                 notify_prov.metadata.prov_dev = prov_dev;
                 notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_DATA;
-                notify_prov.pdata = &prov_dev->data;
+                notify_prov.pdata = &data;
                 meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
                              sizeof(meshx_notify_prov_metadata_t) + sizeof(meshx_provision_data_t));
             }

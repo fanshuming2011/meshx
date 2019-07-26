@@ -29,10 +29,6 @@ int32_t meshx_cmd_prov_conn(const meshx_cmd_parsed_data_t *pparsed_data)
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_cmd_prov_invite(const meshx_cmd_parsed_data_t *pparsed_data)
-{
-    return MESHX_SUCCESS;
-}
 
 static meshx_cmd_t prov_cmds[] =
 {
@@ -49,12 +45,6 @@ static meshx_cmd_t prov_cmds[] =
         "prov_conn [uuid]",
         "connect unprovisioned device",
         meshx_cmd_prov_conn,
-    },
-    {
-        "prov_invite",
-        "prov_invite []",
-        "provision invite",
-        meshx_cmd_prov_invite,
     }
 };
 
