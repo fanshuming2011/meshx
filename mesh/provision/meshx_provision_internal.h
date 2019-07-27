@@ -18,6 +18,7 @@ MESHX_BEGIN_DECLS
 
 struct _meshx_provision_dev
 {
+    uint8_t id;
     meshx_role_t role;
     meshx_dev_uuid_t dev_uuid;
     meshx_bearer_t bearer;

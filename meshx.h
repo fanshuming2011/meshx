@@ -24,6 +24,7 @@
 #include "meshx_beacon.h"
 #include "meshx_notify.h"
 #include "meshx_common.h"
+#include "meshx_mem.h"
 
 
 MESHX_BEGIN_DECLS

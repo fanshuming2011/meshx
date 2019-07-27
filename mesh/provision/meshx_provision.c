@@ -75,6 +75,11 @@ meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
     return prov_dev;
 }
 
+uint8_t meshx_provision_get_device_id(meshx_provision_dev_t prov_dev)
+{
+    return prov_dev->id;
+}
+
 int32_t meshx_provision_make_key(meshx_provision_dev_t prov_dev)
 {
     if (NULL == prov_dev)

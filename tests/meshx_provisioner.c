@@ -22,6 +22,7 @@
 #include "msg_queue.h"
 #include "meshx_async_internal.h"
 #include "provisioner_cmd.h"
+#include "meshx_cmd_prov.h"
 //#include "meshx_mem.h"
 
 
@@ -208,20 +209,23 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 {
     const meshx_notify_prov_t *pprov = pdata;
+    uint8_t prov_id = meshx_provision_get_device_id(pprov->metadata.prov_dev);
 
     switch (pprov->metadata.notify_type)
     {
     case MESHX_PROV_NOTIFY_LINK_OPEN:
         {
+            meshx_cmd_prov_add_device(pprov->metadata.prov_dev);
             gettimeofday(&tv_prov_begin, NULL);
             const meshx_provision_link_open_result_t *presult = pprov->pdata;
-            meshx_tty_printf("link opened, result: %d\r\n", *presult);
+            meshx_tty_printf("link opened: result %d, id %d\r\n", *presult, prov_id);
         }
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:
         {
+            meshx_cmd_prov_remove_device(pprov->metadata.prov_dev);
             const uint8_t *preason = pprov->pdata;
-            meshx_tty_printf("link closed, reason: %d\r\n", *preason);
+            meshx_tty_printf("link closed: reason %d, id %d\r\n", *preason, prov_id);
         }
         break;
     case MESHX_PROV_NOTIFY_CAPABILITES:

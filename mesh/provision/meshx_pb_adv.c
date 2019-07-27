@@ -1501,6 +1501,8 @@ meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_de
     }
     memset(pdev, 0, sizeof(meshx_pb_adv_dev_t));
 
+    pdev->dev.id = MESHX_ABS(meshx_rand()) % 255;
+
     /* create pb adv timer */
     int32_t ret = meshx_timer_create(&pdev->pb_adv_timer, MESHX_TIMER_MODE_REPEATED,
                                      meshx_pb_adv_timeout_handler, pdev);

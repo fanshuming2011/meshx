@@ -199,6 +199,7 @@ MESHX_EXTERN int32_t meshx_provision_init(void);
 
 MESHX_EXTERN meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
                                                                  meshx_dev_uuid_t dev_uuid, meshx_role_t role);
+MESHX_EXTERN uint8_t meshx_provision_get_device_id(meshx_provision_dev_t prov_dev);
 
 MESHX_EXTERN int32_t meshx_provision_make_key(meshx_provision_dev_t prov_dev);
 MESHX_EXTERN bool meshx_provision_validate_public_key(const meshx_provision_public_key_t *pkey);
