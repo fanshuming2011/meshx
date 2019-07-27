@@ -18,6 +18,9 @@ MESHX_BEGIN_DECLS
  */
 MESHX_EXTERN void meshx_abort(void);
 
+MESHX_EXTERN void meshx_shutdown(void);
+MESHX_EXTERN void meshx_reboot(uint32_t reason);
+
 MESHX_END_DECLS
 
 

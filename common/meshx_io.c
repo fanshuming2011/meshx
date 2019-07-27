@@ -151,11 +151,19 @@ int meshx_vsprintf(io_write pwrite, const char *fmt, va_list args)
                 char hex[HEX_MAX_LEN];
                 memset(hex, 0, HEX_MAX_LEN);
                 uint8_t count = 0;
-                while (num)
+                if (0 == num)
                 {
-                    hex[count] = ("0123456789ABCDEF"[num & 0x0f] | lower_case);
+                    hex[count] = '0';
                     count ++;
-                    num >>= 4;
+                }
+                else
+                {
+                    while (num)
+                    {
+                        hex[count] = ("0123456789ABCDEF"[num & 0x0f] | lower_case);
+                        count ++;
+                        num >>= 4;
+                    }
                 }
                 step_count = output_numner(pwrite, count, width, HEX_MAX_LEN, zeropad, spacepad, hex);
                 if (step_count > 0)

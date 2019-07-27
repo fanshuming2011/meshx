@@ -57,3 +57,13 @@ void meshx_abort(void)
     meshx_exit(1);
 }
 
+void meshx_shutdown(void)
+{
+    meshx_exit(1);
+}
+
+void meshx_reboot(uint32_t reason)
+{
+
+}
+

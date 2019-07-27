@@ -14,6 +14,7 @@ MESHX_BEGIN_DECLS
 
 MESHX_EXTERN int32_t meshx_cmd_help(const meshx_cmd_parsed_data_t *pparsed_data);
 MESHX_EXTERN int32_t meshx_cmd_reboot(const meshx_cmd_parsed_data_t *pparsed_data);
+MESHX_EXTERN int32_t meshx_cmd_shutdown(const meshx_cmd_parsed_data_t *pparsed_data);
 
 
 #define MESHX_CMD_BASE \
@@ -25,9 +26,15 @@ MESHX_EXTERN int32_t meshx_cmd_reboot(const meshx_cmd_parsed_data_t *pparsed_dat
     },\
     {\
         "reboot",\
-        "reboot",\
-        "reboot system",\
+        "reboot <reason>",\
+        "reboot system, use reason field indication reboot reason if supported",\
         meshx_cmd_reboot \
+    },\
+    {\
+        "shutdown",\
+        "shutdown",\
+        "shutdown system",\
+        meshx_cmd_shutdown\
     }
 
 

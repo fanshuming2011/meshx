@@ -993,6 +993,9 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         }
         else
         {
+            /* generate public key */
+            meshx_provision_make_key(prov_dev);
+
             prov_dev->state = MESHX_PROVISION_STATE_CAPABILITES;
             prov_dev->capabilites = pprov_pdu->capabilites;
 
@@ -1046,6 +1049,9 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         }
         else
         {
+            /* generate public key */
+            meshx_provision_make_key(prov_dev);
+
             prov_dev->state = MESHX_PROVISION_STATE_START;
             prov_dev->start = pprov_pdu->start;
             /* notify app start value */

@@ -13,15 +13,46 @@
 MESHX_BEGIN_DECLS
 
 MESHX_EXTERN int32_t meshx_cmd_beacon_scan(const meshx_cmd_parsed_data_t *pparsed_data);
+MESHX_EXTERN int32_t meshx_cmd_prov_scan(const meshx_cmd_parsed_data_t *pparsed_data);
+MESHX_EXTERN int32_t meshx_cmd_prov_conn(const meshx_cmd_parsed_data_t *pparsed_data);
+MESHX_EXTERN int32_t meshx_cmd_prov_invite(const meshx_cmd_parsed_data_t *pparsed_data);
+MESHX_EXTERN int32_t meshx_cmd_prov_capabilites(const meshx_cmd_parsed_data_t *pparsed_data);
+MESHX_EXTERN int32_t meshx_cmd_prov_start(const meshx_cmd_parsed_data_t *pparsed_data);
 
 
 #define MESHX_CMD_PROV \
     {\
-        "bs",\
-        "bs [beacon type]",\
-        "scan device beacons, 0: stop scan 1: scan unprovisioned device beacon 2: scan secure network beacon",\
-        meshx_cmd_beacon_scan \
+        "prov_scan",\
+        "prov_scan [state]",\
+        "scan unprovisioned beacon, state: 0-hide udb 1-show udb",\
+        meshx_cmd_prov_scan,\
+    },\
+    {\
+        "prov_conn",\
+        "prov_conn [uuid]",\
+        "connect unprovisioned device use pb-adv, uuid is plaintext in hex format",\
+        meshx_cmd_prov_conn,\
+    },\
+    {\
+        "prov_invite",\
+        "prov_invite [attention duration]",\
+        "send provision invite pdu.\r\n  attention duration: 0-255",\
+        meshx_cmd_prov_invite,\
+    },\
+    {\
+        "prov_capabilites",\
+        "prov_capabilites [element nums] [public key type] [static oob type] [output oob size] [output oob action] [input oob size] [input oob action]",\
+        "send provision capabilites pdu.\r\n  element nums: 1-255\r\n  public key type: 0(no oob) 1(oob)\r\n  static oob type: 0(not available) 1(available)\r\n  output oob size: 0(not support) 1-8(maximum oob size) 9-255(RFU)\r\n  output oob action: bit0(blink) bit1(beep) bit2(vibrate) bit3(output numeric) bit4(output alpha) bit5-bit15(RFU)\r\n  input oob size: 0(not support) 1-8(maximum oob size) 9-255(RFU)\r\n  input oob action: bit0(push) bit1(twist) bit2(input numeric) bit3(input alpha) bit4-bit15(RFU)",\
+        meshx_cmd_prov_capabilites,\
+    },\
+    {\
+        "prov_start",\
+        "prov_start [algorithm] [public key] [auth method] [auth action] [auth size]",\
+        "provision start",\
+        meshx_cmd_prov_start,\
     }
+
+
 
 
 MESHX_END_DECLS

@@ -9,43 +9,13 @@
 #include "meshx.h"
 #include "meshx_cmd_base.h"
 #include "meshx_cmd_common.h"
-
-bool meshx_show_beacon;
-
-int32_t meshx_cmd_prov_scan(const meshx_cmd_parsed_data_t *pparsed_data)
-{
-    meshx_show_beacon = pparsed_data->param_val[0];
-    return MESHX_SUCCESS;
-}
-
-int32_t meshx_cmd_prov_conn(const meshx_cmd_parsed_data_t *pparsed_data)
-{
-    meshx_bearer_rx_metadata_t rx_meatadata = {.bearer_type = MESHX_BEARER_TYPE_ADV};
-    meshx_dev_uuid_t dev_uuid;
-    meshx_bin2hex(pparsed_data->param_ptr[0], dev_uuid, sizeof(meshx_dev_uuid_t) * 2);
-    meshx_provision_dev_t prov_dev = meshx_provision_create_device(meshx_bearer_get(&rx_meatadata),
-                                                                   dev_uuid, MESHX_ROLE_PROVISIONER);
-    meshx_provision_link_open(prov_dev);
-    return MESHX_SUCCESS;
-}
-
+#include "meshx_cmd_prov.h"
 
 static meshx_cmd_t prov_cmds[] =
 {
     MESHX_CMD_BASE,
     MESHX_CMD_COMMON,
-    {
-        "prov_scan",
-        "prov_scan [state]",
-        "scan unprovisioned beacon, state: 0-hide udb 1-show udb",
-        meshx_cmd_prov_scan,
-    },
-    {
-        "prov_conn",
-        "prov_conn [uuid]",
-        "connect unprovisioned device",
-        meshx_cmd_prov_conn,
-    }
+    MESHX_CMD_PROV,
 };
 
 void provisioner_cmd_init(void)
