@@ -247,8 +247,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_provision_public_key_t));
             meshx_tty_printf("\r\n");
 
-            /* generate random */
-            meshx_provision_generate_random(pprov->metadata.prov_dev);
             /* generate auth value */
             meshx_provision_generate_auth_value(pprov->metadata.prov_dev, NULL, 0);
             /* generate confirmation */

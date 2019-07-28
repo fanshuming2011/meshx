@@ -1014,7 +1014,7 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
         return -MESHX_ERR_DIFF;
     }
 
-    meshx_provision_dev_t prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid, MESHX_ROLE_DEVICE);
+    meshx_provision_dev_t prov_dev = meshx_provision_create_device(bearer, dev_uuid, MESHX_ROLE_DEVICE);
     if (NULL == prov_dev)
     {
         MESHX_ERROR("can't handle link open message now");
