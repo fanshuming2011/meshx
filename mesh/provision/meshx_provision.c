@@ -140,8 +140,13 @@ int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t prov_dev,
         return -MESHX_ERR_INVAL;
     }
 
-    memcpy(prov_dev->public_key, pkey, sizeof(meshx_provision_public_key_t));
+    if (!meshx_provision_validate_public_key(pkey))
+    {
+        MESHX_ERROR("invalid remote public key!");
+        return -MESHX_ERR_INVAL;
+    }
 
+    memcpy(prov_dev->public_key_remote, pkey, sizeof(meshx_provision_public_key_t));
     return MESHX_SUCCESS;
 }
 
@@ -157,10 +162,10 @@ int32_t meshx_provision_generate_auth_value(meshx_provision_dev_t prov_dev,
     int32_t ret = MESHX_SUCCESS;
     switch (prov_dev->start.auth_method)
     {
-    case MESHX_PROVISION_AUTH_METHOD_NO_OOB:
+    case MESHX_PROVISION_START_AUTH_METHOD_NO_OOB:
         memset(&prov_dev->auth_value, 0, sizeof(meshx_provision_auth_value_t));
         break;
-    case MESHX_PROVISION_AUTH_METHOD_STATIC_OOB:
+    case MESHX_PROVISION_START_AUTH_METHOD_STATIC_OOB:
         if ((len >= sizeof(meshx_provision_auth_value_t)) && (NULL != pauth_value))
         {
             memcpy(&prov_dev->auth_value, pauth_value, sizeof(meshx_provision_auth_value_t));
@@ -171,14 +176,14 @@ int32_t meshx_provision_generate_auth_value(meshx_provision_dev_t prov_dev,
             ret = -MESHX_ERR_LENGTH;
         }
         break;
-    case MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB:
-    case MESHX_PROVISION_AUTH_METHOD_INPUT_OOB:
+    case MESHX_PROVISION_START_AUTH_METHOD_OUTPUT_OOB:
+    case MESHX_PROVISION_START_AUTH_METHOD_INPUT_OOB:
         if (NULL != pauth_value)
         {
-            if ((MESHX_PROVISION_AUTH_ACTION_BLINK == prov_dev->start.auth_action) ||
-                (MESHX_PROVISION_AUTH_ACTION_BEEP == prov_dev->start.auth_action) ||
-                (MESHX_PROVISION_AUTH_ACTION_VIBRATE == prov_dev->start.auth_action) ||
-                (MESHX_PROVISION_AUTH_ACTION_OUT_NUMERIC == prov_dev->start.auth_action))
+            if ((MESHX_PROVISION_START_AUTH_ACTION_BLINK == prov_dev->start.auth_action) ||
+                (MESHX_PROVISION_START_AUTH_ACTION_BEEP == prov_dev->start.auth_action) ||
+                (MESHX_PROVISION_START_AUTH_ACTION_VIBRATE == prov_dev->start.auth_action) ||
+                (MESHX_PROVISION_START_AUTH_ACTION_OUT_NUMERIC == prov_dev->start.auth_action))
             {
                 uint32_t value = *((const uint32_t *)pauth_value);
                 for (int8_t i = 15; i > 0; i--)
@@ -836,31 +841,31 @@ static bool meshx_provision_validate_start(meshx_provision_dev_t prov_dev,
                                            const meshx_provision_start_t *pstart)
 {
     /* validate value range */
-    if (pstart->algorithm >= MESHX_PROVISION_CAP_ALGORITHM_P256_CURVE)
+    if (pstart->algorithm > MESHX_PROVISION_START_ALGORITHM_P256_CURVE)
     {
         return FALSE;
     }
 
-    if (pstart->public_key >= MESHX_PROVISION_CAP_PUBLIC_KEY_RFU)
+    if (pstart->public_key > MESHX_PROVISION_START_PUBLIC_KEY_OOB)
     {
         return FALSE;
     }
 
-    if (pstart->auth_method >= MESHX_PROVISION_AUTH_METHOD_PROHIBITED)
+    if (pstart->auth_method >= MESHX_PROVISION_START_AUTH_METHOD_PROHIBITED)
     {
         return FALSE;
     }
 
-    if (pstart->auth_action >= MESHX_PROVISION_AUTH_ACTION_RFU)
+    if (pstart->auth_action >= MESHX_PROVISION_START_AUTH_ACTION_RFU)
     {
         return FALSE;
     }
 
-    if ((pstart->auth_method == MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB) ||
-        (pstart->auth_method == MESHX_PROVISION_AUTH_METHOD_INPUT_OOB))
+    if ((pstart->auth_method == MESHX_PROVISION_START_AUTH_METHOD_OUTPUT_OOB) ||
+        (pstart->auth_method == MESHX_PROVISION_START_AUTH_METHOD_INPUT_OOB))
     {
-        if ((pstart->auth_size < MESHX_PROVISION_AUTH_SIZE_MIN) ||
-            (pstart->auth_size > MESHX_PROVISION_AUTH_SIZE_MAX))
+        if ((pstart->auth_size < MESHX_PROVISION_START_AUTH_SIZE_MIN) ||
+            (pstart->auth_size > MESHX_PROVISION_START_AUTH_SIZE_MAX))
         {
             return FALSE;
         }
@@ -879,14 +884,14 @@ static bool meshx_provision_is_start_supported(meshx_provision_dev_t prov_dev,
         return FALSE;
     }
 
-    if (MESHX_PROVISION_AUTH_METHOD_STATIC_OOB == pstart->auth_method)
+    if (MESHX_PROVISION_START_AUTH_METHOD_STATIC_OOB == pstart->auth_method)
     {
         if (MESHX_PROVISION_CAP_STATIC_OOB_NOT_AVAIABLE == prov_dev->capabilites.static_oob_type)
         {
             return FALSE;
         }
     }
-    else if (MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB == pstart->auth_method)
+    else if (MESHX_PROVISION_START_AUTH_METHOD_OUTPUT_OOB == pstart->auth_method)
     {
         if (MESHX_PROVISION_CAP_NOT_SUPPORT_OUTPUT_OOB == prov_dev->capabilites.output_oob_size)
         {
@@ -910,7 +915,7 @@ static bool meshx_provision_is_start_supported(meshx_provision_dev_t prov_dev,
             }
         }
     }
-    else if (MESHX_PROVISION_AUTH_METHOD_INPUT_OOB == pstart->auth_method)
+    else if (MESHX_PROVISION_START_AUTH_METHOD_INPUT_OOB == pstart->auth_method)
     {
         if (MESHX_PROVISION_CAP_NOT_SUPPORT_INPUT_OOB == prov_dev->capabilites.output_oob_size)
         {

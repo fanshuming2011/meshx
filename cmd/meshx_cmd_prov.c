@@ -127,12 +127,44 @@ int32_t meshx_cmd_prov_start(const meshx_cmd_parsed_data_t *pparsed_data)
     }
 
     meshx_provision_start_t start;
-    start.algorithm = pparsed_data->param_val[1];
-    start.public_key = pparsed_data->param_val[2];
-    start.auth_method = pparsed_data->param_val[3];
-    start.auth_action = pparsed_data->param_val[4];
-    start.auth_size = pparsed_data->param_val[5];
+    start.algorithm = 0;
+    start.public_key = pparsed_data->param_val[1];
+    start.auth_method = pparsed_data->param_val[2];
+    start.auth_action = pparsed_data->param_val[3];
+    start.auth_size = pparsed_data->param_val[4];
     meshx_provision_start(prov_dev, &start);
+
+    return MESHX_SUCCESS;
+}
+
+int32_t meshx_cmd_prov_set_public_key(const meshx_cmd_parsed_data_t *pparsed_data)
+{
+    uint32_t id = pparsed_data->param_val[0];
+    meshx_provision_dev_t prov_dev = meshx_cmd_prov_get_device(id);
+    if (NULL == prov_dev)
+    {
+        return -MESHX_ERR_NOT_FOUND;
+    }
+
+    meshx_provision_public_key_t pub_key;
+    meshx_bin2hex(pparsed_data->param_ptr[1], (uint8_t *)&pub_key,
+                  sizeof(meshx_provision_public_key_t) * 2);
+
+    return meshx_provision_set_remote_public_key(prov_dev, &pub_key);
+}
+
+int32_t meshx_cmd_prov_public_key(const meshx_cmd_parsed_data_t *pparsed_data)
+{
+    uint32_t id = pparsed_data->param_val[0];
+    meshx_provision_dev_t prov_dev = meshx_cmd_prov_get_device(id);
+    if (NULL == prov_dev)
+    {
+        return -MESHX_ERR_NOT_FOUND;
+    }
+
+    meshx_provision_public_key_t pub_key;
+    meshx_provision_get_local_public_key(prov_dev, &pub_key);
+    meshx_provision_public_key(prov_dev, &pub_key);
 
     return MESHX_SUCCESS;
 }

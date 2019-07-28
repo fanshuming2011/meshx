@@ -292,15 +292,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         {
             const meshx_provision_state_t *pstate = pprov->pdata;
             meshx_tty_printf("ack: %d\r\n", *pstate);
-            if (MESHX_PROVISION_STATE_START == *pstate)
-            {
-                meshx_tty_printf("send public key\r\n");
-
-                /* send public key */
-                meshx_provision_public_key_t pub_key;
-                meshx_provision_get_local_public_key(pprov->metadata.prov_dev, &pub_key);
-                meshx_provision_public_key(pprov->metadata.prov_dev, &pub_key);
-            }
         }
         break;
     case MESHX_PROV_NOTIFY_FAILED:

@@ -119,21 +119,26 @@ typedef struct
     uint16_t input_oob_action;
 } __PACKED meshx_provision_capabilites_t;
 
-#define MESHX_PROVISION_AUTH_METHOD_NO_OOB                      0x00
-#define MESHX_PROVISION_AUTH_METHOD_STATIC_OOB                  0x01
-#define MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB                  0x02
-#define MESHX_PROVISION_AUTH_METHOD_INPUT_OOB                   0x03
-#define MESHX_PROVISION_AUTH_METHOD_PROHIBITED                  0x04
+#define MESHX_PROVISION_START_ALGORITHM_P256_CURVE                  0x01
 
-#define MESHX_PROVISION_AUTH_ACTION_BLINK                       0x00
-#define MESHX_PROVISION_AUTH_ACTION_BEEP                        0x01
-#define MESHX_PROVISION_AUTH_ACTION_VIBRATE                     0x02
-#define MESHX_PROVISION_AUTH_ACTION_OUT_NUMERIC                 0x03
-#define MESHX_PROVISION_AUTH_ACTION_OUT_ALPHA                   0x04
-#define MESHX_PROVISION_AUTH_ACTION_RFU                         0x05
+#define MESHX_PROVISION_START_PUBLIC_KEY_NO_OOB                     0x00
+#define MESHX_PROVISION_START_PUBLIC_KEY_OOB                        0x01
 
-#define MESHX_PROVISION_AUTH_SIZE_MIN                           0x01
-#define MESHX_PROVISION_AUTH_SIZE_MAX                           0x08
+#define MESHX_PROVISION_START_AUTH_METHOD_NO_OOB                    0x00
+#define MESHX_PROVISION_START_AUTH_METHOD_STATIC_OOB                0x01
+#define MESHX_PROVISION_START_AUTH_METHOD_OUTPUT_OOB                0x02
+#define MESHX_PROVISION_START_AUTH_METHOD_INPUT_OOB                 0x03
+#define MESHX_PROVISION_START_AUTH_METHOD_PROHIBITED                0x04
+
+#define MESHX_PROVISION_START_AUTH_ACTION_BLINK                     0x00
+#define MESHX_PROVISION_START_AUTH_ACTION_BEEP                      0x01
+#define MESHX_PROVISION_START_AUTH_ACTION_VIBRATE                   0x02
+#define MESHX_PROVISION_START_AUTH_ACTION_OUT_NUMERIC               0x03
+#define MESHX_PROVISION_START_AUTH_ACTION_OUT_ALPHA                 0x04
+#define MESHX_PROVISION_START_AUTH_ACTION_RFU                       0x05
+
+#define MESHX_PROVISION_START_AUTH_SIZE_MIN                         0x01
+#define MESHX_PROVISION_START_AUTH_SIZE_MAX                         0x08
 
 typedef struct
 {

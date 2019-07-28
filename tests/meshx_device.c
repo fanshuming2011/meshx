@@ -226,6 +226,15 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("start: id %d, algorithm %d, public key %d, auth method %d, auth_aciton %d, auth size %d\r\n",
                              prov_id, pstart->algorithm, pstart->public_key, pstart->auth_method, pstart->auth_action,
                              pstart->auth_size);
+            if (MESHX_PROVISION_START_PUBLIC_KEY_OOB == pstart->public_key)
+            {
+                /* dump public key */
+                meshx_tty_printf("my public key:");
+                meshx_provision_public_key_t pub_key;
+                meshx_provision_get_local_public_key(pprov->metadata.prov_dev, &pub_key);
+                meshx_tty_dump((const uint8_t *)&pub_key, sizeof(meshx_provision_public_key_t));
+                meshx_tty_printf("\r\n");
+            }
         }
         break;
     case MESHX_PROV_NOTIFY_PUBLIC_KEY:
