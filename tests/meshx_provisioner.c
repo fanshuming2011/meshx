@@ -56,6 +56,10 @@ static FILE *log_file;
 
 void system_init(void)
 {
+    struct timeval tv_seed;
+    gettimeofday(&tv_seed, NULL);
+    meshx_srand(tv_seed.tv_usec);
+
     mkfifo(FIFO_DSPR, 0777);
     mkfifo(FIFO_PSDR, 0777);
     fd_psdr = open(FIFO_PSDR, O_WRONLY);
@@ -231,9 +235,9 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     case MESHX_PROV_NOTIFY_CAPABILITES:
         {
             const meshx_provision_capabilites_t *pcap = pprov->pdata;
-            meshx_tty_printf("capabilites:");
-            meshx_tty_dump((const uint8_t *)pcap, sizeof(meshx_provision_capabilites_t));
-            meshx_tty_printf("\r\n");
+            meshx_tty_printf("capabilites: id %d, element_nums %d, algorithm %d, public key type %d, static oob type %d, output oob size %d, output oob action %d, input oob size %d, input oob action %d\r\n",
+                             prov_id, pcap->element_nums, pcap->algorithms, pcap->public_key_type, pcap->static_oob_type,
+                             pcap->output_oob_size, pcap->output_oob_action, pcap->input_oob_size, pcap->input_oob_action);
         }
         break;
     case MESHX_PROV_NOTIFY_PUBLIC_KEY:

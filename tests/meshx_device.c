@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
 #include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -53,6 +55,10 @@ static FILE *log_file;
 
 void system_init(void)
 {
+    struct timeval tv_seed;
+    gettimeofday(&tv_seed, NULL);
+    meshx_srand(tv_seed.tv_usec);
+
     mkfifo(FIFO_DSPR, 0777);
     mkfifo(FIFO_PSDR, 0777);
     fd_psdr = open(FIFO_PSDR, O_RDONLY);
@@ -211,15 +217,15 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     case MESHX_PROV_NOTIFY_INVITE:
         {
             const meshx_provision_invite_t *pinvite = pprov->pdata;
-            meshx_tty_printf("invite: %d\r\n", pinvite->attention_duration);
+            meshx_tty_printf("invite: id %d, attention duration %d\r\n", prov_id, pinvite->attention_duration);
         }
         break;
     case MESHX_PROV_NOTIFY_START:
         {
             const meshx_provision_start_t *pstart = pprov->pdata;
-            meshx_tty_printf("start:");
-            meshx_tty_dump((const uint8_t *)pstart, sizeof(meshx_provision_start_t));
-            meshx_tty_printf("\r\n");
+            meshx_tty_printf("start: id %d, algorithm %d, public key %d, auth method %d, auth_aciton %d, auth size %d\r\n",
+                             prov_id, pstart->algorithm, pstart->public_key, pstart->auth_method, pstart->auth_action,
+                             pstart->auth_size);
         }
         break;
     case MESHX_PROV_NOTIFY_PUBLIC_KEY:

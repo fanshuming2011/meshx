@@ -25,6 +25,7 @@
 #include "meshx_notify.h"
 #include "meshx_common.h"
 #include "meshx_mem.h"
+#include "meshx_misc.h"
 
 
 MESHX_BEGIN_DECLS
