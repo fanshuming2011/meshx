@@ -158,8 +158,8 @@ int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t prov_dev,
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_provision_generate_auth_value(meshx_provision_dev_t prov_dev,
-                                            const uint8_t *pauth_value, uint8_t len)
+int32_t meshx_provision_set_auth_value(meshx_provision_dev_t prov_dev,
+                                       const uint8_t *pauth_value, uint8_t len)
 {
     if (NULL == prov_dev)
     {

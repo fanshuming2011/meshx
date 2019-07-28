@@ -245,7 +245,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("\r\n");
 
             /* generate auth value */
-            meshx_provision_generate_auth_value(pprov->metadata.prov_dev, NULL, 0);
+            meshx_provision_set_auth_value(pprov->metadata.prov_dev, NULL, 0);
             /* generate confirmation */
             meshx_provision_random_t random;
             meshx_provision_get_random(pprov->metadata.prov_dev, &random);

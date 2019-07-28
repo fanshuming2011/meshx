@@ -23,6 +23,9 @@ MESHX_EXTERN int32_t meshx_cmd_prov_capabilites(const meshx_cmd_parsed_data_t *p
 MESHX_EXTERN int32_t meshx_cmd_prov_start(const meshx_cmd_parsed_data_t *pparsed_data);
 MESHX_EXTERN int32_t meshx_cmd_prov_set_public_key(const meshx_cmd_parsed_data_t *pparsed_data);
 MESHX_EXTERN int32_t meshx_cmd_prov_public_key(const meshx_cmd_parsed_data_t *pparsed_data);
+MESHX_EXTERN int32_t meshx_cmd_prov_set_auth(const meshx_cmd_parsed_data_t *pparsed_data);
+MESHX_EXTERN int32_t meshx_cmd_prov_confirmation(const meshx_cmd_parsed_data_t *pparsed_data);
+MESHX_EXTERN int32_t meshx_cmd_prov_random(const meshx_cmd_parsed_data_t *pparsed_data);
 
 
 #define MESHX_CMD_PROV \
@@ -67,6 +70,24 @@ MESHX_EXTERN int32_t meshx_cmd_prov_public_key(const meshx_cmd_parsed_data_t *pp
         "prov_pub_key [prov_id]",\
         "send provision public key pdu.",\
         meshx_cmd_prov_public_key,\
+    },\
+    {\
+        "prov_set_auth",\
+        "prov_set_auth [prov_id] [auth]",\
+        "set provision auth value, auth value is plaintext",\
+        meshx_cmd_prov_set_auth,\
+    },\
+    {\
+        "prov_cfm",\
+        "prov_cfm [prov_id]",\
+        "send provision confirmation pdu.",\
+        meshx_cmd_prov_confirmation,\
+    },\
+    {\
+        "prov_random",\
+        "prov_random [prov_id]",\
+        "send provision random pdu.",\
+        meshx_cmd_prov_random,\
     }
 
 
