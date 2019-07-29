@@ -179,11 +179,50 @@ int32_t meshx_cmd_prov_set_auth(const meshx_cmd_parsed_data_t *pparsed_data)
         return -MESHX_ERR_NOT_FOUND;
     }
 
-    uint8_t auth_value[16];
-    uint8_t value_len = strlen(pparsed_data->param_ptr[1]);
-    meshx_bin2hex(pparsed_data->param_ptr[1], auth_value, value_len);
+    meshx_provision_auth_value_t auth_value;
+    memset(&auth_value, 0, sizeof(meshx_provision_auth_value_t));
+    switch (pparsed_data->param_val[1])
+    {
+    case 0:
+        /* no oob */
+        auth_value.auth_method = MESHX_PROVISION_AUTH_METHOD_NO_OOB;
+        break;
+    case 1:
+        /* static oob */
+        auth_value.auth_method = MESHX_PROVISION_AUTH_METHOD_STATIC_OOB;
+        uint8_t value_len = strlen(pparsed_data->param_ptr[3]);
+        meshx_bin2hex(pparsed_data->param_ptr[3], auth_value.static_oob.auth_value, value_len);
+        break;
+    case 2:
+        /* input or output oob, they are the same, so use output oob */
+        auth_value.auth_method = MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB;
+        if (0 == pparsed_data->param_val[2])
+        {
+            /* blink/beep/vibrate/numeric */
+            auth_value.oob.auth_action = MESHX_PROVISION_AUTH_ACTION_OUT_NUMERIC;
+            auth_value.oob.auth_value_numeric = pparsed_data->param_val[3];
+        }
+        else if (1 == pparsed_data->param_val[2])
+        {
+            /* alpha */
+            auth_value.oob.auth_action = MESHX_PROVISION_AUTH_ACTION_OUT_ALPHA;
+            auth_value.oob.auth_value_alpha_len = strlen(pparsed_data->param_ptr[3]);
+            memcpy(auth_value.oob.auth_value_alpha, pparsed_data->param_ptr[3],
+                   auth_value.oob.auth_value_alpha_len);
+        }
+        else
+        {
+            return -MESHX_ERR_INVAL;
+        }
+        break;
+    default:
+        return -MESHX_ERR_INVAL;
+        break;
+    }
+
     /* generate auth value */
-    meshx_provision_set_auth_value(prov_dev, auth_value, value_len);
+    meshx_provision_set_auth_value(prov_dev, &auth_value);
+
     /* generate confirmation */
     meshx_provision_random_t random;
     meshx_provision_get_random(prov_dev, &random);
@@ -201,6 +240,10 @@ int32_t meshx_cmd_prov_confirmation(const meshx_cmd_parsed_data_t *pparsed_data)
         return -MESHX_ERR_NOT_FOUND;
     }
 
+    meshx_provision_confirmation_t cfm;
+    meshx_provision_get_confirmation(prov_dev, &cfm);
+    meshx_provision_confirmation(prov_dev, &cfm);
+
     return MESHX_SUCCESS;
 }
 
@@ -212,6 +255,10 @@ int32_t meshx_cmd_prov_random(const meshx_cmd_parsed_data_t *pparsed_data)
     {
         return -MESHX_ERR_NOT_FOUND;
     }
+
+    meshx_provision_random_t random;
+    meshx_provision_get_random(prov_dev, &random);
+    meshx_provision_random(prov_dev, &random);
 
     return MESHX_SUCCESS;
 }

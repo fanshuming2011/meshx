@@ -119,26 +119,26 @@ typedef struct
     uint16_t input_oob_action;
 } __PACKED meshx_provision_capabilites_t;
 
-#define MESHX_PROVISION_START_ALGORITHM_P256_CURVE                  0x01
+#define MESHX_PROVISION_ALGORITHM_P256_CURVE                  0x01
 
-#define MESHX_PROVISION_START_PUBLIC_KEY_NO_OOB                     0x00
-#define MESHX_PROVISION_START_PUBLIC_KEY_OOB                        0x01
+#define MESHX_PROVISION_PUBLIC_KEY_NO_OOB                     0x00
+#define MESHX_PROVISION_PUBLIC_KEY_OOB                        0x01
 
-#define MESHX_PROVISION_START_AUTH_METHOD_NO_OOB                    0x00
-#define MESHX_PROVISION_START_AUTH_METHOD_STATIC_OOB                0x01
-#define MESHX_PROVISION_START_AUTH_METHOD_OUTPUT_OOB                0x02
-#define MESHX_PROVISION_START_AUTH_METHOD_INPUT_OOB                 0x03
-#define MESHX_PROVISION_START_AUTH_METHOD_PROHIBITED                0x04
+#define MESHX_PROVISION_AUTH_METHOD_NO_OOB                    0x00
+#define MESHX_PROVISION_AUTH_METHOD_STATIC_OOB                0x01
+#define MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB                0x02
+#define MESHX_PROVISION_AUTH_METHOD_INPUT_OOB                 0x03
+#define MESHX_PROVISION_AUTH_METHOD_PROHIBITED                0x04
 
-#define MESHX_PROVISION_START_AUTH_ACTION_BLINK                     0x00
-#define MESHX_PROVISION_START_AUTH_ACTION_BEEP                      0x01
-#define MESHX_PROVISION_START_AUTH_ACTION_VIBRATE                   0x02
-#define MESHX_PROVISION_START_AUTH_ACTION_OUT_NUMERIC               0x03
-#define MESHX_PROVISION_START_AUTH_ACTION_OUT_ALPHA                 0x04
-#define MESHX_PROVISION_START_AUTH_ACTION_RFU                       0x05
+#define MESHX_PROVISION_AUTH_ACTION_BLINK                     0x00
+#define MESHX_PROVISION_AUTH_ACTION_BEEP                      0x01
+#define MESHX_PROVISION_AUTH_ACTION_VIBRATE                   0x02
+#define MESHX_PROVISION_AUTH_ACTION_OUT_NUMERIC               0x03
+#define MESHX_PROVISION_AUTH_ACTION_OUT_ALPHA                 0x04
+#define MESHX_PROVISION_AUTH_ACTION_RFU                       0x05
 
-#define MESHX_PROVISION_START_AUTH_SIZE_MIN                         0x01
-#define MESHX_PROVISION_START_AUTH_SIZE_MAX                         0x08
+#define MESHX_PROVISION_AUTH_SIZE_MIN                         0x01
+#define MESHX_PROVISION_AUTH_SIZE_MAX                         0x08
 
 typedef struct
 {
@@ -168,7 +168,31 @@ typedef struct
 typedef struct
 {
     uint8_t auth_value[16];
-} __PACKED meshx_provision_auth_value_t;
+} meshx_provision_auth_value_static_oob_t;
+
+typedef struct
+{
+    uint8_t auth_action;
+    union
+    {
+        uint32_t auth_value_numeric;
+        struct
+        {
+            uint8_t auth_value_alpha[8];
+            uint8_t auth_value_alpha_len;
+        };
+    };
+} meshx_provision_auth_value_oob_t;
+
+typedef struct
+{
+    uint8_t auth_method;
+    union
+    {
+        meshx_provision_auth_value_static_oob_t static_oob;
+        meshx_provision_auth_value_oob_t oob;
+    };
+} meshx_provision_auth_value_t;
 
 typedef struct
 {
@@ -213,7 +237,7 @@ MESHX_EXTERN int32_t meshx_provision_get_local_public_key(meshx_provision_dev_t 
 MESHX_EXTERN int32_t meshx_provision_set_remote_public_key(meshx_provision_dev_t prov_dev,
                                                            const meshx_provision_public_key_t *pkey);
 MESHX_EXTERN int32_t meshx_provision_set_auth_value(meshx_provision_dev_t prov_dev,
-                                                    const uint8_t *pauth_value, uint8_t len);
+                                                    const meshx_provision_auth_value_t *pauth_value);
 
 MESHX_EXTERN int32_t meshx_provision_generate_random(meshx_provision_dev_t prov_dev);
 MESHX_EXTERN int32_t meshx_provision_get_random(meshx_provision_dev_t prov_dev,

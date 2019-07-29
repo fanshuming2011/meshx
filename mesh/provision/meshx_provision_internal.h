@@ -33,7 +33,7 @@ struct _meshx_provision_dev
     meshx_provision_invite_t invite;
     meshx_provision_capabilites_t capabilites;
     meshx_provision_start_t start;
-    meshx_provision_auth_value_t auth_value;
+    uint8_t auth_value[16];
     meshx_provision_confirmation_t confirmation_remote;
     meshx_provision_confirmation_t confirmation;
     meshx_provision_random_t random;

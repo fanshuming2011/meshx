@@ -73,8 +73,8 @@ MESHX_EXTERN int32_t meshx_cmd_prov_random(const meshx_cmd_parsed_data_t *pparse
     },\
     {\
         "prov_set_auth",\
-        "prov_set_auth [prov_id] [auth]",\
-        "set provision auth value, auth value is plaintext",\
+        "prov_set_auth [prov_id] [mode] [auth action] [auth value]",\
+        "set provision auth value.\r\n  mode: 0(no oob) 1(static oob) 2(input/output oob)\r\n  action: 0(blink/beep/vibrate/numeric) 1(alpha), ignore this field if mode is 0 or 1\r\n  auth value: numeric(mode is 2 and action is 0) hex bin(mode is 1) alpha string(mode is 2 and action is 1)",\
         meshx_cmd_prov_set_auth,\
     },\
     {\

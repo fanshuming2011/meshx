@@ -246,18 +246,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("public key:");
             meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_provision_public_key_t));
             meshx_tty_printf("\r\n");
-
-            /* generate auth value */
-            meshx_provision_set_auth_value(pprov->metadata.prov_dev, NULL, 0);
-            /* generate confirmation */
-            meshx_provision_random_t random;
-            meshx_provision_get_random(pprov->metadata.prov_dev, &random);
-            meshx_provision_generate_confirmation(pprov->metadata.prov_dev, &random);
-
-            /* send confirmation */
-            meshx_provision_confirmation_t cfm;
-            meshx_provision_get_confirmation(pprov->metadata.prov_dev, &cfm);
-            meshx_provision_confirmation(pprov->metadata.prov_dev, &cfm);
         }
         break;
     case MESHX_PROV_NOTIFY_CONFIRMATION:

@@ -195,6 +195,8 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 
 static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 {
+    static uint8_t auth_method;
+    static uint8_t auth_action;
     const meshx_notify_prov_t *pprov = pdata;
     uint8_t prov_id = meshx_provision_get_device_id(pprov->metadata.prov_dev);
 
@@ -226,7 +228,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("start: id %d, algorithm %d, public key %d, auth method %d, auth_aciton %d, auth size %d\r\n",
                              prov_id, pstart->algorithm, pstart->public_key, pstart->auth_method, pstart->auth_action,
                              pstart->auth_size);
-            if (MESHX_PROVISION_START_PUBLIC_KEY_OOB == pstart->public_key)
+            if (MESHX_PROVISION_PUBLIC_KEY_OOB == pstart->public_key)
             {
                 /* dump public key */
                 meshx_tty_printf("my public key:");
@@ -235,6 +237,8 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
                 meshx_tty_dump((const uint8_t *)&pub_key, sizeof(meshx_provision_public_key_t));
                 meshx_tty_printf("\r\n");
             }
+            auth_method = pstart->auth_method;
+            auth_action = pstart->auth_action;
         }
         break;
     case MESHX_PROV_NOTIFY_PUBLIC_KEY:
@@ -244,12 +248,25 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_provision_public_key_t));
             meshx_tty_printf("\r\n");
 
-            /* generate auth value */
-            meshx_provision_set_auth_value(pprov->metadata.prov_dev, NULL, 0);
-            /* generate confirmation */
-            meshx_provision_random_t random;
-            meshx_provision_get_random(pprov->metadata.prov_dev, &random);
-            meshx_provision_generate_confirmation(pprov->metadata.prov_dev, &random);
+            if (MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB == auth_method)
+            {
+                switch (auth_action)
+                {
+                case MESHX_PROVISION_AUTH_ACTION_BLINK:
+                case MESHX_PROVISION_AUTH_ACTION_BEEP:
+                case MESHX_PROVISION_AUTH_ACTION_VIBRATE:
+                    meshx_tty_printf("auth value numeric: 5");
+                    break;
+                case MESHX_PROVISION_AUTH_ACTION_OUT_NUMERIC:
+                    meshx_tty_printf("auth value numeric: 019655");
+                    break;
+                case MESHX_PROVISION_AUTH_ACTION_OUT_ALPHA:
+                    meshx_tty_printf("auth value alpha: 123ABC");
+                    break;
+                default:
+                    break;
+                }
+            }
         }
         break;
     case MESHX_PROV_NOTIFY_CONFIRMATION:
