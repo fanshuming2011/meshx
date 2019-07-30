@@ -190,7 +190,7 @@ int32_t meshx_provision_set_auth_value(meshx_provision_dev_t prov_dev,
             if ((MESHX_PROVISION_AUTH_ACTION_BLINK == pauth_value->oob.auth_action) ||
                 (MESHX_PROVISION_AUTH_ACTION_BEEP == pauth_value->oob.auth_action) ||
                 (MESHX_PROVISION_AUTH_ACTION_VIBRATE == pauth_value->oob.auth_action) ||
-                (MESHX_PROVISION_AUTH_ACTION_OUT_NUMERIC == pauth_value->oob.auth_action))
+                (MESHX_PROVISION_AUTH_ACTION_OUTPUT_NUMERIC == pauth_value->oob.auth_action))
             {
                 uint32_t value = pauth_value->oob.auth_value_numeric;
                 for (int8_t i = 15; i > 0; i--)
@@ -358,6 +358,28 @@ int32_t meshx_provision_get_confirmation(meshx_provision_dev_t prov_dev,
     memcpy(pcfm, &prov_dev->confirmation, sizeof(meshx_provision_confirmation_t));
 
     return MESHX_SUCCESS;
+}
+
+uint8_t meshx_provision_get_auth_method(meshx_provision_dev_t prov_dev)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("provision deivce value is NULL");
+        return MESHX_PROVISION_AUTH_METHOD_PROHIBITED;
+    }
+
+    return prov_dev->start.auth_method;
+}
+
+uint8_t meshx_provision_get_auth_action(meshx_provision_dev_t prov_dev)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("provision deivce value is NULL");
+        return MESHX_PROVISION_AUTH_ACTION_OUTPUT_RFU;
+    }
+
+    return prov_dev->start.auth_action;
 }
 
 static bool meshx_provision_verify_confirmation(meshx_provision_dev_t prov_dev)
@@ -638,6 +660,39 @@ int32_t meshx_provision_public_key(meshx_provision_dev_t prov_dev,
     return ret;
 }
 
+int32_t meshx_provision_input_complete(meshx_provision_dev_t prov_dev)
+{
+    if (NULL == prov_dev)
+    {
+        MESHX_ERROR("provision device value is NULL");
+        return -MESHX_ERR_INVAL;
+    }
+
+    if ((prov_dev->state < MESHX_PROVISION_STATE_PUBLIC_KEY) ||
+        (prov_dev->state > MESHX_PROVISION_STATE_INPUT_COMPLETE))
+    {
+        MESHX_ERROR("invalid state: %d", prov_dev->state);
+        return -MESHX_ERR_STATE;
+    }
+
+    prov_dev->state = MESHX_PROVISION_STATE_INPUT_COMPLETE;
+    int32_t ret = MESHX_SUCCESS;
+    switch (prov_dev->bearer->type)
+    {
+    case MESHX_BEARER_TYPE_ADV:
+        ret = meshx_pb_adv_input_complete(prov_dev);
+        break;
+    case MESHX_BEARER_TYPE_GATT:
+        break;
+    default:
+        MESHX_WARN("invalid bearer type: %d", prov_dev->bearer->type);
+        ret = -MESHX_ERR_INVAL;
+        break;
+    }
+
+    return ret;
+}
+
 int32_t meshx_provision_confirmation(meshx_provision_dev_t prov_dev,
                                      const meshx_provision_confirmation_t *pcfm)
 {
@@ -879,7 +934,14 @@ static bool meshx_provision_validate_start(meshx_provision_dev_t prov_dev,
         return FALSE;
     }
 
-    if (pstart->auth_action >= MESHX_PROVISION_AUTH_ACTION_RFU)
+    if ((pstart->auth_method == MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB) &&
+        (pstart->auth_action >= MESHX_PROVISION_AUTH_ACTION_OUTPUT_RFU))
+    {
+        return FALSE;
+    }
+
+    if ((pstart->auth_method == MESHX_PROVISION_AUTH_METHOD_INPUT_OOB) &&
+        (pstart->auth_action >= MESHX_PROVISION_AUTH_ACTION_INPUT_RFU))
     {
         return FALSE;
     }
@@ -926,13 +988,9 @@ static bool meshx_provision_is_start_supported(meshx_provision_dev_t prov_dev,
         }
         else
         {
-            uint16_t auth_action = pstart->auth_action;
-            if (0 != auth_action)
-            {
-                auth_action = (1 << (auth_action - 1));
-            }
-
-            if (0 == (auth_action & prov_dev->capabilites.output_oob_action))
+            uint16_t auth_action = (1 << pstart->auth_action);
+            uint16_t output_oob_action = MESHX_BE16_TO_HOST(prov_dev->capabilites.output_oob_action);
+            if (0 == (auth_action & output_oob_action))
             {
                 return FALSE;
             }
@@ -940,7 +998,7 @@ static bool meshx_provision_is_start_supported(meshx_provision_dev_t prov_dev,
     }
     else if (MESHX_PROVISION_AUTH_METHOD_INPUT_OOB == pstart->auth_method)
     {
-        if (MESHX_PROVISION_CAP_NOT_SUPPORT_INPUT_OOB == prov_dev->capabilites.output_oob_size)
+        if (MESHX_PROVISION_CAP_NOT_SUPPORT_INPUT_OOB == prov_dev->capabilites.input_oob_size)
         {
             return FALSE;
         }
@@ -950,13 +1008,10 @@ static bool meshx_provision_is_start_supported(meshx_provision_dev_t prov_dev,
         }
         else
         {
-            uint16_t auth_action = pstart->auth_action;
-            if (0 != auth_action)
-            {
-                auth_action = (1 << (auth_action - 1));
-            }
+            uint16_t auth_action = (1 << pstart->auth_action);
+            uint16_t input_oob_action = MESHX_BE16_TO_HOST(prov_dev->capabilites.input_oob_action);
 
-            if (0 == (auth_action & prov_dev->capabilites.input_oob_action))
+            if (0 == (auth_action & input_oob_action))
             {
                 return FALSE;
             }
@@ -1145,9 +1200,37 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             }
         }
         break;
+#if MESHX_SUPPORT_ROLE_DEVICE
     case MESHX_PROVISION_TYPE_INPUT_COMPLETE:
         MESHX_DEBUG("processing input complete");
+        if (len < sizeof(meshx_provision_pdu_metadata_t))
+        {
+            /* provision failed: invalid format */
+            MESHX_ERROR("invalid input complete pdu length: %d", len);
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_INVALID_FORMAT);
+            ret = -MESHX_ERR_LENGTH;
+        }
+        else if (prov_dev->state > MESHX_PROVISION_STATE_INPUT_COMPLETE)
+        {
+            MESHX_ERROR("invalid state in processing input complete: %d", prov_dev->state);
+            /* send provision failed */
+            meshx_provision_failed(prov_dev, MESHX_PROVISION_FAILED_UNEXPECTED_PDU);
+            ret = -MESHX_ERR_STATE;
+        }
+        else
+        {
+            prov_dev->state = MESHX_PROVISION_STATE_INPUT_COMPLETE;
+            /* notify app complete value */
+            meshx_notify_prov_t notify_prov;
+            notify_prov.metadata.prov_dev = prov_dev;
+            notify_prov.metadata.notify_type = MESHX_PROV_NOTIFY_INPUT_COMPLETE;
+            notify_prov.pdata = NULL;
+            meshx_notify(prov_dev->bearer, MESHX_NOTIFY_TYPE_PROV, &notify_prov,
+                         sizeof(meshx_notify_prov_metadata_t));
+        }
         break;
+#endif
     case MESHX_PROVISION_TYPE_CONFIRMATION:
         MESHX_DEBUG("processing confirmation");
         if (len < sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_confirmation_t))

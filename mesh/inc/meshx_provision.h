@@ -42,6 +42,7 @@ typedef enum
     MESHX_PROVISION_STATE_CAPABILITES,
     MESHX_PROVISION_STATE_START,
     MESHX_PROVISION_STATE_PUBLIC_KEY,
+    MESHX_PROVISION_STATE_INPUT_COMPLETE,
     MESHX_PROVISION_STATE_CONFIRMATION,
     MESHX_PROVISION_STATE_RANDOM,
     MESHX_PROVISION_STATE_DATA,
@@ -130,12 +131,20 @@ typedef struct
 #define MESHX_PROVISION_AUTH_METHOD_INPUT_OOB                 0x03
 #define MESHX_PROVISION_AUTH_METHOD_PROHIBITED                0x04
 
+/* output oob action */
 #define MESHX_PROVISION_AUTH_ACTION_BLINK                     0x00
 #define MESHX_PROVISION_AUTH_ACTION_BEEP                      0x01
 #define MESHX_PROVISION_AUTH_ACTION_VIBRATE                   0x02
-#define MESHX_PROVISION_AUTH_ACTION_OUT_NUMERIC               0x03
-#define MESHX_PROVISION_AUTH_ACTION_OUT_ALPHA                 0x04
-#define MESHX_PROVISION_AUTH_ACTION_RFU                       0x05
+#define MESHX_PROVISION_AUTH_ACTION_OUTPUT_NUMERIC            0x03
+#define MESHX_PROVISION_AUTH_ACTION_OUTPUT_ALPHA              0x04
+#define MESHX_PROVISION_AUTH_ACTION_OUTPUT_RFU                0x05
+
+/* input oob action */
+#define MESHX_PROVISION_AUTH_ACTION_PUSH                      0x00
+#define MESHX_PROVISION_AUTH_ACTION_TWIST                     0x01
+#define MESHX_PROVISION_AUTH_ACTION_INPUT_NUMERIC             0x02
+#define MESHX_PROVISION_AUTH_ACTION_INPUT_ALPHA               0x03
+#define MESHX_PROVISION_AUTH_ACTION_INPUT_RFU                 0x04
 
 #define MESHX_PROVISION_AUTH_SIZE_MIN                         0x01
 #define MESHX_PROVISION_AUTH_SIZE_MAX                         0x08
@@ -247,6 +256,8 @@ MESHX_EXTERN int32_t meshx_provision_generate_confirmation(meshx_provision_dev_t
 MESHX_EXTERN int32_t meshx_provision_get_confirmation(meshx_provision_dev_t prov_dev,
                                                       meshx_provision_confirmation_t *pcfm);
 
+MESHX_EXTERN uint8_t meshx_provision_get_auth_method(meshx_provision_dev_t prov_dev);
+MESHX_EXTERN uint8_t meshx_provision_get_auth_action(meshx_provision_dev_t prov_dev);
 
 MESHX_EXTERN int32_t meshx_provision_link_open(meshx_provision_dev_t prov_dev);
 MESHX_EXTERN int32_t meshx_provision_link_close(meshx_provision_dev_t prov_dev, uint8_t reason);
@@ -259,6 +270,7 @@ MESHX_EXTERN int32_t meshx_provision_start(meshx_provision_dev_t prov_dev,
                                            const meshx_provision_start_t *pstart);
 MESHX_EXTERN int32_t meshx_provision_public_key(meshx_provision_dev_t prov_dev,
                                                 const meshx_provision_public_key_t *ppub_key);
+MESHX_EXTERN int32_t meshx_provision_input_complete(meshx_provision_dev_t prov_dev);
 MESHX_EXTERN int32_t meshx_provision_confirmation(meshx_provision_dev_t prov_dev,
                                                   const meshx_provision_confirmation_t *pcfm);
 MESHX_EXTERN int32_t meshx_provision_random(meshx_provision_dev_t prov_dev,

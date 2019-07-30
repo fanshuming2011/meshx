@@ -195,8 +195,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 
 static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 {
-    static uint8_t auth_method;
-    static uint8_t auth_action;
     const meshx_notify_prov_t *pprov = pdata;
     uint8_t prov_id = meshx_provision_get_device_id(pprov->metadata.prov_dev);
 
@@ -237,8 +235,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
                 meshx_tty_dump((const uint8_t *)&pub_key, sizeof(meshx_provision_public_key_t));
                 meshx_tty_printf("\r\n");
             }
-            auth_method = pstart->auth_method;
-            auth_action = pstart->auth_action;
         }
         break;
     case MESHX_PROV_NOTIFY_PUBLIC_KEY:
@@ -248,20 +244,21 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_provision_public_key_t));
             meshx_tty_printf("\r\n");
 
-            if (MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB == auth_method)
+            if (MESHX_PROVISION_AUTH_METHOD_OUTPUT_OOB == meshx_provision_get_auth_method(
+                    pprov->metadata.prov_dev))
             {
-                switch (auth_action)
+                switch (meshx_provision_get_auth_action(pprov->metadata.prov_dev))
                 {
                 case MESHX_PROVISION_AUTH_ACTION_BLINK:
                 case MESHX_PROVISION_AUTH_ACTION_BEEP:
                 case MESHX_PROVISION_AUTH_ACTION_VIBRATE:
-                    meshx_tty_printf("auth value numeric: 5");
+                    meshx_tty_printf("auth value numeric: 5\r\n");
                     break;
-                case MESHX_PROVISION_AUTH_ACTION_OUT_NUMERIC:
-                    meshx_tty_printf("auth value numeric: 019655");
+                case MESHX_PROVISION_AUTH_ACTION_OUTPUT_NUMERIC:
+                    meshx_tty_printf("auth value numeric: 019655\r\n");
                     break;
-                case MESHX_PROVISION_AUTH_ACTION_OUT_ALPHA:
-                    meshx_tty_printf("auth value alpha: 123ABC");
+                case MESHX_PROVISION_AUTH_ACTION_OUTPUT_ALPHA:
+                    meshx_tty_printf("auth value alpha: 123ABC\r\n");
                     break;
                 default:
                     break;

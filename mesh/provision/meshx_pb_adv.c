@@ -30,7 +30,7 @@
 /* maximum trans segment number */
 #define MESHX_TRANS_SEG_NUM_MAX                        0x40
 
-#define MESHX_LINK_LOSS_TIME                           60000 /* unit is ms */
+#define MESHX_LINK_LOSS_TIME                           600000 /* unit is ms */
 #define MESHX_LINK_OPEN_RETRY_PERIOD                   200 /* unit is ms */
 #define MESHX_LINK_CLOSE_RETRY_PERIOD                  20 /* unit is ms */
 #define MESHX_LINK_CLOSE_TIME                          90 /* unit is ms */
@@ -351,6 +351,19 @@ static int32_t pb_adv_public_key(meshx_bearer_t bearer, uint32_t link_id, uint8_
                              sizeof(meshx_provision_pdu_metadata_t) + sizeof(meshx_provision_public_key_t));
 }
 
+#if MESHX_SUPPORT_ROLE_PROVISIONER
+static int32_t pb_adv_input_complete(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num)
+{
+    MESHX_INFO("input complete");
+
+    meshx_provision_pdu_t prov_pdu;
+    prov_pdu.metadata.type = MESHX_PROVISION_TYPE_INPUT_COMPLETE;
+    prov_pdu.metadata.padding = 0;
+    return pb_adv_send_trans(bearer, link_id, trans_num, (const uint8_t *)&prov_pdu,
+                             sizeof(meshx_provision_pdu_metadata_t));
+}
+#endif
+
 static int32_t pb_adv_confirmation(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num,
                                    const meshx_provision_confirmation_t *pcfm)
 {
@@ -487,6 +500,9 @@ static void meshx_pb_adv_handle_delay(meshx_pb_adv_dev_t *pdev)
             pb_adv_public_key(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
                               (const meshx_provision_public_key_t *)&pdev->dev.public_key);
             break;
+        case MESHX_PROVISION_STATE_INPUT_COMPLETE:
+            pb_adv_input_complete(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num);
+            break;
         case MESHX_PROVISION_STATE_CONFIRMATION:
             pb_adv_confirmation(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, &pdev->dev.confirmation);
             break;
@@ -606,6 +622,9 @@ static void meshx_pb_adv_handle_retry(meshx_pb_adv_dev_t *pdev)
         case MESHX_PROVISION_STATE_PUBLIC_KEY:
             pb_adv_public_key(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num,
                               (const meshx_provision_public_key_t *)&pdev->dev.public_key);
+            break;
+        case MESHX_PROVISION_STATE_INPUT_COMPLETE:
+            pb_adv_input_complete(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num);
             break;
         case MESHX_PROVISION_STATE_CONFIRMATION:
             pb_adv_confirmation(pdev->dev.bearer, pdev->link_id, pdev->tx_trans_num, &pdev->dev.confirmation);
@@ -903,6 +922,20 @@ int32_t meshx_pb_adv_public_key(meshx_provision_dev_t prov_dev)
     {
         meshx_prov_require_trans_num(pdev);
     }
+
+    /* start timer for delay */
+    pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;
+    pdev->timer_delay_type = MESHX_PB_ADV_TIMER_DELAY_TYPE_PROV_PDU;
+    meshx_timer_start(pdev->pb_adv_timer, meshx_pb_adv_rand());
+
+    return MESHX_SUCCESS;
+}
+
+int32_t meshx_pb_adv_input_complete(meshx_provision_dev_t prov_dev)
+{
+    MESHX_ASSERT(NULL != prov_dev);
+    meshx_pb_adv_dev_t *pdev = (meshx_pb_adv_dev_t *)prov_dev;
+    meshx_dev_require_trans_num(pdev);
 
     /* start timer for delay */
     pdev->timer_state = MESHX_PB_ADV_TIMER_STATE_DELAY;

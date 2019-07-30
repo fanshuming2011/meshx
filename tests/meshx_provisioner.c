@@ -246,7 +246,30 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("public key:");
             meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_provision_public_key_t));
             meshx_tty_printf("\r\n");
+
+            if (MESHX_PROVISION_AUTH_METHOD_INPUT_OOB == meshx_provision_get_auth_method(
+                    pprov->metadata.prov_dev))
+            {
+                switch (meshx_provision_get_auth_action(pprov->metadata.prov_dev))
+                {
+                case MESHX_PROVISION_AUTH_ACTION_PUSH:
+                case MESHX_PROVISION_AUTH_ACTION_TWIST:
+                    meshx_tty_printf("auth value numeric: 5\r\n");
+                    break;
+                case MESHX_PROVISION_AUTH_ACTION_INPUT_NUMERIC:
+                    meshx_tty_printf("auth value numeric: 019655\r\n");
+                    break;
+                case MESHX_PROVISION_AUTH_ACTION_INPUT_ALPHA:
+                    meshx_tty_printf("auth value alpha: 123ABC\r\n");
+                    break;
+                default:
+                    break;
+                }
+            }
         }
+        break;
+    case MESHX_PROV_NOTIFY_INPUT_COMPLETE:
+        meshx_tty_printf("input complete\r\n");
         break;
     case MESHX_PROV_NOTIFY_CONFIRMATION:
         {

@@ -199,13 +199,13 @@ int32_t meshx_cmd_prov_set_auth(const meshx_cmd_parsed_data_t *pparsed_data)
         if (0 == pparsed_data->param_val[2])
         {
             /* blink/beep/vibrate/numeric */
-            auth_value.oob.auth_action = MESHX_PROVISION_AUTH_ACTION_OUT_NUMERIC;
+            auth_value.oob.auth_action = MESHX_PROVISION_AUTH_ACTION_OUTPUT_NUMERIC;
             auth_value.oob.auth_value_numeric = pparsed_data->param_val[3];
         }
         else if (1 == pparsed_data->param_val[2])
         {
             /* alpha */
-            auth_value.oob.auth_action = MESHX_PROVISION_AUTH_ACTION_OUT_ALPHA;
+            auth_value.oob.auth_action = MESHX_PROVISION_AUTH_ACTION_OUTPUT_ALPHA;
             auth_value.oob.auth_value_alpha_len = strlen(pparsed_data->param_ptr[3]);
             memcpy(auth_value.oob.auth_value_alpha, pparsed_data->param_ptr[3],
                    auth_value.oob.auth_value_alpha_len);
@@ -227,6 +227,20 @@ int32_t meshx_cmd_prov_set_auth(const meshx_cmd_parsed_data_t *pparsed_data)
     meshx_provision_random_t random;
     meshx_provision_get_random(prov_dev, &random);
     meshx_provision_generate_confirmation(prov_dev, &random);
+
+    return MESHX_SUCCESS;
+}
+
+int32_t meshx_cmd_prov_input_complete(const meshx_cmd_parsed_data_t *pparsed_data)
+{
+    uint32_t id = pparsed_data->param_val[0];
+    meshx_provision_dev_t prov_dev = meshx_cmd_prov_get_device(id);
+    if (NULL == prov_dev)
+    {
+        return -MESHX_ERR_NOT_FOUND;
+    }
+
+    meshx_provision_input_complete(prov_dev);
 
     return MESHX_SUCCESS;
 }
