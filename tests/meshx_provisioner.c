@@ -76,7 +76,7 @@ int32_t meshx_trace_send(const char *pdata, uint32_t len)
     return len;
 }
 
-#if 0
+#if 1
 static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 {
     const meshx_notify_prov_t *pprov = pdata;
@@ -111,6 +111,8 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             /* send start */
             meshx_provision_start_t start;
             memset(&start, 0, sizeof(meshx_provision_start_t));
+            start.algorithm = MESHX_PROVISION_ALGORITHM_P256_CURVE;
+            start.auth_method = MESHX_PROVISION_AUTH_METHOD_NO_OOB;
             meshx_provision_start(pprov->metadata.prov_dev, &start);
         }
         break;
@@ -121,10 +123,10 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_provision_public_key_t));
             meshx_tty_printf("\r\n");
 
-            /* generate random */
-            meshx_provision_generate_random(pprov->metadata.prov_dev);
             /* generate auth value */
-            meshx_provision_generate_auth_value(pprov->metadata.prov_dev, NULL, 0);
+            meshx_provision_auth_value_t auth_value;
+            auth_value.auth_method = MESHX_PROVISION_AUTH_METHOD_NO_OOB;
+            meshx_provision_set_auth_value(pprov->metadata.prov_dev, &auth_value);
             /* generate confirmation */
             meshx_provision_random_t random;
             meshx_provision_get_random(pprov->metadata.prov_dev, &random);
@@ -208,8 +210,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     }
     return MESHX_SUCCESS;
 }
-#endif
-
+#else
 static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 {
     const meshx_notify_prov_t *pprov = pdata;
@@ -334,6 +335,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     }
     return MESHX_SUCCESS;
 }
+#endif
 
 static int32_t meshx_notify_beacon_cb(const void *pdata, uint8_t len)
 {
