@@ -17,7 +17,7 @@
 #define MESHX_TRACE_FAST                           0
 #define MESHX_ENABLE_ASSERT                        1
 
-#define MESHX_USE_SAMPLE_DATA                      0
+#define MESHX_USE_SAMPLE_DATA                      1
 
 /* gap adv */
 #define MESHX_GAP_ACTION_MAX_NUM                   10
