@@ -58,11 +58,17 @@ meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
         return NULL;
     }
 
+    if ((MESHX_ROLE_DEVICE != role) && (MESHX_ROLE_PROVISIONER != role))
+    {
+        MESHX_ERROR("invalid role: %d", role);
+        return NULL;
+    }
+
     meshx_provision_dev_t prov_dev = NULL;
     switch (bearer->type)
     {
     case MESHX_BEARER_TYPE_ADV:
-        prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid, role);
+        prov_dev = meshx_pb_adv_create_device(bearer, dev_uuid);
         break;
     case MESHX_BEARER_TYPE_GATT:
         break;
@@ -73,6 +79,10 @@ meshx_provision_dev_t meshx_provision_create_device(meshx_bearer_t bearer,
 
     if (NULL != prov_dev)
     {
+        prov_dev->id = MESHX_ABS(meshx_rand()) % 255;
+        prov_dev->role = role;
+        prov_dev->bearer = bearer;
+        memcpy(prov_dev->dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
         /* generate public key */
         meshx_provision_make_key(prov_dev);
         /* generate random */
@@ -1252,6 +1262,18 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
         {
             prov_dev->state = MESHX_PROVISION_STATE_CONFIRMATION;
             prov_dev->confirmation_remote = pprov_pdu->confirmation;
+
+            if (MESHX_ROLE_DEVICE == prov_dev->role)
+            {
+                /* send confirmation to provisioner */
+                meshx_provision_confirmation(prov_dev, &prov_dev->confirmation);
+            }
+            else
+            {
+                /* send random to device */
+                meshx_provision_random(prov_dev, &prov_dev->random);
+            }
+
             /* notify app confirmation vlaue */
             meshx_notify_prov_t notify_prov;
             notify_prov.metadata.prov_dev = prov_dev;
@@ -1283,10 +1305,16 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             prov_dev->random_remote = pprov_pdu->random;
             if (meshx_provision_verify_confirmation(prov_dev))
             {
+                prov_dev->state = MESHX_PROVISION_STATE_RANDOM;
+
+                if (MESHX_ROLE_DEVICE == prov_dev->role)
+                {
+                    /* send random to provisioner */
+                    meshx_provision_random(prov_dev, &prov_dev->random);
+                }
                 /* generate session key */
                 meshx_provision_calculate_session_key(prov_dev);
 
-                prov_dev->state = MESHX_PROVISION_STATE_RANDOM;
                 /* notify app random value */
                 meshx_notify_prov_t notify_prov;
                 notify_prov.metadata.prov_dev = prov_dev;
@@ -1333,6 +1361,9 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
             {
 
                 prov_dev->state = MESHX_PROVISION_STATE_DATA;
+
+                /* send complete */
+                meshx_provision_complete(prov_dev);
 
                 meshx_provision_data_t data = prov_dev->data;
                 /* convert endianness */

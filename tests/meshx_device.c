@@ -143,11 +143,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("confirmation:");
             meshx_tty_dump((const uint8_t *)pcfm, sizeof(meshx_provision_confirmation_t));
             meshx_tty_printf("\r\n");
-
-            /* send confirmation */
-            meshx_provision_confirmation_t cfm;
-            meshx_provision_get_confirmation(pprov->metadata.prov_dev, &cfm);
-            meshx_provision_confirmation(pprov->metadata.prov_dev, &cfm);
         }
         break;
     case MESHX_PROV_NOTIFY_RANDOM:
@@ -156,11 +151,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("random:");
             meshx_tty_dump((const uint8_t *)prandom, sizeof(meshx_provision_random_t));
             meshx_tty_printf("\r\n");
-
-            /* send random */
-            meshx_provision_random_t random;
-            meshx_provision_get_random(pprov->metadata.prov_dev, &random);
-            meshx_provision_random(pprov->metadata.prov_dev, &random);
         }
         break;
     case MESHX_PROV_NOTIFY_DATA:
@@ -169,9 +159,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("data:");
             meshx_tty_dump((const uint8_t *)pdata, sizeof(meshx_provision_data_t));
             meshx_tty_printf("\r\n");
-
-            /* send complete */
-            meshx_provision_complete(pprov->metadata.prov_dev);
         }
         break;
     case MESHX_PROV_NOTIFY_TRANS_ACK:
@@ -273,11 +260,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("confirmation:");
             meshx_tty_dump((const uint8_t *)pcfm, sizeof(meshx_provision_confirmation_t));
             meshx_tty_printf("\r\n");
-
-            /* send confirmation */
-            meshx_provision_confirmation_t cfm;
-            meshx_provision_get_confirmation(pprov->metadata.prov_dev, &cfm);
-            meshx_provision_confirmation(pprov->metadata.prov_dev, &cfm);
         }
         break;
     case MESHX_PROV_NOTIFY_RANDOM:
@@ -286,11 +268,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("random:");
             meshx_tty_dump((const uint8_t *)prandom, sizeof(meshx_provision_random_t));
             meshx_tty_printf("\r\n");
-
-            /* send random */
-            meshx_provision_random_t random;
-            meshx_provision_get_random(pprov->metadata.prov_dev, &random);
-            meshx_provision_random(pprov->metadata.prov_dev, &random);
         }
         break;
     case MESHX_PROV_NOTIFY_DATA:
@@ -299,9 +276,6 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
             meshx_tty_printf("data:");
             meshx_tty_dump((const uint8_t *)pdata, sizeof(meshx_provision_data_t));
             meshx_tty_printf("\r\n");
-
-            /* send complete */
-            meshx_provision_complete(pprov->metadata.prov_dev);
         }
         break;
     case MESHX_PROV_NOTIFY_TRANS_ACK:

@@ -1515,8 +1515,7 @@ int32_t meshx_pb_adv_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
     return ret;
 }
 
-meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid,
-                                                 meshx_role_t role)
+meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_dev_uuid_t dev_uuid)
 {
     meshx_provision_dev_t prov_dev = meshx_pb_adv_find_device(bearer, dev_uuid);
     if (NULL != prov_dev)
@@ -1534,8 +1533,6 @@ meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_de
     }
     memset(pdev, 0, sizeof(meshx_pb_adv_dev_t));
 
-    pdev->dev.id = MESHX_ABS(meshx_rand()) % 255;
-
     /* create pb adv timer */
     int32_t ret = meshx_timer_create(&pdev->pb_adv_timer, MESHX_TIMER_MODE_REPEATED,
                                      meshx_pb_adv_timeout_handler, pdev);
@@ -1545,11 +1542,6 @@ meshx_provision_dev_t meshx_pb_adv_create_device(meshx_bearer_t bearer, meshx_de
         meshx_free(pdev);
         return NULL;
     }
-
-    /* copy data */
-    pdev->dev.bearer = bearer;
-    memcpy(pdev->dev.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
-    pdev->dev.role = role;
 
     meshx_list_append(&pb_adv_devs, &pdev->node);
 
