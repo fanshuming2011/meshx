@@ -399,7 +399,7 @@ static bool meshx_provision_verify_confirmation(meshx_provision_dev_t prov_dev)
                         sizeof(meshx_provision_confirmation_t)));
 }
 
-static int32_t meshx_provision_calculate_session_key(meshx_provision_dev_t prov_dev)
+static int32_t meshx_provision_calculate_session_device_key(meshx_provision_dev_t prov_dev)
 {
     uint8_t prov_salt_inputs[sizeof(prov_dev->confirmation_salt) + sizeof(
                                                                      meshx_provision_random_t) * 2];
@@ -435,6 +435,14 @@ static int32_t meshx_provision_calculate_session_key(meshx_provision_dev_t prov_
              prov_dev->session_nonce);
     MESHX_DEBUG("session nonce:");
     MESHX_DUMP_DEBUG(prov_dev->session_nonce, 16);
+
+    uint8_t dev_key[16];
+    P[2] = 'd';
+    P[3] = 'k';
+    meshx_k1(prov_dev->share_secret, sizeof(prov_dev->share_secret), prov_salt, P, sizeof(P),
+             dev_key);
+    MESHX_DEBUG("device key:");
+    MESHX_DUMP_DEBUG(dev_key, 16);
 
     return MESHX_SUCCESS;
 }
@@ -1313,7 +1321,7 @@ int32_t meshx_provision_pdu_process(meshx_provision_dev_t prov_dev,
                     meshx_provision_random(prov_dev, &prov_dev->random);
                 }
                 /* generate session key */
-                meshx_provision_calculate_session_key(prov_dev);
+                meshx_provision_calculate_session_device_key(prov_dev);
 
                 /* notify app random value */
                 meshx_notify_prov_t notify_prov;
