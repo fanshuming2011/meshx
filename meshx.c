@@ -17,6 +17,8 @@ static meshx_config_t default_config =
     .gatt_bearer_enable = TRUE,
     .udb_interval = 5000,
     .snb_interval = 10000,
+    .net_key_num = 2,
+    .app_key_num = 2,
 };
 
 static uint8_t meshx_role = MESHX_ROLE_DEVICE;
@@ -60,6 +62,14 @@ int32_t meshx_init(void)
 
     node_param.type = MESHX_NODE_PARAM_TYPE_SNB_INTERVAL;
     node_param.snb_interval = config.snb_interval;
+    meshx_node_param_set(&node_param);
+
+    node_param.type = MESHX_NODE_PARAM_TYPE_NET_KEY_NUM;
+    node_param.net_key_num = config.net_key_num;
+    meshx_node_param_set(&node_param);
+
+    node_param.type = MESHX_NODE_PARAM_TYPE_APP_KEY_NUM;
+    node_param.app_key_num = config.app_key_num;
     meshx_node_param_set(&node_param);
 
     meshx_trace_init();

@@ -37,6 +37,8 @@ typedef struct
     bool gatt_bearer_enable;
     uint32_t udb_interval;
     uint32_t snb_interval;
+    uint16_t net_key_num;
+    uint16_t app_key_num;
 } meshx_config_t;
 
 MESHX_EXTERN void meshx_config(uint8_t role, const meshx_config_t *pconfig);

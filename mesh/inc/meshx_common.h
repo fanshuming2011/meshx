@@ -21,6 +21,12 @@ typedef enum
     MESHX_ROLE_ALL = (MESHX_ROLE_DEVICE | MESHX_ROLE_PROVISIONER),
 } meshx_role_t;
 
+typedef enum
+{
+    MESHX_UNPROVED,
+    MESHX_PROVED
+} meshx_prov_state_t;
+
 
 #define MESHX_ADDRESS_UNASSIGNED                     0x0000
 #define MESHX_ADDRESS_ALL_PRXIES                     0xFFFC
@@ -33,6 +39,21 @@ typedef enum
 #define MESHX_ADDRESS_IS_GROUP(address)              (((address) & 0xC000) == 0xC000))
 
 typedef uint8_t meshx_dev_uuid_t[16];
+
+/* keys */
+#define MESHX_NET_KEY_INDEX_INVALID                   0xFFFF
+#define MESHX_NET_KEY_INDEX_MAX                       0xFFF
+#define MESHX_APP_KEY_INDEX_INVALID                   0xFFFF
+#define MESHX_APP_KEY_INDEX_MAX                       0xFFF
+typedef uint8_t meshx_net_key_t[16];
+typedef uint8_t meshx_dev_key_t[16];
+typedef uint8_t meshx_app_key_t[16];
+
+typedef struct
+{
+    meshx_app_key_t app_key;
+    meshx_net_key_t net_key;
+} meshx_app_key_pair_t;
 
 
 #define MESHX_BEARER_TYPE_INVALID           0
