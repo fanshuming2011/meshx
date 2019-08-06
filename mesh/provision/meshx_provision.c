@@ -1482,7 +1482,7 @@ int32_t meshx_provision_handle_notify(meshx_bearer_t bearer, const meshx_notify_
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:
         /* check node state */
-        if (MESHX_NODE_PROVED == meshx_get_node_prov_state())
+        if (MESHX_NODE_PROVED == meshx_node_prov_state_get())
         {
             /* start snb */
             //meshx_beacon_start(adv_bearer, MESHX_BEACON_TYPE_UDB, 5000);

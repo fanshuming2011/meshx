@@ -41,7 +41,9 @@ set(COMMON_SRC_LIST
     ../cmd/meshx_cmd_base.c
     ../cmd/meshx_cmd_common.c
     ../cmd/meshx_cmd_prov.c
-    ../mesh/common/meshx_node.c
+    ../mesh/node/meshx_node.c
+    ../mesh/node/meshx_iv_index.c
+    ../mesh/node/meshx_seq.c
     ../mesh/common/meshx_async.c
     ../mesh/common/meshx_notify.c
     ../mesh/security/meshx_security.c

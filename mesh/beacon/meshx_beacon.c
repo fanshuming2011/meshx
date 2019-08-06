@@ -36,7 +36,7 @@ static void meshx_beacon_timer_timeout(void *pargs)
 
 void meshx_beacon_async_handle_timeout(meshx_async_msg_t msg)
 {
-    if (MESHX_ADDRESS_UNASSIGNED == meshx_get_node_address())
+    if (MESHX_NODE_UNPROVED == meshx_node_prov_state_get())
     {
         /* send udb */
         meshx_udb_t udb;
@@ -73,13 +73,13 @@ int32_t meshx_beacon_start(meshx_bearer_t bearer, uint8_t beacon_type, uint32_t 
     switch (beacon_type)
     {
     case MESHX_BEACON_TYPE_UDB:
-        if (MESHX_ADDRESS_UNASSIGNED != meshx_get_node_address())
+        if (MESHX_NODE_UNPROVED != meshx_node_prov_state_get())
         {
             ret = -MESHX_ERR_STATE;
         }
         break;
     case MESHX_BEACON_TYPE_SNB:
-        if (MESHX_ADDRESS_UNASSIGNED == meshx_get_node_address())
+        if (MESHX_NODE_UNPROVED == meshx_node_prov_state_get())
         {
             ret = -MESHX_ERR_STATE;
         }

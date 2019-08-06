@@ -28,13 +28,13 @@ typedef struct
 static meshx_list_t network_if_list;
 
 static bool meshx_network_default_input_filter(meshx_network_if_t network_if,
-                                               const meshx_network_if_input_metadata_t *pinput_metadata)
+                                               const meshx_network_if_filter_data_t *pdata)
 {
     return MESHX_SUCCESS;
 }
 
 static bool meshx_network_default_output_filter(meshx_network_if_t network_if,
-                                                const meshx_network_if_output_metadata_t *pout_metadata)
+                                                const meshx_network_if_filter_data_t *pdata)
 {
     return MESHX_SUCCESS;
 }
@@ -190,16 +190,14 @@ void meshx_network_if_disconnect(meshx_network_if_t network_if)
     pinterface->output_filter = NULL;
 }
 
-bool meshx_network_if_input_filter(meshx_network_if_t network_if, const meshx_network_pdu_t *ppdu,
-                                   uint8_t pdu_len)
+bool meshx_network_if_input_filter(meshx_network_if_t network_if,
+                                   const meshx_network_if_filter_data_t *pdata)
 {
     MESHX_ASSERT(NULL != network_if);
     meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
 
-    meshx_network_if_input_metadata_t input_metadata;
-    memset(&input_metadata, 0, sizeof(meshx_network_if_input_metadata_t));
     pinterface->filter_info.total_receive ++;
-    if (!pinterface->input_filter(pinterface, &input_metadata))
+    if (!pinterface->input_filter(pinterface, pdata))
     {
         pinterface->filter_info.filtered_receive ++;
         return FALSE;
@@ -208,17 +206,14 @@ bool meshx_network_if_input_filter(meshx_network_if_t network_if, const meshx_ne
     return TRUE;
 }
 
-bool meshx_network_if_output_filter(meshx_network_if_t network_if, const meshx_network_pdu_t *ppdu,
-                                    uint8_t pdu_len)
+bool meshx_network_if_output_filter(meshx_network_if_t network_if,
+                                    const meshx_network_if_filter_data_t *pdata)
 {
     MESHX_ASSERT(NULL != network_if);
     meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
 
-    meshx_network_if_output_metadata_t output_metadata;
-    output_metadata.src_addr = ppdu->net_metadata.src;
-    output_metadata.dst_addr = ppdu->net_metadata.dst;
     pinterface->filter_info.total_send ++;
-    if (!pinterface->output_filter(pinterface, &output_metadata))
+    if (!pinterface->output_filter(pinterface, pdata))
     {
         pinterface->filter_info.filtered_send ++;
         return FALSE;

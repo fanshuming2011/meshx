@@ -23,9 +23,9 @@ typedef enum
 
 typedef enum
 {
-    MESHX_UNPROVED,
-    MESHX_PROVED
-} meshx_prov_state_t;
+    MESHX_NODE_UNPROVED,
+    MESHX_NODE_PROVED
+} meshx_node_prov_state_t;
 
 
 #define MESHX_ADDRESS_UNASSIGNED                     0x0000
@@ -41,9 +41,7 @@ typedef enum
 typedef uint8_t meshx_dev_uuid_t[16];
 
 /* keys */
-#define MESHX_NET_KEY_INDEX_INVALID                   0xFFFF
 #define MESHX_NET_KEY_INDEX_MAX                       0xFFF
-#define MESHX_APP_KEY_INDEX_INVALID                   0xFFFF
 #define MESHX_APP_KEY_INDEX_MAX                       0xFFF
 typedef uint8_t meshx_net_key_t[16];
 typedef uint8_t meshx_dev_key_t[16];
@@ -51,9 +49,27 @@ typedef uint8_t meshx_app_key_t[16];
 
 typedef struct
 {
-    meshx_app_key_t app_key;
+    uint16_t net_key_index;
     meshx_net_key_t net_key;
-} meshx_app_key_pair_t;
+    uint8_t nid; /* least significant 6 bits */
+} meshx_network_key_t;
+
+typedef struct
+{
+    uint16_t app_key_index;
+    meshx_network_key_t *pnet_key_bind;
+    meshx_app_key_t app_key;
+    uint8_t aid; /* least significant 6 bits */
+} meshx_application_key_t;
+
+typedef struct
+{
+    uint8_t ctl : 1;
+    uint8_t ttl : 7;
+    uint16_t dst;
+    const meshx_network_key_t *pnet_key;
+} meshx_msg_ctx_t;
+
 
 
 #define MESHX_BEARER_TYPE_INVALID           0

@@ -14,23 +14,6 @@ MESHX_BEGIN_DECLS
 
 #define MESHX_NETWORK_PDU_MAX_LEN         29
 
-typedef struct
-{
-    uint8_t ivi : 1;
-    uint8_t nid : 7;
-    uint8_t ctl : 1;
-    uint8_t ttl : 7;
-    uint8_t seq[3];
-    uint16_t src;
-    uint16_t dst;
-} __PACKED meshx_network_metadata_t;
-
-typedef struct
-{
-    meshx_network_metadata_t net_metadata;
-    uint8_t pdu[MESHX_NETWORK_PDU_MAX_LEN -
-                                          9]; /* netmic is 32bit if ctl is 0, nwtmic is 64bit if ctl is 1*/
-} __PACKED meshx_network_pdu_t;
 
 #define MESHX_NETWORK_IF_TYPE_INVALID      0
 #define MESHX_NETWORK_IF_TYPE_ADV          1
@@ -43,13 +26,7 @@ typedef struct
 {
     uint16_t src_addr;
     uint16_t dst_addr;
-} meshx_network_if_input_metadata_t;
-
-typedef struct
-{
-    uint16_t src_addr;
-    uint16_t dst_addr;
-} meshx_network_if_output_metadata_t;
+} meshx_network_if_filter_data_t;
 
 typedef struct
 {
@@ -65,9 +42,9 @@ typedef struct
  * FALSE: failed to pass filter
  */
 typedef bool (*meshx_network_if_input_filter_t)(meshx_network_if_t network_if,
-                                                const meshx_network_if_input_metadata_t *pinput_metadata);
+                                                const meshx_network_if_filter_data_t *pdata);
 typedef bool (*meshx_network_if_output_filter_t)(meshx_network_if_t network_if,
-                                                 const meshx_network_if_output_metadata_t *pout_metadata);
+                                                 const meshx_network_if_filter_data_t *pdata);
 
 
 MESHX_EXTERN int32_t meshx_network_init(void);
@@ -81,7 +58,8 @@ MESHX_EXTERN void meshx_network_if_disconnect(meshx_network_if_t network_if);
 MESHX_EXTERN int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdata,
                                            uint8_t len);
 MESHX_EXTERN int32_t meshx_network_send(meshx_network_if_t network_if,
-                                        const meshx_network_pdu_t *ppdu, uint8_t pdu_len);
+                                        const uint8_t *ppdu, uint8_t pdu_len,
+                                        const meshx_msg_ctx_t *pmsg_ctx);
 
 MESHX_EXTERN meshx_network_if_filter_info_t meshx_network_if_get_filter_info(
     meshx_network_if_t network_if);
