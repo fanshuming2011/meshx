@@ -394,6 +394,11 @@ static void *meshx_thread(void *pargs)
 
     meshx_config(MESHX_ROLE_PROVISIONER, NULL);
     meshx_init();
+
+    /* add keys */
+    meshx_net_key_add(0, sample_net_key);
+
+    /* run stack */
     meshx_run();
 
     meshx_bearer_rx_metadata_t rx_metadata;

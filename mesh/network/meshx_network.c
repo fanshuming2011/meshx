@@ -112,6 +112,7 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
         }
     }
 
+#if 0
     meshx_network_pdu_t net_pdu = {0};
     uint32_t seq = meshx_seq_get();
     net_pdu.net_metadata.ivi = (meshx_iv_index_get() & 0x01);
@@ -129,7 +130,6 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     uint8_t net_mic[8];
 
     /* encrypt data */
-#if 0
     meshx_aes_ccm_encrypt(pmsg_ctx->pnet_key->net_key, const uint8_t key[16], const uint8_t *piv,
                           uint32_t iv_len,
                           const uint8_t *padd, uint32_t add_len,

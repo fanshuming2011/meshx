@@ -110,13 +110,13 @@ int32_t meshx_provision_make_key(meshx_provision_dev_t prov_dev)
 #if MESHX_USE_SAMPLE_DATA
     if (MESHX_ROLE_DEVICE == prov_dev->role)
     {
-        memcpy(prov_dev->public_key, device_public_key, sizeof(prov_dev->public_key));
-        memcpy(prov_dev->private_key, device_private_key, sizeof(prov_dev->private_key));
+        memcpy(prov_dev->public_key, sample_device_public_key, sizeof(prov_dev->public_key));
+        memcpy(prov_dev->private_key, sample_device_private_key, sizeof(prov_dev->private_key));
     }
     else
     {
-        memcpy(prov_dev->public_key, prov_public_key, sizeof(prov_dev->public_key));
-        memcpy(prov_dev->private_key, prov_private_key, sizeof(prov_dev->private_key));
+        memcpy(prov_dev->public_key, sample_prov_public_key, sizeof(prov_dev->public_key));
+        memcpy(prov_dev->private_key, sample_prov_private_key, sizeof(prov_dev->private_key));
     }
 #else
     ret = meshx_ecc_make_key(prov_dev->public_key, prov_dev->private_key);
@@ -260,11 +260,11 @@ int32_t meshx_provision_generate_random(meshx_provision_dev_t prov_dev)
 #if MESHX_USE_SAMPLE_DATA
     if (MESHX_ROLE_DEVICE == prov_dev->role)
     {
-        memcpy(&prov_dev->random, device_random, sizeof(device_random));
+        memcpy(&prov_dev->random, sample_device_random, sizeof(sample_device_random));
     }
     else
     {
-        memcpy(&prov_dev->random, prov_random, sizeof(prov_random));
+        memcpy(&prov_dev->random, sample_prov_random, sizeof(sample_prov_random));
     }
 #else
     uint32_t *prandom = (uint32_t *)&prov_dev->random;
@@ -560,7 +560,7 @@ int32_t meshx_provision_capabilites(meshx_provision_dev_t prov_dev,
     prov_dev->state = MESHX_PROVISION_STATE_CAPABILITES;
     int32_t ret = MESHX_SUCCESS;
 #if MESHX_USE_SAMPLE_DATA
-    prov_dev->capabilites = prov_capabilites;
+    prov_dev->capabilites = sample_prov_capabilites;
 #else
     prov_dev->capabilites = *pcap;
 #endif
@@ -612,7 +612,7 @@ int32_t meshx_provision_start(meshx_provision_dev_t prov_dev,
     prov_dev->state = MESHX_PROVISION_STATE_START;
     int32_t ret = MESHX_SUCCESS;
 #if MESHX_USE_SAMPLE_DATA
-    prov_dev->start = prov_start;
+    prov_dev->start = sample_prov_start;
 #else
     prov_dev->start = *pstart;
 #endif
@@ -806,7 +806,7 @@ int32_t meshx_provision_data(meshx_provision_dev_t prov_dev,
     prov_dev->state = MESHX_PROVISION_STATE_DATA;
     int32_t ret = MESHX_SUCCESS;
 #if MESHX_USE_SAMPLE_DATA
-    prov_dev->data = prov_data;
+    prov_dev->data = sample_prov_data;
 #else
     prov_dev->data = *pdata;
 #endif

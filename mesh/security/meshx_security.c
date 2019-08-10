@@ -41,8 +41,8 @@ int32_t meshx_k1(const uint8_t *pN, uint32_t Nlen, uint8_t salt[16], const uint8
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_k2(const uint8_t N[16], const uint8_t *pP, uint32_t Plen, uint8_t T1[16],
-                 uint8_t T2[16], uint8_t T3[16], uint8_t id[1])
+int32_t meshx_k2(const uint8_t N[16], const uint8_t *pP, uint32_t Plen, uint8_t *pnid,
+                 uint8_t encryption_key[16], uint8_t privacy_key[16])
 {
     if (NULL == pP)
     {
@@ -61,6 +61,10 @@ int32_t meshx_k2(const uint8_t N[16], const uint8_t *pP, uint32_t Plen, uint8_t 
     meshx_s1(smk2, sizeof(smk2), salt);
     uint8_t key_T[16];
     meshx_aes_cmac(salt, N, 16,  key_T);
+    MESHX_DEBUG("key_T:");
+    MESHX_DUMP_DEBUG(key_T, 16);
+
+    uint8_t T1[16], T2[16], T3[16];
 
     /* generate T1  */
     pt_tmp[Plen] = 0x01;
@@ -79,7 +83,9 @@ int32_t meshx_k2(const uint8_t N[16], const uint8_t *pP, uint32_t Plen, uint8_t 
     meshx_aes_cmac(key_T, pt_tmp, Plen + 17, T3);
 
     /* generate id */
-    id[0] = (T1[15] & 0x7f);
+    *pnid = (T1[15] & 0x7f);
+    memcpy(encryption_key, T2, sizeof(T2));
+    memcpy(privacy_key, T3, sizeof(T3));
 
     return MESHX_SUCCESS;
 }

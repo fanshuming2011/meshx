@@ -65,8 +65,8 @@ typedef struct
 MESHX_EXTERN int32_t meshx_s1(const uint8_t *pM, uint32_t Mlen, uint8_t salt[16]);
 MESHX_EXTERN int32_t meshx_k1(const uint8_t *pN, uint32_t Nlen, uint8_t salt[16], const uint8_t *pP,
                               uint32_t Plen, uint8_t key[16]);
-MESHX_EXTERN int32_t meshx_k2(const uint8_t N[16], const uint8_t *pP, uint32_t Plen, uint8_t T1[16],
-                              uint8_t T2[16], uint8_t T3[16], uint8_t id[0]);
+MESHX_EXTERN int32_t meshx_k2(const uint8_t N[16], const uint8_t *pP, uint32_t Plen, uint8_t *pnid,
+                              uint8_t encryption_key[16], uint8_t privacy_key[16]);
 MESHX_EXTERN int32_t meshx_k3(const uint8_t N[16], uint8_t value[8]);
 MESHX_EXTERN int32_t meshx_k4(const uint8_t N[16], uint8_t value[1]);
 

@@ -26,6 +26,7 @@
 #include "meshx_common.h"
 #include "meshx_mem.h"
 #include "meshx_misc.h"
+#include "meshx_sample_data.h"
 
 
 MESHX_BEGIN_DECLS
