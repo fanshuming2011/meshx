@@ -21,12 +21,12 @@ MESHX_BEGIN_DECLS
 typedef struct
 {
     uint8_t nonce_type;
-    uint8_t ctl: 1;
     uint8_t ttl: 7;
+    uint8_t ctl: 1;
     uint8_t seq[3];
     uint16_t src;
     uint16_t pad;
-    uint8_t iv_index[4];
+    uint32_t iv_index;
 } __PACKED meshx_network_nonce_t;
 
 typedef struct
@@ -37,18 +37,18 @@ typedef struct
     uint8_t seq[3];
     uint16_t src;
     uint16_t dst;
-    uint8_t iv_index[4];
+    uint32_t iv_index;
 } __PACKED meshx_application_nonce_t;
 
 typedef struct
 {
     uint8_t nonce_type;
-    uint8_t aszmic: 1;
     uint8_t pad: 7;
+    uint8_t aszmic: 1;
     uint8_t seq[3];
     uint16_t src;
     uint16_t dst;
-    uint8_t iv_index[4];
+    uint32_t iv_index;
 } __PACKED meshx_device_nonce_t;
 
 typedef struct
@@ -58,7 +58,7 @@ typedef struct
     uint8_t seq[3];
     uint16_t src;
     uint16_t pad1;
-    uint8_t iv_index[4];
+    uint32_t iv_index;
 } __PACKED meshx_proxy_nonce_t;
 
 
@@ -69,6 +69,7 @@ MESHX_EXTERN int32_t meshx_k2(const uint8_t N[16], const uint8_t *pP, uint32_t P
                               uint8_t encryption_key[16], uint8_t privacy_key[16]);
 MESHX_EXTERN int32_t meshx_k3(const uint8_t N[16], uint8_t value[8]);
 MESHX_EXTERN int32_t meshx_k4(const uint8_t N[16], uint8_t value[1]);
+MESHX_EXTERN int32_t meshx_e(const uint8_t input[16], const uint8_t key[16], uint8_t output[16]);
 
 
 MESHX_END_DECLS

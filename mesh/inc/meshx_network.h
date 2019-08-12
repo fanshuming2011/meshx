@@ -12,13 +12,12 @@
 
 MESHX_BEGIN_DECLS
 
-#define MESHX_NETWORK_PDU_MAX_LEN         29
 
 
-#define MESHX_NETWORK_IF_TYPE_INVALID      0
-#define MESHX_NETWORK_IF_TYPE_ADV          1
-#define MESHX_NETWORK_IF_TYPE_GATT         2
-#define MESHX_NETWORK_IF_TYPE_LOOPBACK     3
+#define MESHX_NETWORK_IF_TYPE_INVALID           0
+#define MESHX_NETWORK_IF_TYPE_ADV               1
+#define MESHX_NETWORK_IF_TYPE_GATT              2
+#define MESHX_NETWORK_IF_TYPE_LOOPBACK          3
 
 typedef void *meshx_network_if_t;
 
@@ -54,6 +53,7 @@ MESHX_EXTERN void meshx_network_if_delete(meshx_network_if_t network_if);
 MESHX_EXTERN int32_t meshx_network_if_connect(meshx_network_if_t network_if, meshx_bearer_t bearer,
                                               meshx_network_if_input_filter_t in_filter, meshx_network_if_output_filter_t out_filter);
 MESHX_EXTERN void meshx_network_if_disconnect(meshx_network_if_t network_if);
+MESHX_EXTERN meshx_network_if_t meshx_network_if_get(meshx_bearer_t bearer);
 
 MESHX_EXTERN int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdata,
                                            uint8_t len);

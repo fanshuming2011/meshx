@@ -89,6 +89,7 @@ int32_t meshx_init(void)
     meshx_network_if_t adv_network_if = meshx_network_if_create();
     meshx_network_if_connect(adv_network_if, adv_bearer, NULL, NULL);
 
+
     return MESHX_SUCCESS;
 }
 

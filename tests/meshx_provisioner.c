@@ -396,12 +396,26 @@ static void *meshx_thread(void *pargs)
     meshx_init();
 
     /* add keys */
-    meshx_net_key_add(0, sample_net_key);
+    meshx_net_key_add(100, sample_net_key);
 
     /* run stack */
     meshx_run();
 
+    /*********************** send data *********************/
     meshx_bearer_rx_metadata_t rx_metadata;
+    rx_metadata.bearer_type = MESHX_BEARER_TYPE_ADV;
+    meshx_bearer_t adv_bearer = meshx_bearer_get(&rx_metadata);
+    meshx_network_if_t adv_net_if = meshx_network_if_get(adv_bearer);
+    meshx_msg_ctx_t ctx;
+    ctx.ctl = 0x01;
+    ctx.dst = 0xfffd;
+    ctx.ttl = 0;
+    ctx.pnet_key = meshx_net_key_get(100);
+    uint8_t trans_pdu[] = {0x03, 0x4b, 0x50, 0x05, 0x7e, 0x40, 0x00, 0x00, 0x01, 0x00, 0x00};
+    meshx_network_send(adv_net_if, trans_pdu, sizeof(trans_pdu), &ctx);
+    /*******************************************************/
+
+    //meshx_bearer_rx_metadata_t rx_metadata;
     meshx_bearer_rx_metadata_adv_t adv_metadata =
     {
         .adv_type = MESHX_GAP_ADV_TYPE_NONCONN_IND,

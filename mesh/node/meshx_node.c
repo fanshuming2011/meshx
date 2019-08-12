@@ -106,7 +106,8 @@ int32_t meshx_node_param_get(meshx_node_param_type_t type, void *pdata)
 
 uint16_t meshx_node_address_get(void)
 {
-    return MESHX_ADDRESS_UNASSIGNED;
+    return 0x1201;
+    //return MESHX_ADDRESS_UNASSIGNED;
 }
 
 void meshx_node_prov_state_set(meshx_node_prov_state_t state)
@@ -217,7 +218,7 @@ const meshx_network_key_t *meshx_net_key_get(uint16_t net_key_index)
     meshx_net_key_info_t *pnet_key;
     meshx_list_foreach(pnode, &meshx_net_keys)
     {
-        pnet_key = MESHX_CONTAINER_OF(pnet_key, meshx_net_key_info_t, node);
+        pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
         if (pnet_key->net_key.net_key_index == net_key_index)
         {
             return &pnet_key->net_key;
@@ -283,7 +284,7 @@ int32_t meshx_net_key_add(uint16_t net_key_index, meshx_key_t net_key)
     pnet_key = meshx_malloc(sizeof(meshx_net_key_info_t));
     if (NULL == pnet_key)
     {
-        MESHX_ERROR("can not add net key: out of memory");
+        MESHX_ERROR("can't add net key: out of memory");
         return -MESHX_ERR_MEM;
     }
 

@@ -119,3 +119,8 @@ int32_t meshx_k4(const uint8_t N[16], uint8_t value[1])
 
     return MESHX_SUCCESS;
 }
+
+int32_t meshx_e(const uint8_t input[16], const uint8_t key[16], uint8_t output[16])
+{
+    return meshx_aes128_encrypt(input, key, output);
+}

@@ -8,7 +8,7 @@
 #define TRACE_MODULE "MESHX_IV_INDEX"
 #include "meshx_iv_index.h"
 
-static uint32_t meshx_iv_index = 0;
+static uint32_t meshx_iv_index = 0x12345678;
 
 uint32_t meshx_iv_index_get(void)
 {

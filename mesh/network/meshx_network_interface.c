@@ -30,13 +30,13 @@ static meshx_list_t network_if_list;
 static bool meshx_network_default_input_filter(meshx_network_if_t network_if,
                                                const meshx_network_if_filter_data_t *pdata)
 {
-    return MESHX_SUCCESS;
+    return TRUE;
 }
 
 static bool meshx_network_default_output_filter(meshx_network_if_t network_if,
                                                 const meshx_network_if_filter_data_t *pdata)
 {
-    return MESHX_SUCCESS;
+    return TRUE;
 }
 
 static meshx_network_interface_t *meshx_request_network_interface(void)
@@ -233,6 +233,16 @@ meshx_network_if_filter_info_t meshx_network_if_get_filter_info(meshx_network_if
     }
 
     return pinterface->filter_info;
+}
+
+meshx_network_if_t meshx_network_if_get(meshx_bearer_t bearer)
+{
+    if (NULL == bearer)
+    {
+        return NULL;
+    }
+
+    return bearer->network_if;
 }
 
 meshx_bearer_t meshx_network_if_get_bearer(meshx_network_if_t network_if)

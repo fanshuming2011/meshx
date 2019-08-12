@@ -9,7 +9,7 @@
 #include "meshx_seq.h"
 #include "meshx_trace.h"
 
-static uint32_t meshx_seq = 0;
+static uint32_t meshx_seq = 1;
 
 uint32_t meshx_seq_get(void)
 {
