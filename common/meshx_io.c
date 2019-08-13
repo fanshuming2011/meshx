@@ -94,6 +94,7 @@ int meshx_vsprintf(io_write pwrite, const char *fmt, va_list args)
 
         zeropad = FALSE;
         spacepad = FALSE;
+        width = 0;
         /* get width */
         if ((*fmt  >= '0') && (*fmt  <= '9'))
         {

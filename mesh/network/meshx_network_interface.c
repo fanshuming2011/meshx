@@ -28,14 +28,16 @@ typedef struct
 static meshx_list_t network_if_list;
 
 static bool meshx_network_default_input_filter(meshx_network_if_t network_if,
-                                               const meshx_network_if_filter_data_t *pdata)
+                                               const meshx_network_if_input_filter_data_t *pdata)
 {
+    MESHX_DEBUG("input filter");
     return TRUE;
 }
 
 static bool meshx_network_default_output_filter(meshx_network_if_t network_if,
-                                                const meshx_network_if_filter_data_t *pdata)
+                                                const meshx_network_if_output_filter_data_t *pdata)
 {
+    MESHX_DEBUG("output filter: src 0x%04x, dst 0x%04x", pdata->src_addr, pdata->dst_addr);
     return TRUE;
 }
 
@@ -191,7 +193,7 @@ void meshx_network_if_disconnect(meshx_network_if_t network_if)
 }
 
 bool meshx_network_if_input_filter(meshx_network_if_t network_if,
-                                   const meshx_network_if_filter_data_t *pdata)
+                                   const meshx_network_if_input_filter_data_t *pdata)
 {
     MESHX_ASSERT(NULL != network_if);
     meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
@@ -207,7 +209,7 @@ bool meshx_network_if_input_filter(meshx_network_if_t network_if,
 }
 
 bool meshx_network_if_output_filter(meshx_network_if_t network_if,
-                                    const meshx_network_if_filter_data_t *pdata)
+                                    const meshx_network_if_output_filter_data_t *pdata)
 {
     MESHX_ASSERT(NULL != network_if);
     meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;

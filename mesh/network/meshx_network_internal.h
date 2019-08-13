@@ -18,9 +18,9 @@ MESHX_BEGIN_DECLS
 
 MESHX_EXTERN int32_t meshx_network_if_init(void);
 MESHX_EXTERN bool meshx_network_if_input_filter(meshx_network_if_t network_if,
-                                                const meshx_network_if_filter_data_t *pdata);
+                                                const meshx_network_if_input_filter_data_t *pdata);
 MESHX_EXTERN bool meshx_network_if_output_filter(meshx_network_if_t network_if,
-                                                 const meshx_network_if_filter_data_t *pdata);
+                                                 const meshx_network_if_output_filter_data_t *pdata);
 meshx_bearer_t meshx_network_if_get_bearer(meshx_network_if_t network_if);
 
 MESHX_END_DECLS

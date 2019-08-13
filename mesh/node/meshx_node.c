@@ -228,6 +228,22 @@ const meshx_network_key_t *meshx_net_key_get(uint16_t net_key_index)
     return NULL;
 }
 
+const meshx_network_key_t *meshx_net_key_get_by_nid(uint8_t nid)
+{
+    meshx_list_t *pnode;
+    meshx_net_key_info_t *pnet_key;
+    meshx_list_foreach(pnode, &meshx_net_keys)
+    {
+        pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
+        if (pnet_key->net_key.nid == nid)
+        {
+            return &pnet_key->net_key;
+        }
+    }
+
+    return NULL;
+}
+
 static void meshx_net_key_derive(meshx_net_key_info_t *pnet_key)
 {
     /* identity key */

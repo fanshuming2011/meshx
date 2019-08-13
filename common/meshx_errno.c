@@ -34,6 +34,7 @@ static const char *meshx_err_str_table[] =
     "no resource",
     "error timing",
     "timeout",
+    "no key found",
     "not found",
 };
 

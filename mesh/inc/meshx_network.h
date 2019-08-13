@@ -23,9 +23,13 @@ typedef void *meshx_network_if_t;
 
 typedef struct
 {
+} meshx_network_if_input_filter_data_t;
+
+typedef struct
+{
     uint16_t src_addr;
     uint16_t dst_addr;
-} meshx_network_if_filter_data_t;
+} meshx_network_if_output_filter_data_t;
 
 typedef struct
 {
@@ -41,9 +45,9 @@ typedef struct
  * FALSE: failed to pass filter
  */
 typedef bool (*meshx_network_if_input_filter_t)(meshx_network_if_t network_if,
-                                                const meshx_network_if_filter_data_t *pdata);
+                                                const meshx_network_if_input_filter_data_t *pdata);
 typedef bool (*meshx_network_if_output_filter_t)(meshx_network_if_t network_if,
-                                                 const meshx_network_if_filter_data_t *pdata);
+                                                 const meshx_network_if_output_filter_data_t *pdata);
 
 
 MESHX_EXTERN int32_t meshx_network_init(void);

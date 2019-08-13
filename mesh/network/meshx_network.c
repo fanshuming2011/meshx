@@ -42,33 +42,9 @@ typedef struct
 } __PACKED meshx_network_pdu_t;
 
 
-
 int32_t meshx_network_init(void)
 {
     meshx_network_if_init();
-    return MESHX_SUCCESS;
-}
-
-int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdata, uint8_t len)
-{
-    if (NULL == network_if)
-    {
-        MESHX_ERROR("network interface is NULL");
-        return -MESHX_ERR_INVAL;
-    }
-
-    /* decrypt data */
-    meshx_network_pdu_t net_pdu = {0};
-
-    /* filter data */
-    meshx_network_if_filter_data_t filter_data = {.src_addr = net_pdu.net_metadata.src, .dst_addr = net_pdu.net_metadata.dst};
-    if (!meshx_network_if_input_filter(network_if, &filter_data))
-    {
-        return -MESHX_ERR_FILTER;
-    }
-
-
-    /* send data to lower transport lower */
     return MESHX_SUCCESS;
 }
 
@@ -124,6 +100,88 @@ static void meshx_network_obfuscation(meshx_network_pdu_t *pnet_pdu, uint32_t iv
                      MESHX_NETWORK_OBFUSCATION_SIZE);
 }
 
+static int32_t meshx_network_decrypt(meshx_network_pdu_t *pnet_pdu, uint8_t trans_pdu_len,
+                                     uint32_t iv_index, const meshx_network_key_t *pnet_key)
+{
+    meshx_network_nonce_t net_nonce;
+    net_nonce.nonce_type = MESHX_NONCE_TYPE_NETWORK;
+    net_nonce.ctl = pnet_pdu->net_metadata.ctl;
+    net_nonce.ttl = pnet_pdu->net_metadata.ttl;
+    net_nonce.seq[0] = pnet_pdu->net_metadata.seq[0];
+    net_nonce.seq[1] = pnet_pdu->net_metadata.seq[1];
+    net_nonce.seq[2] = pnet_pdu->net_metadata.seq[2];
+    net_nonce.src = pnet_pdu->net_metadata.src;
+    net_nonce.pad = 0;
+    net_nonce.iv_index = MESHX_HOST_TO_BE32(iv_index);
+    MESHX_DEBUG("network nonce:");
+    MESHX_DUMP_DEBUG(&net_nonce, sizeof(meshx_network_nonce_t));
+
+    uint8_t net_mic_len = pnet_pdu->net_metadata.ctl ? 8 : 4;
+    /* decrypt data */
+    int32_t ret = meshx_aes_ccm_decrypt(pnet_key->encryption_key, (const uint8_t *)&net_nonce,
+                                        sizeof(meshx_network_nonce_t),
+                                        NULL, 0, (const uint8_t *)pnet_pdu + MESHX_NETWORK_ENCRYPT_OFFSET,
+                                        sizeof(pnet_pdu->net_metadata.dst) + trans_pdu_len,
+                                        (uint8_t *)pnet_pdu + MESHX_NETWORK_ENCRYPT_OFFSET, pnet_pdu->pdu + trans_pdu_len, net_mic_len);
+    if (MESHX_SUCCESS == ret)
+    {
+        MESHX_DEBUG("dencrypt trans pdu:");
+        MESHX_DUMP_DEBUG((uint8_t *)pnet_pdu + MESHX_NETWORK_ENCRYPT_OFFSET,
+                         sizeof(pnet_pdu->net_metadata.dst) + trans_pdu_len);
+    }
+    else
+    {
+        MESHX_ERROR("decrypt network pdu failed!");
+    }
+
+    return ret;
+}
+
+int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdata, uint8_t len)
+{
+    if (NULL == network_if)
+    {
+        MESHX_ERROR("network interface is NULL");
+        return -MESHX_ERR_INVAL;
+    }
+
+    /* filter data */
+    meshx_network_if_input_filter_data_t filter_data = {};
+    if (!meshx_network_if_input_filter(network_if, &filter_data))
+    {
+        MESHX_INFO("network data has been filtered!");
+        return -MESHX_ERR_FILTER;
+    }
+
+    /* copy data */
+    uint32_t iv_index = meshx_iv_index_get();
+    meshx_network_pdu_t net_pdu = *(const meshx_network_pdu_t *)pdata;
+
+    /* TODO: check ivi, nid and get net key */
+    const meshx_network_key_t *pnet_key = meshx_net_key_get_by_nid(net_pdu.net_metadata.nid);
+    if (NULL == pnet_key)
+    {
+        MESHX_INFO("no key's nid is %d", net_pdu.net_metadata.nid);
+        return -MESHX_ERR_KEY;
+    }
+
+    /* restore header */
+    meshx_network_obfuscation(&net_pdu, iv_index, pnet_key);
+
+    /* TODO: check nmc, rpl and relay */
+
+    /* decrypt transport layer data */
+    uint8_t net_mic_len = net_pdu.net_metadata.ctl ? 8 : 4;
+    uint8_t trans_pdu_len = len - sizeof(meshx_network_metadata_t) - net_mic_len;
+    meshx_network_decrypt(&net_pdu, trans_pdu_len, iv_index, pnet_key);
+    MESHX_DEBUG("decrypt net pdu:");
+    MESHX_DUMP_DEBUG(&net_pdu, len - net_mic_len);
+
+
+    /* send data to lower transport lower */
+    return MESHX_SUCCESS;
+}
+
 int32_t meshx_network_send(meshx_network_if_t network_if,
                            const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
                            const meshx_msg_ctx_t *pmsg_ctx)
@@ -147,7 +205,7 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     }
 
     /* filter data */
-    meshx_network_if_filter_data_t filter_data = {.src_addr = meshx_node_address_get(), .dst_addr = pmsg_ctx->dst};
+    meshx_network_if_output_filter_data_t filter_data = {.src_addr = meshx_node_address_get(), .dst_addr = pmsg_ctx->dst};
     if (!meshx_network_if_output_filter(network_if, &filter_data))
     {
         MESHX_INFO("data has been filtered!");
