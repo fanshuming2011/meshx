@@ -37,6 +37,8 @@ typedef enum
 #define MESHX_ADDRESS_IS_UNICAST(address)            ((((address) & 0x8000) == 0) && ((address != MESHX_UNASSIGNED_ADDRESS)))
 #define MESHX_ADDRESS_IS_VIRTUAL(address)            (((address) & 0xC000) == 0x8000))
 #define MESHX_ADDRESS_IS_GROUP(address)              (((address) & 0xC000) == 0xC000))
+#define MESHX_ADDRESS_IS_RFU(address)                (((address) >= 0xFF00) && ((address) <= 0xFFFB))
+#define MESHX_ADDRESS_IS_VALID(address)              ((0 != (address)) && (!MESHX_ADDRESS_IS_RFU(address)))
 
 typedef uint8_t meshx_dev_uuid_t[16];
 

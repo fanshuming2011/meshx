@@ -413,6 +413,7 @@ static void *meshx_thread(void *pargs)
     ctx.pnet_key = meshx_net_key_get(100);
     uint8_t trans_pdu[] = {0x03, 0x4b, 0x50, 0x05, 0x7e, 0x40, 0x00, 0x00, 0x01, 0x00, 0x00};
     meshx_network_send(adv_net_if, trans_pdu, sizeof(trans_pdu), &ctx);
+    meshx_network_send(adv_net_if, trans_pdu, sizeof(trans_pdu), &ctx);
     /*******************************************************/
 
     //meshx_bearer_rx_metadata_t rx_metadata;

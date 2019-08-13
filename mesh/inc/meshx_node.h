@@ -37,6 +37,7 @@ typedef struct
 
 
 MESHX_EXTERN uint16_t meshx_node_address_get(void);
+MESHX_EXTERN bool meshx_node_is_my_address(uint16_t addr);
 MESHX_EXTERN void meshx_node_prov_state_set(meshx_node_prov_state_t prov_state);
 MESHX_EXTERN meshx_node_prov_state_t meshx_node_prov_state_get(void);
 

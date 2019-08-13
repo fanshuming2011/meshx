@@ -75,6 +75,9 @@ int32_t meshx_init(void)
     meshx_trace_init();
     meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
 
+    meshx_rpl_init(32);
+    meshx_nmc_init(64);
+
     meshx_bearer_init(config.adv_bearer_enable, config.gatt_bearer_enable);
     if (config.adv_bearer_enable)
     {

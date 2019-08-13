@@ -110,6 +110,12 @@ uint16_t meshx_node_address_get(void)
     //return MESHX_ADDRESS_UNASSIGNED;
 }
 
+bool meshx_node_is_my_address(uint16_t addr)
+{
+    /* 0xffff, node address, subscribe address, all realy node.... */
+    return TRUE;
+}
+
 void meshx_node_prov_state_set(meshx_node_prov_state_t state)
 {
     prov_state = state;

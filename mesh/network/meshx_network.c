@@ -18,6 +18,8 @@
 #include "meshx_node.h"
 #include "meshx_security.h"
 #include "meshx_endianness.h"
+#include "meshx_nmc.h"
+#include "meshx_rpl.h"
 
 #define MESHX_NETWORK_TRANS_PDU_MAX_LEN         20
 #define MESHX_NETWORK_ENCRYPT_OFFSET            7
@@ -170,6 +172,51 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     meshx_network_obfuscation(&net_pdu, iv_index, pnet_key);
 
     /* TODO: check nmc, rpl and relay */
+    uint16_t src = MESHX_BE16_TO_HOST(net_pdu.net_metadata.src);
+    uint16_t dst = MESHX_BE16_TO_HOST(net_pdu.net_metadata.dst);
+    if (!MESHX_ADDRESS_IS_VALID(src) || !MESHX_ADDRESS_IS_VALID(dst))
+    {
+        MESHX_ERROR("invalid address: src 0x%04x, dst 0x%04x", src, dst);
+        return -MESHX_ERR_INVAL;
+    }
+    uint32_t seq = net_pdu.net_metadata.seq[0];
+    seq <<= 8;
+    seq |= net_pdu.net_metadata.seq[1];
+    seq <<= 8;
+    seq |= net_pdu.net_metadata.seq[2];
+    if (meshx_node_is_my_address(dst))
+    {
+        /* message send to me */
+        /* check rpl */
+        meshx_rpl_t rpl = {.src = src, .seq = seq};
+        if (meshx_rpl_exists(rpl))
+        {
+            /* replay attaction happened */
+            MESHX_WARN("replay attack happened!");
+            return -MESHX_ERR_ALREADY;
+        }
+
+        int32_t ret = meshx_rpl_update(rpl);
+        if (MESHX_SUCCESS != ret)
+        {
+            MESHX_ERROR("update rpl list failed: %d", ret);
+            return ret;
+        }
+    }
+    else
+    {
+        /* message need to realy */
+        /* check nmc */
+        meshx_nmc_t nmc = {.src = src, .dst = dst, .seq = seq};
+        if (meshx_nmc_exists(nmc))
+        {
+            /* message already cached, ignore */
+            MESHX_INFO("message already cached, igonre!");
+            return -MESHX_ERR_ALREADY;
+        }
+
+        meshx_nmc_add(nmc);
+    }
 
     /* decrypt transport layer data */
     uint8_t net_mic_len = net_pdu.net_metadata.ctl ? 8 : 4;
