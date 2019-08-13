@@ -146,6 +146,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     }
 
     /* filter data */
+    /* TODO: add input filter data, use adv information? */
     meshx_network_if_input_filter_data_t filter_data = {};
     if (!meshx_network_if_input_filter(network_if, &filter_data))
     {
