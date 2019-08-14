@@ -18,6 +18,7 @@
 #include "meshx_beacon_internal.h"
 #include "meshx_notify.h"
 #include "meshx_notify_internal.h"
+#include "meshx_node_internal.h"
 
 static meshx_timer_t beacon_timer;
 static uint16_t meshx_oob_info;
@@ -36,7 +37,7 @@ static void meshx_beacon_timer_timeout(void *pargs)
 
 void meshx_beacon_async_handle_timeout(meshx_async_msg_t msg)
 {
-    if (MESHX_NODE_UNPROVED == meshx_node_prov_state_get())
+    if (MESHX_ADDRESS_UNASSIGNED == meshx_node_params.node_addr)
     {
         /* send udb */
         meshx_udb_t udb;
@@ -73,13 +74,13 @@ int32_t meshx_beacon_start(meshx_bearer_t bearer, uint8_t beacon_type, uint32_t 
     switch (beacon_type)
     {
     case MESHX_BEACON_TYPE_UDB:
-        if (MESHX_NODE_UNPROVED != meshx_node_prov_state_get())
+        if (MESHX_ADDRESS_UNASSIGNED != meshx_node_params.node_addr)
         {
             ret = -MESHX_ERR_STATE;
         }
         break;
     case MESHX_BEACON_TYPE_SNB:
-        if (MESHX_NODE_UNPROVED == meshx_node_prov_state_get())
+        if (MESHX_ADDRESS_UNASSIGNED == meshx_node_params.node_addr)
         {
             ret = -MESHX_ERR_STATE;
         }

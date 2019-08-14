@@ -13,10 +13,13 @@
 MESHX_BEGIN_DECLS
 
 #define MESHX_SEQ_MAX              0xFFFFFF
+#define MESHX_SEQ_INVALID          0xFFFFFFFF
 
-MESHX_EXTERN uint32_t meshx_seq_get(void);
-MESHX_EXTERN void meshx_seq_set(uint32_t seq);
-MESHX_EXTERN void meshx_seq_increase(void);
+MESHX_EXTERN int32_t meshx_seq_init(uint8_t element_num);
+MESHX_EXTERN void meshx_seq_deinit(void);
+MESHX_EXTERN uint32_t meshx_seq_get(uint8_t element_index);
+MESHX_EXTERN uint32_t meshx_seq_set(uint8_t element_index, uint32_t seq);
+MESHX_EXTERN uint32_t meshx_seq_use(uint8_t element_index);
 
 MESHX_END_DECLS
 

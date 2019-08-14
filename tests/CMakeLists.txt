@@ -5,6 +5,7 @@ include_directories(../common
                     ../mesh/inc
                     ../mesh/gap
                     ../mesh/common
+                    ../mesh/node
                     ../mesh/security
                     ../cmd
                     ../mesh/beacon
@@ -44,6 +45,7 @@ set(COMMON_SRC_LIST
     ../mesh/node/meshx_node.c
     ../mesh/node/meshx_iv_index.c
     ../mesh/node/meshx_rpl.c
+    ../mesh/node/meshx_seq.c
     ../mesh/common/meshx_async.c
     ../mesh/common/meshx_notify.c
     ../mesh/common/meshx_sample_data.c
@@ -54,7 +56,6 @@ set(COMMON_SRC_LIST
     ../mesh/bearer/meshx_bearer_gatt.c
     ../mesh/network/meshx_network.c
     ../mesh/network/meshx_network_interface.c
-    ../mesh/network/meshx_seq.c
     ../mesh/network/meshx_nmc.c
     ../mesh/provision/meshx_pb_adv.c
     ../mesh/provision/meshx_provision.c

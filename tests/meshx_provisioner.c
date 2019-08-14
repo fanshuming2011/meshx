@@ -385,6 +385,22 @@ static int32_t meshx_async_msg_notify_handler(void)
     return MESHX_SUCCESS;
 }
 
+static void meshx_prov_init(void)
+{
+    meshx_config_t config;
+    meshx_config_init(&config);
+    config.role = MESHX_ROLE_PROVISIONER;
+    meshx_config_set(&config);
+    meshx_node_param_t node_param;
+    node_param.type = MESHX_NODE_PARAM_TYPE_NODE_ADDR;
+    node_param.node_addr = 0x1201;
+    meshx_node_param_set(&node_param);
+    meshx_iv_index_set(0x12345678);
+
+    /* add keys */
+    meshx_net_key_add(100, sample_net_key);
+}
+
 static void *meshx_thread(void *pargs)
 {
     msg_queue_init();
@@ -392,11 +408,10 @@ static void *meshx_thread(void *pargs)
     meshx_async_msg_init(10, meshx_async_msg_notify_handler);
     meshx_notify_init(meshx_notify_cb);
 
-    meshx_config(MESHX_ROLE_PROVISIONER, NULL);
-    meshx_init();
+    meshx_prov_init();
 
-    /* add keys */
-    meshx_net_key_add(100, sample_net_key);
+    /* init stack */
+    meshx_init();
 
     /* run stack */
     meshx_run();
@@ -409,10 +424,11 @@ static void *meshx_thread(void *pargs)
     meshx_msg_ctx_t ctx;
     ctx.ctl = 0x01;
     ctx.dst = 0xfffd;
+    ctx.element_index = 0;
     ctx.ttl = 0;
+    ctx.seq = 1;
     ctx.pnet_key = meshx_net_key_get(100);
     uint8_t trans_pdu[] = {0x03, 0x4b, 0x50, 0x05, 0x7e, 0x40, 0x00, 0x00, 0x01, 0x00, 0x00};
-    meshx_network_send(adv_net_if, trans_pdu, sizeof(trans_pdu), &ctx);
     meshx_network_send(adv_net_if, trans_pdu, sizeof(trans_pdu), &ctx);
     /*******************************************************/
 

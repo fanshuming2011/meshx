@@ -333,6 +333,20 @@ static int32_t meshx_async_msg_notify_handler(void)
     return MESHX_SUCCESS;
 }
 
+static void meshx_dev_init(void)
+{
+    meshx_config_t config;
+    meshx_config_init(&config);
+    meshx_config_set(&config);
+    meshx_node_param_t node_param;
+    node_param.type = MESHX_NODE_PARAM_TYPE_NODE_ADDR;
+    node_param.node_addr = 0x1234;
+    meshx_node_param_set(&node_param);
+    meshx_iv_index_set(0x12345678);
+    /* add keys */
+    meshx_net_key_add(0, sample_net_key);
+}
+
 static void *meshx_thread(void *pargs)
 {
     msg_queue_init();
@@ -340,11 +354,10 @@ static void *meshx_thread(void *pargs)
     meshx_async_msg_init(10, meshx_async_msg_notify_handler);
     meshx_notify_init(meshx_notify_cb);
 
-    meshx_config(MESHX_ROLE_DEVICE, NULL);
-    meshx_init();
+    meshx_dev_init();
 
-    /* add keys */
-    meshx_net_key_add(0, sample_net_key);
+    /* init stack */
+    meshx_init();
 
     /* run stack */
     meshx_run();

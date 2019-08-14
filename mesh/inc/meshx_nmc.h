@@ -15,7 +15,6 @@ MESHX_BEGIN_DECLS
 typedef struct
 {
     uint16_t src;
-    uint16_t dst;
     uint32_t seq;
 } meshx_nmc_t;
 

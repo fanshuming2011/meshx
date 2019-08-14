@@ -13,8 +13,8 @@
 #include "meshx_mem.h"
 #include "meshx_list.h"
 #include "meshx_security.h"
+#include "meshx_node_internal.h"
 
-static meshx_node_prov_state_t prov_state;
 typedef struct
 {
     meshx_network_key_t net_key;
@@ -30,17 +30,8 @@ typedef struct
 static meshx_list_t meshx_net_keys = {.pprev = &meshx_net_keys, .pnext = &meshx_net_keys};
 static meshx_list_t meshx_app_keys = {.pprev = &meshx_app_keys, .pnext = &meshx_app_keys};
 
-typedef struct
-{
-    meshx_dev_uuid_t dev_uuid;
-    uint32_t udb_interval;
-    uint32_t snb_interval;
-    meshx_key_t dev_key;
-    uint16_t net_key_num;
-    uint16_t app_key_num;
-} meshx_node_params_t;
 
-static meshx_node_params_t node_params;
+meshx_node_params_t meshx_node_params;
 
 int32_t meshx_node_param_set(const meshx_node_param_t *pparam)
 {
@@ -53,19 +44,31 @@ int32_t meshx_node_param_set(const meshx_node_param_t *pparam)
     switch (pparam->type)
     {
     case MESHX_NODE_PARAM_TYPE_DEV_UUID:
-        memcpy(node_params.dev_uuid, pparam->dev_uuid, sizeof(meshx_dev_uuid_t));
+        memcpy(meshx_node_params.dev_uuid, pparam->dev_uuid, sizeof(meshx_dev_uuid_t));
+        break;
+    case MESHX_NODE_PARAM_TYPE_NODE_ADDR:
+        if (MESHX_ADDRESS_IS_UNICAST(pparam->node_addr))
+        {
+            meshx_node_params.node_addr = pparam->node_addr;
+        }
         break;
     case MESHX_NODE_PARAM_TYPE_UDB_INTERVAL:
-        node_params.udb_interval = pparam->udb_interval;
+        meshx_node_params.udb_interval = pparam->udb_interval;
         break;
     case MESHX_NODE_PARAM_TYPE_SNB_INTERVAL:
-        node_params.snb_interval = pparam->snb_interval;
+        meshx_node_params.snb_interval = pparam->snb_interval;
         break;
     case MESHX_NODE_PARAM_TYPE_NET_KEY_NUM:
-        node_params.net_key_num = pparam->net_key_num;
+        meshx_node_params.net_key_num = pparam->net_key_num;
         break;
     case MESHX_NODE_PARAM_TYPE_APP_KEY_NUM:
-        node_params.app_key_num = pparam->app_key_num;
+        meshx_node_params.app_key_num = pparam->app_key_num;
+        break;
+    case MESHX_NODE_PARAM_TYPE_NMC_SIZE:
+        meshx_node_params.nmc_size = pparam->nmc_size;
+        break;
+    case MESHX_NODE_PARAM_TYPE_RPL_SIZE:
+        meshx_node_params.rpl_size = pparam->rpl_size;
         break;
     default:
         MESHX_WARN("unknown parameter type: %d", pparam->type);
@@ -87,13 +90,22 @@ int32_t meshx_node_param_get(meshx_node_param_type_t type, void *pdata)
     switch (type)
     {
     case MESHX_NODE_PARAM_TYPE_DEV_UUID:
-        memcpy(pdata, node_params.dev_uuid, sizeof(meshx_dev_uuid_t));
+        memcpy(pdata, meshx_node_params.dev_uuid, sizeof(meshx_dev_uuid_t));
+        break;
+    case MESHX_NODE_PARAM_TYPE_NODE_ADDR:
+        *((uint16_t *)pdata) = meshx_node_params.node_addr;
         break;
     case MESHX_NODE_PARAM_TYPE_UDB_INTERVAL:
-        *((uint32_t *)pdata) = node_params.udb_interval;
+        *((uint32_t *)pdata) = meshx_node_params.udb_interval;
         break;
     case MESHX_NODE_PARAM_TYPE_SNB_INTERVAL:
-        *((uint32_t *)pdata) = node_params.snb_interval;
+        *((uint32_t *)pdata) = meshx_node_params.snb_interval;
+        break;
+    case MESHX_NODE_PARAM_TYPE_NMC_SIZE:
+        *((uint16_t *)pdata) = meshx_node_params.nmc_size;
+        break;
+    case MESHX_NODE_PARAM_TYPE_RPL_SIZE:
+        *((uint16_t *)pdata) = meshx_node_params.rpl_size;
         break;
     default:
         MESHX_WARN("unknown parameter type: %d", type);
@@ -106,24 +118,13 @@ int32_t meshx_node_param_get(meshx_node_param_type_t type, void *pdata)
 
 uint16_t meshx_node_address_get(void)
 {
-    return 0x1201;
-    //return MESHX_ADDRESS_UNASSIGNED;
+    return meshx_node_params.node_addr;
 }
 
 bool meshx_node_is_my_address(uint16_t addr)
 {
     /* 0xffff, node address, subscribe address, all realy node.... */
     return TRUE;
-}
-
-void meshx_node_prov_state_set(meshx_node_prov_state_t state)
-{
-    prov_state = state;
-}
-
-meshx_node_prov_state_t meshx_node_prov_state_get(void)
-{
-    return prov_state;
 }
 
 meshx_net_key_info_t *meshx_find_net_key(uint16_t net_key_index)
@@ -173,9 +174,9 @@ int32_t meshx_node_app_key_add(uint16_t net_key_index, uint16_t app_key_index,
         }
     }
 
-    if (meshx_list_length(&meshx_app_keys) >= node_params.app_key_num)
+    if (meshx_list_length(&meshx_app_keys) >= meshx_node_params.app_key_num)
     {
-        MESHX_ERROR("net key num reaches maximum number: %d", node_params.net_key_num);
+        MESHX_ERROR("net key num reaches maximum number: %d", meshx_node_params.net_key_num);
         return -MESHX_ERR_RESOURCE;
     }
 
@@ -297,9 +298,9 @@ int32_t meshx_net_key_add(uint16_t net_key_index, meshx_key_t net_key)
         }
     }
 
-    if (meshx_list_length(&meshx_net_keys) >= node_params.net_key_num)
+    if (meshx_list_length(&meshx_net_keys) >= meshx_node_params.net_key_num)
     {
-        MESHX_ERROR("net key num reaches maximum number: %d", node_params.net_key_num);
+        MESHX_ERROR("net key num reaches maximum number: %d", meshx_node_params.net_key_num);
         return -MESHX_ERR_RESOURCE;
     }
 

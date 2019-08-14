@@ -23,6 +23,7 @@
 #include "meshx_mem.h"
 #include "meshx_endianness.h"
 #include "meshx_sample_data.h"
+#include "meshx_node_internal.h"
 
 int32_t meshx_provision_init(void)
 {
@@ -1482,7 +1483,7 @@ int32_t meshx_provision_handle_notify(meshx_bearer_t bearer, const meshx_notify_
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:
         /* check node state */
-        if (MESHX_NODE_PROVED == meshx_node_prov_state_get())
+        if (MESHX_ADDRESS_UNASSIGNED == meshx_node_params.node_addr)
         {
             /* start snb */
             //meshx_beacon_start(adv_bearer, MESHX_BEACON_TYPE_UDB, 5000);

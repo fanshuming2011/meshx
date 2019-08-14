@@ -29,12 +29,15 @@
 #include "meshx_sample_data.h"
 #include "meshx_rpl.h"
 #include "meshx_nmc.h"
+#include "meshx_seq.h"
+#include "meshx_iv_index.h"
 
 
 MESHX_BEGIN_DECLS
 
 typedef struct
 {
+    meshx_role_t role;
     meshx_dev_uuid_t dev_uuid;
     bool adv_bearer_enable;
     bool gatt_bearer_enable;
@@ -42,10 +45,13 @@ typedef struct
     uint32_t snb_interval;
     uint16_t net_key_num;
     uint16_t app_key_num;
+    uint16_t nmc_size;
+    uint16_t rpl_size;
 } meshx_config_t;
 
-MESHX_EXTERN void meshx_config(uint8_t role, const meshx_config_t *pconfig);
-MESHX_EXTERN meshx_config_t meshx_get_default_config(void);
+MESHX_EXTERN int32_t meshx_config_init(meshx_config_t *pconfig);
+MESHX_EXTERN int32_t meshx_config_set(const meshx_config_t *pconfig);
+MESHX_EXTERN meshx_config_t meshx_config_get(void);
 MESHX_EXTERN int32_t meshx_init(void);
 MESHX_EXTERN int32_t meshx_run(void);
 

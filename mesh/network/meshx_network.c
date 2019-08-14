@@ -20,6 +20,7 @@
 #include "meshx_endianness.h"
 #include "meshx_nmc.h"
 #include "meshx_rpl.h"
+#include "meshx_node_internal.h"
 
 #define MESHX_NETWORK_TRANS_PDU_MAX_LEN         20
 #define MESHX_NETWORK_ENCRYPT_OFFSET            7
@@ -184,50 +185,42 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     seq |= net_pdu.net_metadata.seq[1];
     seq <<= 8;
     seq |= net_pdu.net_metadata.seq[2];
+
+    /* check nmc */
+    meshx_nmc_t nmc = {.src = src, .seq = seq};
+    if (meshx_nmc_exists(nmc))
+    {
+        /* message already cached, ignore */
+        MESHX_INFO("message already cached, igonre!");
+        return -MESHX_ERR_ALREADY;
+    }
+
+    meshx_nmc_add(nmc);
+
+    int32_t ret = MESHX_SUCCESS;
     if (meshx_node_is_my_address(dst))
     {
         /* message send to me */
-        /* check rpl */
-        meshx_rpl_t rpl = {.src = src, .seq = seq};
-        if (meshx_rpl_exists(rpl))
+
+        /* decrypt transport layer data */
+        uint8_t net_mic_len = net_pdu.net_metadata.ctl ? 8 : 4;
+        uint8_t trans_pdu_len = len - sizeof(meshx_network_metadata_t) - net_mic_len;
+        ret = meshx_network_decrypt(&net_pdu, trans_pdu_len, iv_index, pnet_key);
+        if (MESHX_SUCCESS == ret)
         {
-            /* replay attaction happened */
-            MESHX_WARN("replay attack happened!");
-            return -MESHX_ERR_ALREADY;
+            MESHX_DEBUG("decrypt net pdu:");
+            MESHX_DUMP_DEBUG(&net_pdu, len - net_mic_len);
         }
 
-        int32_t ret = meshx_rpl_update(rpl);
-        if (MESHX_SUCCESS != ret)
-        {
-            MESHX_ERROR("update rpl list failed: %d", ret);
-            return ret;
-        }
+        /* send data to lower transport lower */
     }
     else
     {
-        /* message need to realy */
-        /* check nmc */
-        meshx_nmc_t nmc = {.src = src, .dst = dst, .seq = seq};
-        if (meshx_nmc_exists(nmc))
-        {
-            /* message already cached, ignore */
-            MESHX_INFO("message already cached, igonre!");
-            return -MESHX_ERR_ALREADY;
-        }
-
-        meshx_nmc_add(nmc);
+        /* message need to relay */
+        /* TODO: check ttl and relay*/
     }
 
-    /* decrypt transport layer data */
-    uint8_t net_mic_len = net_pdu.net_metadata.ctl ? 8 : 4;
-    uint8_t trans_pdu_len = len - sizeof(meshx_network_metadata_t) - net_mic_len;
-    meshx_network_decrypt(&net_pdu, trans_pdu_len, iv_index, pnet_key);
-    MESHX_DEBUG("decrypt net pdu:");
-    MESHX_DUMP_DEBUG(&net_pdu, len - net_mic_len);
-
-
-    /* send data to lower transport lower */
-    return MESHX_SUCCESS;
+    return ret;
 }
 
 int32_t meshx_network_send(meshx_network_if_t network_if,
@@ -253,7 +246,7 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     }
 
     /* filter data */
-    meshx_network_if_output_filter_data_t filter_data = {.src_addr = meshx_node_address_get(), .dst_addr = pmsg_ctx->dst};
+    meshx_network_if_output_filter_data_t filter_data = {.src_addr = meshx_node_params.node_addr, .dst_addr = pmsg_ctx->dst};
     if (!meshx_network_if_output_filter(network_if, &filter_data))
     {
         MESHX_INFO("data has been filtered!");
@@ -277,17 +270,16 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
         }
     }
 
-    uint16_t src = meshx_node_address_get();
+    uint16_t src = meshx_node_params.node_addr;
     uint32_t iv_index = meshx_iv_index_get();
     meshx_network_pdu_t net_pdu = {0};
-    uint32_t seq = meshx_seq_get();
     net_pdu.net_metadata.ivi = (iv_index & 0x01);
     net_pdu.net_metadata.nid = pmsg_ctx->pnet_key->nid;
     net_pdu.net_metadata.ctl = pmsg_ctx->ctl;
     net_pdu.net_metadata.ttl = pmsg_ctx->ttl;
-    net_pdu.net_metadata.seq[0] = seq >> 16;
-    net_pdu.net_metadata.seq[1] = seq >> 8;
-    net_pdu.net_metadata.seq[2] = seq;
+    net_pdu.net_metadata.seq[0] = pmsg_ctx->seq >> 16;
+    net_pdu.net_metadata.seq[1] = pmsg_ctx->seq >> 8;
+    net_pdu.net_metadata.seq[2] = pmsg_ctx->seq;
     net_pdu.net_metadata.src = MESHX_HOST_TO_BE16(src);
     net_pdu.net_metadata.dst = MESHX_HOST_TO_BE16(pmsg_ctx->dst);
     memcpy(net_pdu.pdu, ptrans_pdu, trans_pdu_len);

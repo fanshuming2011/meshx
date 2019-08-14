@@ -33,8 +33,8 @@ typedef enum
 #define MESHX_ADDRESS_ALL_FRIENDS                    0xFFFD
 #define MESHX_ADDRESS_ALL_RELAYS                     0xFFFE
 #define MESHX_ADDRESS_ALL_NODES                      0xFFFF　
-#define MESHX_ADDRESS_IS_UNASSIGNED(address)         ((address) == MESHX_UNASSIGNED_ADDRESS)
-#define MESHX_ADDRESS_IS_UNICAST(address)            ((((address) & 0x8000) == 0) && ((address != MESHX_UNASSIGNED_ADDRESS)))
+#define MESHX_ADDRESS_IS_UNASSIGNED(address)         ((address) == MESHX_ADDRESS_UNASSIGNED)
+#define MESHX_ADDRESS_IS_UNICAST(address)            ((((address) & 0x8000) == 0) && (((address) != MESHX_ADDRESS_UNASSIGNED)))
 #define MESHX_ADDRESS_IS_VIRTUAL(address)            (((address) & 0xC000) == 0x8000))
 #define MESHX_ADDRESS_IS_GROUP(address)              (((address) & 0xC000) == 0xC000))
 #define MESHX_ADDRESS_IS_RFU(address)                (((address) >= 0xFF00) && ((address) <= 0xFFFB))
@@ -72,7 +72,9 @@ typedef struct
 {
     uint8_t ctl : 1;
     uint8_t ttl : 7;
+    uint8_t element_index;
     uint16_t dst;
+    uint32_t seq;
     const meshx_network_key_t *pnet_key;
 } meshx_msg_ctx_t;
 

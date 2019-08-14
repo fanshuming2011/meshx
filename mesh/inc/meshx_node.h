@@ -15,10 +15,13 @@ MESHX_BEGIN_DECLS
 typedef enum
 {
     MESHX_NODE_PARAM_TYPE_DEV_UUID,
+    MESHX_NODE_PARAM_TYPE_NODE_ADDR,
     MESHX_NODE_PARAM_TYPE_UDB_INTERVAL,
     MESHX_NODE_PARAM_TYPE_SNB_INTERVAL,
     MESHX_NODE_PARAM_TYPE_NET_KEY_NUM,
     MESHX_NODE_PARAM_TYPE_APP_KEY_NUM,
+    MESHX_NODE_PARAM_TYPE_NMC_SIZE,
+    MESHX_NODE_PARAM_TYPE_RPL_SIZE,
 } meshx_node_param_type_t;
 
 typedef struct
@@ -27,19 +30,19 @@ typedef struct
     union
     {
         meshx_dev_uuid_t dev_uuid;
+        uint16_t node_addr;
         uint32_t udb_interval;
         uint32_t snb_interval;
         uint16_t net_key_num;
         uint16_t app_key_num;
+        uint16_t nmc_size;
+        uint16_t rpl_size;
     };
 } meshx_node_param_t;
 
 
 
-MESHX_EXTERN uint16_t meshx_node_address_get(void);
 MESHX_EXTERN bool meshx_node_is_my_address(uint16_t addr);
-MESHX_EXTERN void meshx_node_prov_state_set(meshx_node_prov_state_t prov_state);
-MESHX_EXTERN meshx_node_prov_state_t meshx_node_prov_state_get(void);
 
 MESHX_EXTERN int32_t meshx_node_param_set(const meshx_node_param_t *pparam);
 MESHX_EXTERN int32_t meshx_node_param_get(meshx_node_param_type_t type, void *pdata);
