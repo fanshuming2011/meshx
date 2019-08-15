@@ -7,6 +7,7 @@ include_directories(../common
                     ../mesh/common
                     ../mesh/node
                     ../mesh/security
+                    ../mesh/transport
                     ../cmd
                     ../mesh/beacon
                     ../platform
@@ -57,6 +58,7 @@ set(COMMON_SRC_LIST
     ../mesh/network/meshx_network.c
     ../mesh/network/meshx_network_interface.c
     ../mesh/network/meshx_nmc.c
+    ../mesh/transport/meshx_lower_transport.c
     ../mesh/provision/meshx_pb_adv.c
     ../mesh/provision/meshx_provision.c
     ../mesh/beacon/meshx_beacon.c)

@@ -62,7 +62,7 @@ MESHX_EXTERN meshx_network_if_t meshx_network_if_get(meshx_bearer_t bearer);
 MESHX_EXTERN int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdata,
                                            uint8_t len);
 MESHX_EXTERN int32_t meshx_network_send(meshx_network_if_t network_if,
-                                        const uint8_t *ppdu, uint8_t pdu_len,
+                                        const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
                                         const meshx_msg_ctx_t *pmsg_ctx);
 
 MESHX_EXTERN meshx_network_if_filter_info_t meshx_network_if_get_filter_info(

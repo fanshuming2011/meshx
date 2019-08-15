@@ -70,8 +70,13 @@ typedef struct
 
 typedef struct
 {
-    uint8_t ctl : 1;
-    uint8_t ttl : 7;
+    uint32_t force_seg : 1;
+    uint32_t akf : 1;
+    uint32_t aid : 6;
+    uint32_t ctl : 1;
+    uint32_t ttl : 7;
+    uint32_t szmic : 1;
+    uint32_t rsvd : 15;
     uint8_t element_index;
     uint16_t dst;
     uint32_t seq;
