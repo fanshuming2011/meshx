@@ -6,7 +6,7 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #include <string.h>
-#define TRACE_MODULE "MESHX_RPL"
+#define MESHX_TRACE_MODULE "MESHX_RPL"
 #include "meshx_rpl.h"
 #include "meshx_trace.h"
 #include "meshx_errno.h"

@@ -75,7 +75,7 @@ typedef struct
     uint8_t element_index;
     uint16_t dst;
     uint32_t seq;
-    const meshx_network_key_t *pnet_key;
+    const meshx_application_key_t *papp_key;
 } meshx_msg_ctx_t;
 
 

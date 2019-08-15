@@ -274,7 +274,7 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     uint32_t iv_index = meshx_iv_index_get();
     meshx_network_pdu_t net_pdu = {0};
     net_pdu.net_metadata.ivi = (iv_index & 0x01);
-    net_pdu.net_metadata.nid = pmsg_ctx->pnet_key->nid;
+    net_pdu.net_metadata.nid = pmsg_ctx->papp_key->pnet_key_bind->nid;
     net_pdu.net_metadata.ctl = pmsg_ctx->ctl;
     net_pdu.net_metadata.ttl = pmsg_ctx->ttl;
     net_pdu.net_metadata.seq[0] = pmsg_ctx->seq >> 16;
@@ -289,10 +289,10 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     MESHX_DUMP_DEBUG(&net_pdu, net_pdu_len);
 
     /* encrypt dst field and trans pdu */
-    meshx_network_encrypt(&net_pdu, trans_pdu_len, iv_index, pmsg_ctx->pnet_key);
+    meshx_network_encrypt(&net_pdu, trans_pdu_len, iv_index, pmsg_ctx->papp_key->pnet_key_bind);
 
     /* obfuscation ctl, ttl, seq, src fields */
-    meshx_network_obfuscation(&net_pdu, iv_index, pmsg_ctx->pnet_key);
+    meshx_network_obfuscation(&net_pdu, iv_index, pmsg_ctx->papp_key->pnet_key_bind);
 
     MESHX_DEBUG("encrypt and obsfucation net pdu:");
     MESHX_DUMP_DEBUG(&net_pdu, net_pdu_len);

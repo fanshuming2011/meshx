@@ -96,9 +96,6 @@ meshx_config_t meshx_get_default_config(void)
 
 int32_t meshx_init(void)
 {
-    meshx_trace_init();
-    meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
-
     /* TODO: set to actual element number */
     meshx_seq_init(1);
     meshx_rpl_init(meshx_node_params.rpl_size);

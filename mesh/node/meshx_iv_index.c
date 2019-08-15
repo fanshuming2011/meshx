@@ -5,7 +5,7 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
-#define TRACE_MODULE "MESHX_IV_INDEX"
+#define MESHX_TRACE_MODULE "MESHX_IV_INDEX"
 #include "meshx_iv_index.h"
 
 static uint32_t meshx_iv_index;

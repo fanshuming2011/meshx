@@ -6,7 +6,7 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #include <string.h>
-#define TRACE_MODULE "MESHX_SECURITY"
+#define MESHX_TRACE_MODULE "MESHX_SECURITY"
 #include "meshx_trace.h"
 #include "meshx_mem.h"
 #include "meshx_security.h"
@@ -61,8 +61,6 @@ int32_t meshx_k2(const uint8_t N[16], const uint8_t *pP, uint32_t Plen, uint8_t 
     meshx_s1(smk2, sizeof(smk2), salt);
     uint8_t key_T[16];
     meshx_aes_cmac(salt, N, 16,  key_T);
-    MESHX_DEBUG("key_T:");
-    MESHX_DUMP_DEBUG(key_T, 16);
 
     uint8_t T1[16], T2[16], T3[16];
 

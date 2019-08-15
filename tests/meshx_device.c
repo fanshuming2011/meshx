@@ -343,8 +343,10 @@ static void meshx_dev_init(void)
     node_param.node_addr = 0x1234;
     meshx_node_param_set(&node_param);
     meshx_iv_index_set(0x12345678);
+
     /* add keys */
     meshx_net_key_add(0, sample_net_key);
+    meshx_app_key_add(0, 0, sample_app_key);
 }
 
 static void *meshx_thread(void *pargs)
@@ -353,6 +355,11 @@ static void *meshx_thread(void *pargs)
     msg_queue_create(&msg_queue, 10, sizeof(async_data_t));
     meshx_async_msg_init(10, meshx_async_msg_notify_handler);
     meshx_notify_init(meshx_notify_cb);
+
+    /* TODO: mode to common? */
+    meshx_trace_init();
+    meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
+
 
     meshx_dev_init();
 

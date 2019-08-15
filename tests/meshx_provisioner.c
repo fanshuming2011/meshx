@@ -398,7 +398,8 @@ static void meshx_prov_init(void)
     meshx_iv_index_set(0x12345678);
 
     /* add keys */
-    meshx_net_key_add(100, sample_net_key);
+    meshx_net_key_add(0, sample_net_key);
+    meshx_app_key_add(0, 0, sample_app_key);
 }
 
 static void *meshx_thread(void *pargs)
@@ -407,6 +408,9 @@ static void *meshx_thread(void *pargs)
     msg_queue_create(&msg_queue, 10, sizeof(async_data_t));
     meshx_async_msg_init(10, meshx_async_msg_notify_handler);
     meshx_notify_init(meshx_notify_cb);
+
+    meshx_trace_init();
+    meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
 
     meshx_prov_init();
 
@@ -427,7 +431,7 @@ static void *meshx_thread(void *pargs)
     ctx.element_index = 0;
     ctx.ttl = 0;
     ctx.seq = 1;
-    ctx.pnet_key = meshx_net_key_get(100);
+    ctx.papp_key = meshx_app_key_get(0);
     uint8_t trans_pdu[] = {0x03, 0x4b, 0x50, 0x05, 0x7e, 0x40, 0x00, 0x00, 0x01, 0x00, 0x00};
     meshx_network_send(adv_net_if, trans_pdu, sizeof(trans_pdu), &ctx);
     /*******************************************************/
