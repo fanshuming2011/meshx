@@ -18,7 +18,7 @@ typedef struct
     uint32_t seq;
 } meshx_nmc_t;
 
-MESHX_EXTERN int32_t meshx_nmc_init(uint32_t size);
+MESHX_EXTERN int32_t meshx_nmc_init(void);
 MESHX_EXTERN void meshx_nmc_deinit(void);
 MESHX_EXTERN int32_t meshx_nmc_add(meshx_nmc_t nmc);
 MESHX_EXTERN void meshx_nmc_clear(void);

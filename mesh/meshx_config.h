@@ -19,9 +19,6 @@
 
 #define MESHX_USE_SAMPLE_DATA                      1
 
-/* gap adv */
-#define MESHX_GAP_ACTION_MAX_NUM                   10
-
 #define MESHX_GAP_SCAN_WINDOW                      160 /* 100ms */
 #define MESHX_GAP_SCAN_INTERVAL                    160 /* 100ms */
 

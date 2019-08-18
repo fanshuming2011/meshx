@@ -25,6 +25,7 @@
 #include "meshx_async_internal.h"
 #include "meshx_notify.h"
 #include "meshx_notify_internal.h"
+#include "meshx_node_internal.h"
 
 
 /* maximum trans segment number */
@@ -726,9 +727,7 @@ int32_t meshx_pb_adv_link_open(meshx_provision_dev_t prov_dev)
     MESHX_ASSERT(NULL != prov_dev);
 
     /* check whether is myself */
-    meshx_dev_uuid_t uuid_self;
-    meshx_node_param_get(MESHX_NODE_PARAM_TYPE_DEV_UUID, uuid_self);
-    if (0 == memcmp(uuid_self, prov_dev->dev_uuid, sizeof(meshx_dev_uuid_t)))
+    if (0 == memcmp(meshx_node_params.config.dev_uuid, prov_dev->dev_uuid, sizeof(meshx_dev_uuid_t)))
     {
         MESHX_ERROR("can't not provision myself");
         return -MESHX_ERR_INVAL;
@@ -1039,15 +1038,15 @@ static int32_t meshx_pb_adv_recv_link_open(meshx_bearer_t bearer, const uint8_t 
     const meshx_pb_adv_pkt_t *ppkt = (const meshx_pb_adv_pkt_t *)pdata;
     uint32_t link_id = MESHX_BE32_TO_HOST(ppkt->metadata.link_id);
     /* check uuid */
-    meshx_dev_uuid_t dev_uuid;
-    meshx_node_param_get(MESHX_NODE_PARAM_TYPE_DEV_UUID, dev_uuid);
-    if (0 != memcmp(dev_uuid, ppkt->bearer_ctl.link_open.dev_uuid, sizeof(meshx_dev_uuid_t)))
+    if (0 != memcmp(meshx_node_params.config.dev_uuid, ppkt->bearer_ctl.link_open.dev_uuid,
+                    sizeof(meshx_dev_uuid_t)))
     {
         MESHX_INFO("receive dismatched uuid");
         return -MESHX_ERR_DIFF;
     }
 
-    meshx_provision_dev_t prov_dev = meshx_provision_create_device(bearer, dev_uuid, MESHX_ROLE_DEVICE);
+    meshx_provision_dev_t prov_dev = meshx_provision_create_device(bearer,
+                                                                   meshx_node_params.config.dev_uuid, MESHX_ROLE_DEVICE);
     if (NULL == prov_dev)
     {
         MESHX_ERROR("can't handle link open message now");

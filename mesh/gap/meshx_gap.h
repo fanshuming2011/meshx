@@ -96,7 +96,7 @@ typedef struct
     };
 } meshx_gap_action_t;;
 
-MESHX_EXTERN int32_t meshx_gap_init(void);
+MESHX_EXTERN int32_t meshx_gap_init(uint8_t gap_task_num);
 MESHX_EXTERN int32_t meshx_gap_start(void);
 MESHX_EXTERN void meshx_gap_stop(void);
 MESHX_EXTERN int32_t meshx_gap_handle_bt_status(const meshx_gap_bt_status_t *pstatus);

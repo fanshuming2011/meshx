@@ -18,7 +18,7 @@ typedef struct
     uint32_t seq;
 } meshx_rpl_t;
 
-MESHX_EXTERN int32_t meshx_rpl_init(uint32_t size);
+MESHX_EXTERN int32_t meshx_rpl_init(void);
 MESHX_EXTERN void meshx_rpl_deinit(void);
 MESHX_EXTERN int32_t meshx_rpl_update(meshx_rpl_t rpl);
 MESHX_EXTERN void meshx_rpl_clear(void);

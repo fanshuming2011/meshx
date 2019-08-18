@@ -11,12 +11,13 @@
 #include "meshx_trace.h"
 #include "meshx_errno.h"
 #include "meshx_mem.h"
+#include "meshx_node_internal.h"
 
 static meshx_rpl_t *rpl_array;
 static uint32_t rpl_index;
 static uint32_t rpl_size;
 
-int32_t meshx_rpl_init(uint32_t size)
+int32_t meshx_rpl_init(void)
 {
     if (NULL != rpl_array)
     {
@@ -24,8 +25,8 @@ int32_t meshx_rpl_init(uint32_t size)
         return -MESHX_ERR_ALREADY;
     }
 
-    rpl_array = meshx_malloc(size * sizeof(meshx_rpl_t));
-    memset(rpl_array, 0, sizeof(meshx_rpl_t) * size);
+    rpl_array = meshx_malloc(meshx_node_params.config.rpl_size * sizeof(meshx_rpl_t));
+    memset(rpl_array, 0, sizeof(meshx_rpl_t) * meshx_node_params.config.rpl_size);
     if (NULL == rpl_array)
     {
         MESHX_ERROR("initialize rpl failed: out of memory");
@@ -33,7 +34,7 @@ int32_t meshx_rpl_init(uint32_t size)
     }
 
     rpl_index = 0;
-    rpl_size = size;
+    rpl_size = meshx_node_params.config.rpl_size;
     return MESHX_SUCCESS;
 }
 

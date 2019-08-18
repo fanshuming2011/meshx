@@ -1483,7 +1483,7 @@ int32_t meshx_provision_handle_notify(meshx_bearer_t bearer, const meshx_notify_
         break;
     case MESHX_PROV_NOTIFY_LINK_CLOSE:
         /* check node state */
-        if (MESHX_ADDRESS_UNASSIGNED == meshx_node_params.node_addr)
+        if (MESHX_ADDRESS_UNASSIGNED == meshx_node_params.param.node_addr)
         {
             /* start snb */
             //meshx_beacon_start(adv_bearer, MESHX_BEACON_TYPE_UDB, 5000);

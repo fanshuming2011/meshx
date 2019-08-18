@@ -5,6 +5,7 @@
  *
  * See the LICENSE file for the terms of usage and distribution.
  */
+#include <string.h>
 #define MESHX_TRACE_MODULE "MESHX_GAP"
 #include "meshx_trace.h"
 #include "meshx_config.h"
@@ -12,6 +13,8 @@
 #include "meshx_bearer.h"
 #include "meshx_errno.h"
 #include "meshx_list.h"
+#include "meshx_node_internal.h"
+#include "meshx_mem.h"
 
 typedef struct
 {
@@ -19,7 +22,7 @@ typedef struct
     meshx_list_t node;
 } meshx_gap_action_list_t;
 
-static meshx_gap_action_list_t gap_actions[MESHX_GAP_ACTION_MAX_NUM];
+static meshx_gap_action_list_t *meshx_gap_actions;
 
 static meshx_list_t gap_action_list_idle;
 static meshx_list_t gap_action_list_active;
@@ -41,13 +44,22 @@ static meshx_gap_adv_param_t gap_adv_param =
     .channel = MESHX_GAP_CHANNEL_ALL
 };
 
-int32_t meshx_gap_init(void)
+int32_t meshx_gap_init(uint8_t gap_task_num)
 {
     meshx_list_init_head(&gap_action_list_idle);
     meshx_list_init_head(&gap_action_list_active);
-    for (uint8_t i = 0; i < MESHX_GAP_ACTION_MAX_NUM; ++i)
+    meshx_gap_actions = meshx_malloc(meshx_node_params.config.gap_task_num * sizeof(
+                                         meshx_gap_action_list_t));
+    if (NULL == meshx_gap_actions)
     {
-        meshx_list_append(&gap_action_list_idle, &gap_actions[i].node);
+        MESHX_ERROR("initialize gap failed: out of memory!");
+        return -MESHX_ERR_MEM;
+    }
+    memset(meshx_gap_actions, 0, meshx_node_params.config.gap_task_num * sizeof(
+               meshx_gap_action_list_t));
+    for (uint8_t i = 0; i < meshx_node_params.config.gap_task_num; ++i)
+    {
+        meshx_list_append(&gap_action_list_idle, &meshx_gap_actions[i].node);
     }
 
     gap_state.enabled = FALSE;
@@ -59,9 +71,9 @@ static void meshx_clear_all_actions(void)
 {
     meshx_list_init_head(&gap_action_list_idle);
     meshx_list_init_head(&gap_action_list_active);
-    for (uint8_t i = 0; i < MESHX_GAP_ACTION_MAX_NUM; ++i)
+    for (uint8_t i = 0; i < meshx_node_params.config.gap_task_num; ++i)
     {
-        meshx_list_append(&gap_action_list_idle, &gap_actions[i].node);
+        meshx_list_append(&gap_action_list_idle, &meshx_gap_actions[i].node);
     }
 }
 

@@ -335,13 +335,14 @@ static int32_t meshx_async_msg_notify_handler(void)
 
 static void meshx_dev_init(void)
 {
-    meshx_config_t config;
-    meshx_config_init(&config);
-    meshx_config_set(&config);
-    meshx_node_param_t node_param;
-    node_param.type = MESHX_NODE_PARAM_TYPE_NODE_ADDR;
-    node_param.node_addr = 0x1234;
-    meshx_node_param_set(&node_param);
+    meshx_node_config_t config;
+    meshx_node_config_init(&config);
+    meshx_node_config_set(&config);
+
+    meshx_node_param_t param;
+    meshx_node_params_init(&param);
+    param.node_addr = 0x1234;
+    meshx_node_params_set(&param);
     meshx_iv_index_set(0x12345678);
 
     /* add keys */

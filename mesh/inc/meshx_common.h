@@ -76,11 +76,13 @@ typedef struct
     uint32_t ctl : 1;
     uint32_t ttl : 7;
     uint32_t szmic : 1;
-    uint32_t rsvd : 15;
+    uint32_t seq_zero : 13;
+    uint32_t rsvd : 2;
     uint8_t element_index;
+    uint16_t src;
     uint16_t dst;
     uint32_t seq;
-    const meshx_application_key_t *papp_key;
+    const meshx_network_key_t *pnet_key;
 } meshx_msg_ctx_t;
 
 

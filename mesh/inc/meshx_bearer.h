@@ -54,7 +54,7 @@ typedef struct
 
 typedef struct _meshx_bearer *meshx_bearer_t;
 
-MESHX_EXTERN int32_t meshx_bearer_init(bool adv_bearer, bool gatt_bearer);
+MESHX_EXTERN int32_t meshx_bearer_init(void);
 MESHX_EXTERN meshx_bearer_t meshx_bearer_create(meshx_bearer_param_t bearer_param);
 MESHX_EXTERN void meshx_bearer_delete(meshx_bearer_t bearer);
 MESHX_EXTERN uint8_t meshx_bearer_type_get(meshx_bearer_t bearer);

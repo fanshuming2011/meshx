@@ -13,15 +13,12 @@
 #include "meshx_assert.h"
 #include "meshx_gap.h"
 #include "meshx_network.h"
+#include "meshx_node_internal.h"
 
-static bool meshx_adv_bearer_enabled;
-static bool meshx_gatt_bearer_enabled;
 
-int32_t meshx_bearer_init(bool adv_bearer_enabled, bool gatt_bearer_enabled)
+int32_t meshx_bearer_init(void)
 {
-    meshx_adv_bearer_enabled = adv_bearer_enabled;
-    meshx_gatt_bearer_enabled = gatt_bearer_enabled;
-    if (adv_bearer_enabled)
+    if (meshx_node_params.config.adv_bearer_enable)
     {
         meshx_bearer_adv_init();
     }
@@ -30,7 +27,7 @@ int32_t meshx_bearer_init(bool adv_bearer_enabled, bool gatt_bearer_enabled)
         MESHX_WARN("adv bearer is diabled!");
     }
 
-    if (gatt_bearer_enabled)
+    if (meshx_node_params.config.gatt_bearer_enable)
     {
         meshx_bearer_gatt_init();
     }
@@ -48,7 +45,7 @@ meshx_bearer_t meshx_bearer_create(meshx_bearer_param_t bearer_param)
     switch (bearer_param.bearer_type)
     {
     case MESHX_BEARER_TYPE_ADV:
-        if (meshx_adv_bearer_enabled)
+        if (meshx_node_params.config.adv_bearer_enable)
         {
             bearer = meshx_bearer_adv_create(bearer_param.param_adv);
         }
@@ -58,7 +55,7 @@ meshx_bearer_t meshx_bearer_create(meshx_bearer_param_t bearer_param)
         }
         break;
     case MESHX_BEARER_TYPE_GATT:
-        if (meshx_gatt_bearer_enabled)
+        if (meshx_node_params.config.gatt_bearer_enable)
         {
             bearer = meshx_bearer_gatt_create(bearer_param.param_gatt);
         }

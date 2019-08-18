@@ -11,13 +11,14 @@
 #include "meshx_trace.h"
 #include "meshx_errno.h"
 #include "meshx_mem.h"
+#include "meshx_node_internal.h"
 
 static meshx_nmc_t *nmc_array;
 static uint32_t nmc_index;
 static bool nmc_circle;
 static uint32_t nmc_size;
 
-int32_t meshx_nmc_init(uint32_t size)
+int32_t meshx_nmc_init(void)
 {
     if (NULL != nmc_array)
     {
@@ -25,8 +26,8 @@ int32_t meshx_nmc_init(uint32_t size)
         return -MESHX_ERR_ALREADY;
     }
 
-    nmc_array = meshx_malloc(size * sizeof(meshx_nmc_t));
-    memset(nmc_array, 0, sizeof(meshx_nmc_t) * size);
+    nmc_array = meshx_malloc(meshx_node_params.config.nmc_size * sizeof(meshx_nmc_t));
+    memset(nmc_array, 0, sizeof(meshx_nmc_t) * meshx_node_params.config.nmc_size);
     if (NULL == nmc_array)
     {
         MESHX_ERROR("initialize nmc failed: out of memory");
@@ -35,7 +36,7 @@ int32_t meshx_nmc_init(uint32_t size)
 
     nmc_index = 0;
     nmc_circle = false;
-    nmc_size = size;
+    nmc_size = meshx_node_params.config.nmc_size;
     return MESHX_SUCCESS;
 }
 

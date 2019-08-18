@@ -47,6 +47,7 @@ set(COMMON_SRC_LIST
     ../mesh/node/meshx_iv_index.c
     ../mesh/node/meshx_rpl.c
     ../mesh/node/meshx_seq.c
+    ../mesh/node/meshx_key.c
     ../mesh/common/meshx_async.c
     ../mesh/common/meshx_notify.c
     ../mesh/common/meshx_sample_data.c
