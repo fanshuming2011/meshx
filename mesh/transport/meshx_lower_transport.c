@@ -15,6 +15,7 @@
 #include "meshx_timer.h"
 #include "meshx_trace.h"
 #include "meshx_assert.h"
+#include "meshx_misc.h"
 
 /**
  *  NOTE: only one segment message can send to the same destination once a time,
@@ -126,6 +127,14 @@ int32_t meshx_lower_transport_init(void)
     return MESHX_SUCCESS;
 }
 
+static uint8_t meshx_lower_trans_random(void)
+{
+    uint32_t random = MESHX_ABS(meshx_rand());
+    random %= 20;
+
+    return random;
+}
+
 static void meshx_lower_trans_task_release(meshx_lower_trans_task_t *ptask)
 {
     MESHX_ASSERT(NULL != ptask);
@@ -228,22 +237,25 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
                     return -MESHX_ERR_LENGTH;
                 }
 
-                /* check destination address */
-                if (MESHX_ADDRESS_IS_UNICAST(pmsg_ctx->dst))
+                /* store segment message for retransmit */
+                meshx_lower_trans_task_t *ptask = meshx_lower_trans_task_request(pdu_len);
+                if (NULL == ptask)
                 {
-                    /* store segment message for retransmit */
-                    meshx_lower_trans_task_t *ptask = meshx_lower_trans_task_request(pdu_len);
-                    if (NULL == ptask)
-                    {
-                        MESHX_ERROR("lower transport is busy now, try again later!");
-                        return -MESHX_ERR_BUSY;
-                    }
+                    MESHX_ERROR("lower transport is busy now, try again later!");
+                    return -MESHX_ERR_BUSY;
+                }
+                memcpy(ptask->ppdu, pupper_trans_pdu, pdu_len);
+
+                /* check destination address */
+                if (!MESHX_ADDRESS_IS_UNICAST(pmsg_ctx->dst))
+                {
+                    /* TODO: set timer to retrans delay */
                     meshx_timer_start(ptask->retry_timer, MESHX_LOWER_TRANS_RETRY_PERIOD);
-                    memcpy(ptask->ppdu, pupper_trans_pdu, pdu_len);
                 }
                 else
                 {
-                    /* TODO: send multiple time with small random delay */
+                    /* TODO: set timer to small random delay */
+                    meshx_timer_start(ptask->retry_timer, meshx_lower_trans_random());
                 }
 
                 /* send segment message */

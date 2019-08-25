@@ -191,7 +191,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     if (meshx_nmc_exists(nmc))
     {
         /* message already cached, ignore */
-        MESHX_INFO("message already cached, igonre!");
+        MESHX_INFO("message already cached, ignore!");
         return -MESHX_ERR_ALREADY;
     }
 
