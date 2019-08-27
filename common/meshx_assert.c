@@ -7,7 +7,7 @@
  */
 #include <stdio.h>
 #include "meshx_assert.h"
-#define TRACE_MODULE "ASSERT"
+#define MESHX_TRACE_MODULE "ASSERT"
 #include "meshx_trace.h"
 #include "meshx_system.h"
 

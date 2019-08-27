@@ -32,6 +32,7 @@
 #include "meshx_seq.h"
 #include "meshx_iv_index.h"
 #include "meshx_key.h"
+#include "meshx_lower_transport.h"
 
 
 MESHX_BEGIN_DECLS

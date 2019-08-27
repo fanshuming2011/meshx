@@ -8,9 +8,11 @@
 #ifndef _MESHX_TRANSPORT_INTERNAL_H_
 #define _MESHX_TRANSPORT_INTERNAL_H_
 
-#include "meshx_types.h"
+#include "meshx_async_internal.h"
 
 MESHX_BEGIN_DECLS
+
+MESHX_EXTERN void meshx_lower_trans_async_handle_timeout(meshx_async_msg_t msg);
 
 MESHX_END_DECLS
 

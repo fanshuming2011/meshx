@@ -70,19 +70,20 @@ typedef struct
 
 typedef struct
 {
-    uint32_t force_seg : 1;
-    uint32_t akf : 1;
-    uint32_t aid : 6;
-    uint32_t ctl : 1;
-    uint32_t ttl : 7;
-    uint32_t szmic : 1;
-    uint32_t seq_zero : 13;
+    uint8_t element_index;  /* filled on access layer */
+    uint32_t force_seg : 1; /* filled on access layer */
+    uint32_t akf : 1; /* filled on access layer */
+    uint32_t aid : 6; /* filled on access layer */
+    uint32_t ttl : 7; /* filled on access layer */
+
+    uint32_t ctl : 1; /* filled on upper transport layer */
+    uint32_t szmic : 1; /* filled on uppert transport layer */
+    uint32_t seq_zero : 13; /* filled on upper transport layer */
     uint32_t rsvd : 2;
-    uint8_t element_index;
-    uint16_t src;
-    uint16_t dst;
-    uint32_t seq;
-    const meshx_network_key_t *pnet_key;
+    uint32_t seq; /* filled on upper transport layer */
+
+    const meshx_network_key_t *pnet_key; /* filled on access layer or upper transport layer */
+    uint16_t dst; /* filled on access layer or upper transport layer */
 } meshx_msg_ctx_t;
 
 

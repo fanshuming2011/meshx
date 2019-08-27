@@ -16,6 +16,7 @@
 #include "meshx_seq.h"
 #include "meshx_iv_index.h"
 #include "meshx_node.h"
+#include "meshx_node_internal.h"
 #include "meshx_security.h"
 #include "meshx_endianness.h"
 #include "meshx_nmc.h"
@@ -246,7 +247,7 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     }
 
     /* filter data */
-    meshx_network_if_output_filter_data_t filter_data = {.src_addr = pmsg_ctx->src, .dst_addr = pmsg_ctx->dst};
+    meshx_network_if_output_filter_data_t filter_data = {.src_addr = meshx_node_params.param.node_addr + pmsg_ctx->element_index, .dst_addr = pmsg_ctx->dst};
     if (!meshx_network_if_output_filter(network_if, &filter_data))
     {
         MESHX_INFO("data has been filtered!");
@@ -270,7 +271,7 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
         }
     }
 
-    uint16_t src = pmsg_ctx->src;
+    uint16_t src = meshx_node_params.param.node_addr + pmsg_ctx->element_index;
     uint32_t iv_index = meshx_iv_index_get();
     meshx_network_pdu_t net_pdu = {0};
     net_pdu.net_metadata.ivi = (iv_index & 0x01);

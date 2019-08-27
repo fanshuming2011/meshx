@@ -25,6 +25,7 @@ int32_t meshx_init(void)
         meshx_gap_init(meshx_node_params.config.gap_task_num);
     }
     meshx_network_init();
+    meshx_lower_transport_init();
     meshx_provision_init();
 
     meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV};

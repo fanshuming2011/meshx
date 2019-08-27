@@ -385,7 +385,7 @@ static int32_t meshx_async_msg_notify_handler(void)
     return MESHX_SUCCESS;
 }
 
-static void meshx_prov_init(void)
+static void meshx_prov_cfg(void)
 {
     meshx_node_config_t config;
     meshx_node_config_init(&config);
@@ -398,7 +398,10 @@ static void meshx_prov_init(void)
     meshx_node_params_set(&param);
 
     meshx_iv_index_set(0x12345678);
+}
 
+static void meshx_prov_init(void)
+{
     /* add keys */
     meshx_net_key_add(0, sample_net_key);
     meshx_app_key_add(0, 0, sample_app_key);
@@ -414,19 +417,23 @@ static void *meshx_thread(void *pargs)
     meshx_trace_init();
     meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
 
-    meshx_prov_init();
+    meshx_prov_cfg();
 
     /* init stack */
     meshx_init();
 
+    meshx_prov_init();
+
     /* run stack */
     meshx_run();
 
-    /*********************** send data *********************/
+    /*************** initialize sample data ****************/
     meshx_bearer_rx_metadata_t rx_metadata;
     rx_metadata.bearer_type = MESHX_BEARER_TYPE_ADV;
     meshx_bearer_t adv_bearer = meshx_bearer_get(&rx_metadata);
     meshx_network_if_t adv_net_if = meshx_network_if_get(adv_bearer);
+
+    /*********************** send sample network data *********************/
     meshx_msg_ctx_t ctx;
     ctx.ctl = 0x01;
     ctx.dst = 0xfffd;
@@ -436,6 +443,17 @@ static void *meshx_thread(void *pargs)
     ctx.pnet_key = meshx_net_key_get(0);
     uint8_t trans_pdu[] = {0x03, 0x4b, 0x50, 0x05, 0x7e, 0x40, 0x00, 0x00, 0x01, 0x00, 0x00};
     meshx_network_send(adv_net_if, trans_pdu, sizeof(trans_pdu), &ctx);
+    /*******************************************************/
+
+    /*********************** send sample lower transport data *********************/
+    ctx.ctl = 0x00;
+    ctx.dst = 0xfffd;
+    ctx.element_index = 0;
+    ctx.ttl = 0;
+    ctx.seq = 1;
+    ctx.pnet_key = meshx_net_key_get(0);
+    uint8_t upper_trans_pdu[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x03, 0x4b, 0x50, 0x05, 0x7e, 0x40, 0x00, 0x00, 0x01, 0x00, 0x00};
+    meshx_lower_transport_send(adv_net_if, upper_trans_pdu, sizeof(upper_trans_pdu), &ctx);
     /*******************************************************/
 
     //meshx_bearer_rx_metadata_t rx_metadata;
