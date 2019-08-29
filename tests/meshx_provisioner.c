@@ -416,6 +416,7 @@ static void *meshx_thread(void *pargs)
 
     meshx_trace_init();
     meshx_trace_level_enable(MESHX_TRACE_LEVEL_ALL);
+    //meshx_trace_level_disable(MESHX_TRACE_LEVEL_DEBUG);
 
     meshx_prov_cfg();
 

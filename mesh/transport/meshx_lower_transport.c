@@ -147,6 +147,7 @@ static uint8_t meshx_lower_trans_random(void)
 
 static void meshx_lower_trans_task_release(meshx_lower_trans_task_t *ptask)
 {
+    MESHX_DEBUG("release task: 0x%08x", ptask);
     MESHX_ASSERT(NULL != ptask);
     if (NULL != ptask->retry_timer)
     {
@@ -158,7 +159,6 @@ static void meshx_lower_trans_task_release(meshx_lower_trans_task_t *ptask)
         meshx_free(ptask->ppdu);
         ptask->ppdu = NULL;
     }
-    meshx_list_remove(&ptask->node);
     meshx_list_append(&meshx_lower_trans_task_idle, &ptask->node);
 }
 
@@ -174,7 +174,7 @@ static void meshx_lower_trans_timeout_handler(void *pargs)
 static void meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if, const uint8_t *ppdu,
                                            uint16_t pdu_len, const meshx_msg_ctx_t *pmsg_ctx)
 {
-    MESHX_INFO("HAHA!!!!");
+    MESHX_INFO("send seg message");
     uint8_t seg_num = (pdu_len + MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE - 1) /
                       MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
     /* send segment message for the first time */
@@ -201,7 +201,7 @@ static void meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if, const 
 
 static void meshx_lower_trans_handle_timeout(meshx_lower_trans_task_t *ptask)
 {
-    MESHX_DEBUG("retrans!!!");
+    MESHX_INFO("retrans: %d!!!", ptask->retry_times);
     ptask->retry_times ++;
     if (ptask->retry_times > MESHX_LOWER_TRANS_MAX_RETRY_TIMES)
     {
@@ -250,6 +250,8 @@ static meshx_lower_trans_task_t *meshx_lower_trans_task_request(uint16_t pdu_len
         MESHX_ERROR("request lower transport task failed: out of memory!");
         return NULL;
     }
+
+    ptask->retry_times = 0;
 
     return ptask;
 }
@@ -313,7 +315,6 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
             ptask->msg_ctx = *pmsg_ctx;
             memcpy(ptask->ppdu, pupper_trans_pdu, pdu_len);
             ptask->pdu_len = pdu_len;
-            ptask->retry_times = 0;
 
             /* check destination address */
             if (MESHX_ADDRESS_IS_UNICAST(pmsg_ctx->dst))
