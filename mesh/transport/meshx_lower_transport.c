@@ -34,7 +34,7 @@
 
 #define MESHX_LOWER_TRANS_RETRY_PERIOD                          300 /* TODO: can configure */
 
-#define MESHX_LOWER_TRANS_MAX_RETRY_TIMES                       3 /* TODO: can configure */
+#define MESHX_LOWER_TRANS_MAX_RETRY_TIMES                       0 /* TODO: can configure */
 
 /**/
 typedef struct
@@ -80,7 +80,7 @@ typedef struct
             uint32_t sego : 5;
             uint32_t seq_zero : 13;
             uint32_t szmic : 1;
-        };
+        } __PACKED;
         uint8_t seg_misc[3]; /* need to change to big endian */
     };
     uint8_t pdu[MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE];
@@ -106,7 +106,7 @@ typedef struct
             uint32_t sego : 5;
             uint32_t seq_zero : 13;
             uint32_t rfu : 1;
-        };
+        } __PACKED;
         uint8_t seg_misc[3]; /* need to chang to big endian */
     };
     uint8_t pdu[MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE];
@@ -147,8 +147,8 @@ static uint8_t meshx_lower_trans_random(void)
 
 static void meshx_lower_trans_task_release(meshx_lower_trans_task_t *ptask)
 {
-    MESHX_DEBUG("release task: 0x%08x", ptask);
     MESHX_ASSERT(NULL != ptask);
+    MESHX_DEBUG("release task: 0x%08x", ptask);
     if (NULL != ptask->retry_timer)
     {
         meshx_timer_delete(ptask->retry_timer);
@@ -185,23 +185,30 @@ static void meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if, const 
     pdu.metadata.akf = pmsg_ctx->akf;
     pdu.metadata.seg = 1;
     pdu.szmic = pmsg_ctx->szmic;
-    pdu.segn = seg_num - 1;
     for (uint8_t i = 0; i < seg_num; ++i)
     {
         pdu.seq_zero = pmsg_ctx->seq_zero;
         pdu.sego = i;
+        pdu.segn = seg_num - 1;
+
+        /* TODO: use other way to change endianess */
+        uint8_t temp = pdu.seg_misc[0];
+        pdu.seg_misc[0] = pdu.seg_misc[2];
+        pdu.seg_misc[2] = temp;
+
         seg_len = (seg_num == (i + 1)) ? (pdu_len - data_offset) :
                   MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
         memcpy(pdu.pdu, ppdu + data_offset, seg_len);
-        seg_len += sizeof(meshx_lower_trans_access_pdu_metadata_t);
-        meshx_network_send(network_if, (const uint8_t *)&pdu, seg_len, pmsg_ctx);
         data_offset += seg_len;
+        seg_len += (sizeof(meshx_lower_trans_access_pdu_metadata_t) + 3);
+        MESHX_DEBUG("send seg pdu: %d", i);
+        MESHX_DUMP_DEBUG(&pdu, seg_len);
+        meshx_network_send(network_if, (const uint8_t *)&pdu, seg_len, pmsg_ctx);
     }
 }
 
 static void meshx_lower_trans_handle_timeout(meshx_lower_trans_task_t *ptask)
 {
-    MESHX_INFO("retrans: %d!!!", ptask->retry_times);
     ptask->retry_times ++;
     if (ptask->retry_times > MESHX_LOWER_TRANS_MAX_RETRY_TIMES)
     {

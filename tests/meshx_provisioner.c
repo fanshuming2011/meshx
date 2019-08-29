@@ -394,7 +394,7 @@ static void meshx_prov_cfg(void)
 
     meshx_node_param_t param;
     meshx_node_params_init(&param);
-    param.node_addr = 0x1201;
+    param.node_addr = 0x03;
     meshx_node_params_set(&param);
 
     meshx_iv_index_set(0x12345678);
@@ -436,6 +436,7 @@ static void *meshx_thread(void *pargs)
 
     /*********************** send sample network data *********************/
     meshx_msg_ctx_t ctx;
+#if 0
     ctx.ctl = 0x01;
     ctx.dst = 0xfffd;
     ctx.element_index = 0;
@@ -444,16 +445,21 @@ static void *meshx_thread(void *pargs)
     ctx.pnet_key = meshx_net_key_get(0);
     uint8_t trans_pdu[] = {0x03, 0x4b, 0x50, 0x05, 0x7e, 0x40, 0x00, 0x00, 0x01, 0x00, 0x00};
     meshx_network_send(adv_net_if, trans_pdu, sizeof(trans_pdu), &ctx);
+#endif
     /*******************************************************/
 
     /*********************** send sample lower transport data *********************/
     ctx.ctl = 0x00;
-    ctx.dst = 0xfffd;
+    ctx.dst = 0x1201;
     ctx.element_index = 0;
-    ctx.ttl = 0;
-    ctx.seq = 1;
+    ctx.ttl = 4;
+    ctx.seq = 0x3129ab;
+    ctx.aid = 0;
+    ctx.akf = 0;
+    ctx.szmic = 0;
+    ctx.seq_zero = 0x9ab;
     ctx.pnet_key = meshx_net_key_get(0);
-    uint8_t upper_trans_pdu[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x03, 0x4b, 0x50, 0x05, 0x7e, 0x40, 0x00, 0x00, 0x01, 0x00, 0x00};
+    uint8_t upper_trans_pdu[] = {0xee, 0x9d, 0xdd, 0xfd, 0x21, 0x69, 0x32, 0x6d, 0x23, 0xf3, 0xaf, 0xdf, 0xcf, 0xdc, 0x18, 0xc5, 0x2f, 0xde, 0xf7, 0x72, 0xe0, 0xe1, 0x73, 0x08};
     meshx_lower_transport_send(adv_net_if, upper_trans_pdu, sizeof(upper_trans_pdu), &ctx);
     /*******************************************************/
 
