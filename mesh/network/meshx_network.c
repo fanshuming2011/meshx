@@ -22,6 +22,7 @@
 #include "meshx_nmc.h"
 #include "meshx_rpl.h"
 #include "meshx_key.h"
+#include "meshx_lower_transport.h"
 
 #define MESHX_NETWORK_TRANS_PDU_MAX_LEN         20
 #define MESHX_NETWORK_ENCRYPT_OFFSET            7
@@ -42,7 +43,7 @@ typedef struct
 typedef struct
 {
     meshx_network_metadata_t net_metadata;
-    uint8_t pdu[MESHX_NETWORK_TRANS_PDU_MAX_LEN]; /* netmic is 32bit if ctl is 0, nwtmic is 64bit if ctl is 1*/
+    uint8_t pdu[MESHX_NETWORK_TRANS_PDU_MAX_LEN]; /* netmic is 32bit if ctl is 0, netmic is 64bit if ctl is 1*/
 } __PACKED meshx_network_pdu_t;
 
 
@@ -173,7 +174,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     /* restore header */
     meshx_network_obfuscation(&net_pdu, iv_index, pnet_key);
 
-    /* TODO: check nmc, rpl and relay */
+    /* TODO: check nmc, rpl and relay or loopback interface */
     uint16_t src = MESHX_BE16_TO_HOST(net_pdu.net_metadata.src);
     uint16_t dst = MESHX_BE16_TO_HOST(net_pdu.net_metadata.dst);
     if (!MESHX_ADDRESS_IS_VALID(src) || !MESHX_ADDRESS_IS_VALID(dst))
@@ -214,6 +215,10 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
         }
 
         /* send data to lower transport lower */
+        meshx_msg_rx_ctx_t msg_rx_ctx;
+        msg_rx_ctx.ctl = net_pdu.net_metadata.ctl;
+        msg_rx_ctx.dst = dst;
+        ret = meshx_lower_transport_receive(network_if, net_pdu.pdu, trans_pdu_len, &msg_rx_ctx);
     }
     else
     {
@@ -226,7 +231,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
 
 int32_t meshx_network_send(meshx_network_if_t network_if,
                            const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
-                           const meshx_msg_ctx_t *pmsg_ctx)
+                           const meshx_msg_tx_ctx_t *pmsg_tx_ctx)
 {
     if (NULL == network_if)
     {
@@ -246,19 +251,20 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
         return -MESHX_ERR_CONNECT;
     }
 
+    uint16_t src = meshx_node_params.param.node_addr + pmsg_tx_ctx->element_index;
     /* filter data */
-    meshx_network_if_output_filter_data_t filter_data = {.src_addr = meshx_node_params.param.node_addr + pmsg_ctx->element_index, .dst_addr = pmsg_ctx->dst};
+    meshx_network_if_output_filter_data_t filter_data = {.src_addr = src, .dst_addr = pmsg_tx_ctx->dst};
     if (!meshx_network_if_output_filter(network_if, &filter_data))
     {
         MESHX_INFO("data has been filtered!");
         return -MESHX_ERR_FILTER;
     }
 
-    if (pmsg_ctx->ctl)
+    if (pmsg_tx_ctx->ctl)
     {
         if (trans_pdu_len > MESHX_NETWORK_TRANS_PDU_MAX_LEN - 8)
         {
-            MESHX_ERROR("invalid trans pdu length: %d-%d", pmsg_ctx->ctl, trans_pdu_len);
+            MESHX_ERROR("invalid trans pdu length for control message: %d-%d", pmsg_tx_ctx->ctl, trans_pdu_len);
             return -MESHX_ERR_LENGTH;
         }
     }
@@ -266,34 +272,34 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     {
         if (trans_pdu_len > MESHX_NETWORK_TRANS_PDU_MAX_LEN - 4)
         {
-            MESHX_ERROR("invalid trans pdu length: %d-%d", pmsg_ctx->ctl, trans_pdu_len);
+            MESHX_ERROR("invalid trans pdu length for access message: %d-%d", pmsg_tx_ctx->ctl, trans_pdu_len);
             return -MESHX_ERR_LENGTH;
         }
     }
 
-    uint16_t src = meshx_node_params.param.node_addr + pmsg_ctx->element_index;
     uint32_t iv_index = meshx_iv_index_get();
+    uint32_t seq = meshx_seq_use(pmsg_tx_ctx->element_index);
     meshx_network_pdu_t net_pdu = {0};
     net_pdu.net_metadata.ivi = (iv_index & 0x01);
-    net_pdu.net_metadata.nid = pmsg_ctx->pnet_key->nid;
-    net_pdu.net_metadata.ctl = pmsg_ctx->ctl;
-    net_pdu.net_metadata.ttl = pmsg_ctx->ttl;
-    net_pdu.net_metadata.seq[0] = pmsg_ctx->seq >> 16;
-    net_pdu.net_metadata.seq[1] = pmsg_ctx->seq >> 8;
-    net_pdu.net_metadata.seq[2] = pmsg_ctx->seq;
+    net_pdu.net_metadata.nid = pmsg_tx_ctx->pnet_key->nid;
+    net_pdu.net_metadata.ctl = pmsg_tx_ctx->ctl;
+    net_pdu.net_metadata.ttl = pmsg_tx_ctx->ttl;
+    net_pdu.net_metadata.seq[0] = seq >> 16;
+    net_pdu.net_metadata.seq[1] = seq >> 8;
+    net_pdu.net_metadata.seq[2] = seq;
     net_pdu.net_metadata.src = MESHX_HOST_TO_BE16(src);
-    net_pdu.net_metadata.dst = MESHX_HOST_TO_BE16(pmsg_ctx->dst);
+    net_pdu.net_metadata.dst = MESHX_HOST_TO_BE16(pmsg_tx_ctx->dst);
     memcpy(net_pdu.pdu, ptrans_pdu, trans_pdu_len);
-    uint8_t net_mic_len = pmsg_ctx->ctl ? 8 : 4;
+    uint8_t net_mic_len = pmsg_tx_ctx->ctl ? 8 : 4;
     uint8_t net_pdu_len = sizeof(meshx_network_metadata_t) + trans_pdu_len + net_mic_len;
     MESHX_DEBUG("origin network pdu:");
     MESHX_DUMP_DEBUG(&net_pdu, net_pdu_len);
 
     /* encrypt dst field and trans pdu */
-    meshx_network_encrypt(&net_pdu, trans_pdu_len, iv_index, pmsg_ctx->pnet_key);
+    meshx_network_encrypt(&net_pdu, trans_pdu_len, iv_index, pmsg_tx_ctx->pnet_key);
 
     /* obfuscation ctl, ttl, seq, src fields */
-    meshx_network_obfuscation(&net_pdu, iv_index, pmsg_ctx->pnet_key);
+    meshx_network_obfuscation(&net_pdu, iv_index, pmsg_tx_ctx->pnet_key);
 
     MESHX_DEBUG("encrypt and obsfucation net pdu:");
     MESHX_DUMP_DEBUG(&net_pdu, net_pdu_len);

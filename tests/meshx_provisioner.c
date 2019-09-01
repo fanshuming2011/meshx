@@ -435,7 +435,7 @@ static void *meshx_thread(void *pargs)
     meshx_network_if_t adv_net_if = meshx_network_if_get(adv_bearer);
 
     /*********************** send sample network data *********************/
-    meshx_msg_ctx_t ctx;
+    meshx_msg_tx_ctx_t ctx;
 #if 0
     ctx.ctl = 0x01;
     ctx.dst = 0xfffd;
@@ -449,11 +449,11 @@ static void *meshx_thread(void *pargs)
     /*******************************************************/
 
     /*********************** send sample lower transport data *********************/
+    meshx_seq_set(0, 0x3129ab);
     ctx.ctl = 0x00;
     ctx.dst = 0x1201;
     ctx.element_index = 0;
     ctx.ttl = 4;
-    ctx.seq = 0x3129ab;
     ctx.aid = 0;
     ctx.akf = 0;
     ctx.szmic = 0;
