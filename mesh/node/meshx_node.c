@@ -26,7 +26,8 @@ static meshx_node_config_t node_default_config =
     .nmc_size = 64,
     .rpl_size = 16,
     .gap_task_num = 20,
-    .trans_task_num = 10,
+    .trans_tx_task_num = 3,
+    .trans_rx_task_num = 3,
 };
 
 static meshx_node_param_t node_default_param =

@@ -24,7 +24,8 @@ typedef struct
     uint16_t nmc_size;
     uint16_t rpl_size;
     uint8_t gap_task_num;
-    uint8_t trans_task_num;
+    uint8_t trans_tx_task_num;
+    uint8_t trans_rx_task_num;
 } meshx_node_config_t;
 
 /* parameters can be changed in runtime */

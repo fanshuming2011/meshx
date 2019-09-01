@@ -36,7 +36,7 @@
 
 #define MESHX_LOWER_TRANS_MAX_RETRY_TIMES                       0 /* TODO: can configure */
 
-/**/
+/* lower transport tx task */
 typedef struct
 {
     meshx_network_if_t network_if;
@@ -46,10 +46,27 @@ typedef struct
     meshx_timer_t retry_timer;
     uint8_t retry_times;
     meshx_list_t node;
-} meshx_lower_trans_task_t;
+} meshx_lower_trans_tx_task_t;
 
-static meshx_list_t meshx_lower_trans_task_idle;
-static meshx_list_t meshx_lower_trans_task_active;
+/* tx active task maybe exist same dst */
+static meshx_list_t meshx_lower_trans_tx_task_idle;
+static meshx_list_t meshx_lower_trans_tx_task_active;
+
+/* lower transport rx task */
+typedef struct
+{
+    meshx_network_if_t network_if;
+    meshx_msg_rx_ctx_t msg_rx_ctx;
+    uint8_t *ppdu;
+    uint16_t pdu_len;
+    meshx_timer_t ack_timer;
+    meshx_list_t node;
+} meshx_lower_trans_rx_task_t;
+
+/* rx active task shall not exist same dst */
+static meshx_list_t meshx_lower_trans_rx_task_idle;
+static meshx_list_t meshx_lower_trans_rx_task_active;
+
 
 
 /* access message NetMIC is fixed to 32bit */
@@ -69,24 +86,26 @@ typedef struct
 } __PACKED meshx_lower_trans_unseg_access_pdu_t;
 
 /* segmented access message TransMIC size is according to szmic field */
+typedef union
+{
+    struct
+    {
+        uint32_t segn : 5;
+        uint32_t sego : 5;
+        uint32_t seq_zero : 13;
+        uint32_t szmic : 1;
+    } __PACKED;
+    uint8_t seg_misc[3]; /* need to change to big endian */
+} meshx_lower_trans_seg_access_misc_t;
+
 typedef struct
 {
     meshx_lower_trans_access_pdu_metadata_t metadata;
-    union
-    {
-        struct
-        {
-            uint32_t segn : 5;
-            uint32_t sego : 5;
-            uint32_t seq_zero : 13;
-            uint32_t szmic : 1;
-        } __PACKED;
-        uint8_t seg_misc[3]; /* need to change to big endian */
-    };
+    meshx_lower_trans_seg_access_misc_t seg_misc;
     uint8_t pdu[MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE];
 } __PACKED meshx_lower_trans_seg_access_pdu_t;
 
-/* control message NetMIC is fixed to 64bit */
+/* control message NetMIC is fixed to 64bit, no TransMIC */
 typedef struct
 {
     uint8_t opcode : 7;
@@ -115,19 +134,41 @@ typedef struct
 
 int32_t meshx_lower_transport_init(void)
 {
-    meshx_list_init_head(&meshx_lower_trans_task_idle);
-    meshx_list_init_head(&meshx_lower_trans_task_active);
-    meshx_lower_trans_task_t *ptasks = meshx_malloc(meshx_node_params.config.trans_task_num * sizeof(
-                                                        meshx_lower_trans_task_t));
-    if (NULL == ptasks)
+    meshx_lower_trans_tx_task_t *ptx_tasks = meshx_malloc(meshx_node_params.config.trans_tx_task_num *
+                                                          sizeof(
+                                                              meshx_lower_trans_tx_task_t));
+    if (NULL == ptx_tasks)
     {
-        MESHX_ERROR("initialize lower transport failed: out of memory!");
+        MESHX_ERROR("initialize lower transport failed: tx out of memory!");
         return -MESHX_ERR_MEM;
     }
-    memset(ptasks, 0, meshx_node_params.config.trans_task_num * sizeof(meshx_lower_trans_task_t));
-    for (uint8_t i = 0; i < meshx_node_params.config.trans_task_num ; ++i)
+
+    meshx_lower_trans_rx_task_t *prx_tasks = meshx_malloc(meshx_node_params.config.trans_rx_task_num *
+                                                          sizeof(
+                                                              meshx_lower_trans_rx_task_t));
+    if (NULL == prx_tasks)
     {
-        meshx_list_append(&meshx_lower_trans_task_idle, &ptasks[i].node);
+        meshx_free(ptx_tasks);
+        MESHX_ERROR("initialize lower transport failed: rx out of memory!");
+        return -MESHX_ERR_MEM;
+    }
+
+    meshx_list_init_head(&meshx_lower_trans_tx_task_idle);
+    meshx_list_init_head(&meshx_lower_trans_tx_task_active);
+    memset(ptx_tasks, 0, meshx_node_params.config.trans_tx_task_num * sizeof(
+               meshx_lower_trans_tx_task_t));
+    for (uint8_t i = 0; i < meshx_node_params.config.trans_tx_task_num ; ++i)
+    {
+        meshx_list_append(&meshx_lower_trans_tx_task_idle, &ptx_tasks[i].node);
+    }
+
+    meshx_list_init_head(&meshx_lower_trans_rx_task_idle);
+    meshx_list_init_head(&meshx_lower_trans_rx_task_active);
+    memset(prx_tasks, 0, meshx_node_params.config.trans_rx_task_num * sizeof(
+               meshx_lower_trans_rx_task_t));
+    for (uint8_t i = 0; i < meshx_node_params.config.trans_rx_task_num ; ++i)
+    {
+        meshx_list_append(&meshx_lower_trans_rx_task_idle, &prx_tasks[i].node);
     }
 
     return MESHX_SUCCESS;
@@ -145,7 +186,7 @@ static uint8_t meshx_lower_trans_random(void)
     return random;
 }
 
-static void meshx_lower_trans_task_release(meshx_lower_trans_task_t *ptask)
+static void meshx_lower_trans_tx_task_release(meshx_lower_trans_tx_task_t *ptask)
 {
     MESHX_ASSERT(NULL != ptask);
     MESHX_DEBUG("release task: 0x%08x", ptask);
@@ -159,8 +200,27 @@ static void meshx_lower_trans_task_release(meshx_lower_trans_task_t *ptask)
         meshx_free(ptask->ppdu);
         ptask->ppdu = NULL;
     }
-    meshx_list_append(&meshx_lower_trans_task_idle, &ptask->node);
+    meshx_list_append(&meshx_lower_trans_tx_task_idle, &ptask->node);
 }
+
+#if 0
+static void meshx_lower_trans_rx_task_release(meshx_lower_trans_rx_task_t *ptask)
+{
+    MESHX_ASSERT(NULL != ptask);
+    MESHX_DEBUG("release task: 0x%08x", ptask);
+    if (NULL != ptask->ack_timer)
+    {
+        meshx_timer_delete(ptask->ack_timer);
+        ptask->ack_timer = NULL;
+    }
+    if (NULL != ptask->ppdu)
+    {
+        meshx_free(ptask->ppdu);
+        ptask->ppdu = NULL;
+    }
+    meshx_list_append(&meshx_lower_trans_rx_task_idle, &ptask->node);
+}
+#endif
 
 static void meshx_lower_trans_timeout_handler(void *pargs)
 {
@@ -184,17 +244,17 @@ static void meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if, const 
     pdu.metadata.aid = pmsg_tx_ctx->aid;
     pdu.metadata.akf = pmsg_tx_ctx->akf;
     pdu.metadata.seg = 1;
-    pdu.szmic = pmsg_tx_ctx->szmic;
+    pdu.seg_misc.szmic = pmsg_tx_ctx->szmic;
     for (uint8_t i = 0; i < seg_num; ++i)
     {
-        pdu.seq_zero = pmsg_tx_ctx->seq_zero;
-        pdu.sego = i;
-        pdu.segn = seg_num - 1;
+        pdu.seg_misc.seq_zero = pmsg_tx_ctx->seq_zero;
+        pdu.seg_misc.sego = i;
+        pdu.seg_misc.segn = seg_num - 1;
 
         /* TODO: use other way to change endianess */
-        uint8_t temp = pdu.seg_misc[0];
-        pdu.seg_misc[0] = pdu.seg_misc[2];
-        pdu.seg_misc[2] = temp;
+        uint8_t temp = pdu.seg_misc.seg_misc[0];
+        pdu.seg_misc.seg_misc[0] = pdu.seg_misc.seg_misc[2];
+        pdu.seg_misc.seg_misc[2] = temp;
 
         seg_len = (seg_num == (i + 1)) ? (pdu_len - data_offset) :
                   MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
@@ -207,7 +267,7 @@ static void meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if, const 
     }
 }
 
-static void meshx_lower_trans_handle_timeout(meshx_lower_trans_task_t *ptask)
+static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *ptask)
 {
     ptask->retry_times ++;
     if (ptask->retry_times > MESHX_LOWER_TRANS_MAX_RETRY_TIMES)
@@ -220,7 +280,7 @@ static void meshx_lower_trans_handle_timeout(meshx_lower_trans_task_t *ptask)
         {
             /* TODO: notify upper transport send finished */
         }
-        meshx_lower_trans_task_release(ptask);
+        meshx_lower_trans_tx_task_release(ptask);
     }
     else
     {
@@ -231,19 +291,19 @@ static void meshx_lower_trans_handle_timeout(meshx_lower_trans_task_t *ptask)
 
 void meshx_lower_trans_async_handle_timeout(meshx_async_msg_t msg)
 {
-    meshx_lower_trans_handle_timeout(msg.pdata);
+    meshx_lower_trans_handle_tx_timeout(msg.pdata);
 }
 
-static meshx_lower_trans_task_t *meshx_lower_trans_task_request(uint16_t pdu_len)
+static meshx_lower_trans_tx_task_t *meshx_lower_trans_tx_task_request(uint16_t pdu_len)
 {
-    if (meshx_list_is_empty(&meshx_lower_trans_task_idle))
+    if (meshx_list_is_empty(&meshx_lower_trans_tx_task_idle))
     {
         return NULL;
     }
 
-    meshx_list_t *pnode = meshx_list_pop(&meshx_lower_trans_task_idle);
+    meshx_list_t *pnode = meshx_list_pop(&meshx_lower_trans_tx_task_idle);
     MESHX_ASSERT(NULL != pnode);
-    meshx_lower_trans_task_t *ptask =  MESHX_CONTAINER_OF(pnode, meshx_lower_trans_task_t, node);
+    meshx_lower_trans_tx_task_t *ptask =  MESHX_CONTAINER_OF(pnode, meshx_lower_trans_tx_task_t, node);
     if (MESHX_SUCCESS != meshx_timer_create(&ptask->retry_timer, MESHX_TIMER_MODE_REPEATED,
                                             meshx_lower_trans_timeout_handler, ptask))
     {
@@ -253,7 +313,8 @@ static meshx_lower_trans_task_t *meshx_lower_trans_task_request(uint16_t pdu_len
     ptask->ppdu = meshx_malloc(pdu_len);
     if (NULL == ptask->ppdu)
     {
-        meshx_list_append(pnode, &meshx_lower_trans_task_idle);
+        meshx_timer_delete(ptask->retry_timer);
+        meshx_list_append(pnode, &meshx_lower_trans_tx_task_idle);
         MESHX_ERROR("request lower transport task failed: out of memory!");
         return NULL;
     }
@@ -262,6 +323,36 @@ static meshx_lower_trans_task_t *meshx_lower_trans_task_request(uint16_t pdu_len
 
     return ptask;
 }
+
+#if 0
+static meshx_lower_trans_rx_task_t *meshx_lower_trans_rx_task_request(uint16_t pdu_len)
+{
+    if (meshx_list_is_empty(&meshx_lower_trans_rx_task_idle))
+    {
+        return NULL;
+    }
+
+    meshx_list_t *pnode = meshx_list_pop(&meshx_lower_trans_rx_task_idle);
+    MESHX_ASSERT(NULL != pnode);
+    meshx_lower_trans_rx_task_t *ptask =  MESHX_CONTAINER_OF(pnode, meshx_lower_trans_rx_task_t, node);
+    if (MESHX_SUCCESS != meshx_timer_create(&ptask->ack_timer, MESHX_TIMER_MODE_REPEATED,
+                                            meshx_lower_trans_timeout_handler, ptask))
+    {
+        MESHX_ERROR("request lower transport rx task failed: out of resource!");
+        return NULL;
+    }
+    ptask->ppdu = meshx_malloc(pdu_len);
+    if (NULL == ptask->ppdu)
+    {
+        meshx_timer_delete(ptask->ack_timer);
+        meshx_list_append(pnode, &meshx_lower_trans_rx_task_idle);
+        MESHX_ERROR("request lower transport rx task failed: out of memory!");
+        return NULL;
+    }
+
+    return ptask;
+}
+#endif
 
 #if 0
 static bool meshx_lower_trans_is_sending(uint16_t dst)
@@ -312,7 +403,7 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
             }
 
             /* store segment message for retransmit */
-            meshx_lower_trans_task_t *ptask = meshx_lower_trans_task_request(pdu_len);
+            meshx_lower_trans_tx_task_t *ptask = meshx_lower_trans_tx_task_request(pdu_len);
             if (NULL == ptask)
             {
                 MESHX_ERROR("lower transport is busy now, try again later!");
@@ -366,6 +457,36 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
     else
     {
         /* access message */
+        const meshx_lower_trans_access_pdu_metadata_t *pmetadata = (const
+                                                                    meshx_lower_trans_access_pdu_metadata_t *)pdata;
+        if (pmetadata->seg)
+        {
+            /* segmented access message */
+            const meshx_lower_trans_seg_access_pdu_t *pseg_access_msg = (const
+                                                                         meshx_lower_trans_seg_access_pdu_t *)pdata;
+            meshx_lower_trans_seg_access_misc_t seg_misc = pseg_access_msg->seg_misc;
+            /* TODO: use other way to change endianess */
+            uint8_t temp = seg_misc.seg_misc[0];
+            seg_misc.seg_misc[0] = seg_misc.seg_misc[2];
+            seg_misc.seg_misc[2] = temp;
+
+            if (0 == seg_misc.segn)
+            {
+                /* only one segment */
+                /* send data to upper transport lower */
+                /* send segment ack */
+            }
+            else
+            {
+                /* multiple segment */
+            }
+        }
+        else
+        {
+            /* unsegment access message */
+        }
+
+
     }
 
     return MESHX_SUCCESS;
