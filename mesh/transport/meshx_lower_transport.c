@@ -142,6 +142,8 @@ typedef struct
 } __PACKED meshx_lower_trans_seg_ctl_pdu_t;
 
 
+static void meshx_lower_transport_tx_task_run(meshx_lower_trans_tx_task_t *ptx_task);
+
 int32_t meshx_lower_transport_init(void)
 {
     meshx_lower_trans_tx_task_t *ptx_tasks = meshx_malloc(meshx_node_params.config.trans_tx_task_num *
@@ -290,6 +292,40 @@ static void meshx_lower_trans_tx_task_release(meshx_lower_trans_tx_task_t *ptask
     meshx_list_append(&meshx_lower_trans_tx_task_idle, &ptask->node);
 }
 
+static void meshx_lower_transport_tx_task_finish(meshx_lower_trans_tx_task_t *ptx_task)
+{
+    meshx_lower_trans_tx_task_release(ptx_task);
+
+    meshx_list_t *ppending_node;
+    meshx_lower_trans_tx_task_t *ppending_task = NULL;
+    meshx_list_t *pactive_node;
+    meshx_lower_trans_tx_task_t *pactive_task = NULL;
+    bool task_execute = FALSE;
+    meshx_list_foreach(ppending_node, &meshx_lower_trans_tx_task_pending)
+    {
+        task_execute = TRUE;
+        ppending_task = MESHX_CONTAINER_OF(ppending_node, meshx_lower_trans_tx_task_t, node);
+        meshx_list_foreach(pactive_node, &meshx_lower_trans_tx_task_active)
+        {
+            pactive_task = MESHX_CONTAINER_OF(pactive_node, meshx_lower_trans_tx_task_t, node);
+            if (ppending_task->msg_tx_ctx.dst == pactive_task->msg_tx_ctx.dst)
+            {
+                task_execute = FALSE;
+            }
+        }
+        if (task_execute)
+        {
+            MESHX_INFO("remove lower trans task from pending: 0x%08x", ppending_task);
+            break;
+        }
+    }
+
+    if (task_execute)
+    {
+        meshx_list_remove(&ppending_task->node);
+        meshx_lower_transport_tx_task_run(ppending_task);
+    }
+}
 
 static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *ptask)
 {
@@ -304,7 +340,8 @@ static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *pta
         {
             /* TODO: notify upper transport send finished */
         }
-        meshx_lower_trans_tx_task_release(ptask);
+
+        meshx_lower_transport_tx_task_finish(ptask);
     }
     else
     {
@@ -316,41 +353,6 @@ static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *pta
 void meshx_lower_trans_async_handle_timeout(meshx_async_msg_t msg)
 {
     meshx_lower_trans_handle_tx_timeout(msg.pdata);
-}
-
-static void meshx_lower_transport_tx_task_finish(meshx_lower_trans_tx_task_t *ptx_task)
-{
-    meshx_list_t *ppending_node;
-    meshx_lower_trans_tx_task_t *ppending_task = NULL;
-    meshx_list_t *pactive_node;
-    meshx_lower_trans_tx_task_t *pactive_task = NULL;
-    bool task_execute = FALSE;
-    meshx_list_foreach(ppending_node, &meshx_lower_trans_tx_task_pending)
-    {
-        task_execute = TRUE;
-        ppending_task = MESHX_CONTAINER_OF(ppending_node, meshx_lower_trans_tx_task_t, node);
-        meshx_list_foreach(pactive_node, &meshx_lower_trans_tx_task_active)
-        {
-            pactive_task = MESHX_CONTAINER_OF(pactive_node, meshx_lower_trans_tx_task_t, node);
-            if (ppending_task->msg_tx_ctx.dst == ptx_task->msg_tx_ctx.dst)
-            {
-                task_execute = FALSE;
-            }
-        }
-        if (task_execute)
-        {
-            MESHX_INFO("remove lower trans task from pending: 0x%08x", ppending_task);
-            break;
-        }
-    }
-
-    if (task_execute)
-    {
-        meshx_list_remove(ppending_task);
-        meshx_lower_transport_tx_task_run(ppending_task);
-    }
-
-    meshx_lower_trans_tx_task_release(ptx_task);
 }
 
 static void meshx_lower_transport_tx_task_run(meshx_lower_trans_tx_task_t *ptx_task)
@@ -426,6 +428,7 @@ static meshx_lower_trans_tx_task_t *meshx_lower_trans_tx_task_request(uint16_t p
     return ptask;
 }
 
+#if 0
 static meshx_lower_trans_rx_task_t *meshx_lower_trans_rx_task_request(uint16_t pdu_len,
                                                                       meshx_msg_rx_ctx_t *prx_ctx)
 {
@@ -480,6 +483,7 @@ static meshx_lower_trans_rx_task_t *meshx_lower_trans_rx_task_request(uint16_t p
 
     return ptask;
 }
+#endif
 
 #if 0
 static bool meshx_lower_trans_is_sending(uint16_t dst)
