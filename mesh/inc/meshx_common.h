@@ -90,6 +90,9 @@ typedef struct
 {
     uint32_t ctl : 1; /* filled on network layer */
     uint32_t rsvd : 31;
+    uint32_t seq_origin; /* filled on lower transport layer */
+    uint32_t seq; /* filled on network layer */
+    uint16_t src; /* filled on network layer */
     uint16_t dst; /* filled on network layer */
 } meshx_msg_rx_ctx_t;
 
