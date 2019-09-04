@@ -89,8 +89,9 @@ typedef struct
 typedef struct
 {
     uint32_t ctl : 1; /* filled on network layer */
-    uint32_t rsvd : 31;
-    uint32_t seq_origin; /* filled on lower transport layer */
+    uint32_t seq_origin : 24; /* filled on lower transport layer */
+    uint32_t rsvd : 7;
+    uint32_t iv_index; /* filled on network layer */
     uint32_t seq; /* filled on network layer */
     uint16_t src; /* filled on network layer */
     uint16_t dst; /* filled on network layer */

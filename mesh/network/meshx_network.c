@@ -163,7 +163,13 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     uint32_t iv_index = meshx_iv_index_get();
     meshx_network_pdu_t net_pdu = *(const meshx_network_pdu_t *)pdata;
 
-    /* TODO: check ivi, nid and get net key */
+    /* check ivi to choose correct iv index */
+    if ((iv_index & 0x01) !=  net_pdu.net_metadata.ivi)
+    {
+        iv_index = iv_index - 1;
+    }
+
+    /* get net key */
     const meshx_network_key_t *pnet_key = meshx_net_key_get_by_nid(net_pdu.net_metadata.nid);
     if (NULL == pnet_key)
     {
@@ -217,7 +223,10 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
         /* send data to lower transport lower */
         meshx_msg_rx_ctx_t msg_rx_ctx;
         msg_rx_ctx.ctl = net_pdu.net_metadata.ctl;
+        msg_rx_ctx.src = src;
         msg_rx_ctx.dst = dst;
+        msg_rx_ctx.iv_index = iv_index;
+        msg_rx_ctx.seq = seq;
         ret = meshx_lower_transport_receive(network_if, net_pdu.pdu, trans_pdu_len, &msg_rx_ctx);
     }
     else
