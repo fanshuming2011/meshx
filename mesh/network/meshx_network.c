@@ -223,6 +223,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
         /* send data to lower transport lower */
         meshx_msg_rx_ctx_t msg_rx_ctx;
         msg_rx_ctx.ctl = net_pdu.net_metadata.ctl;
+        msg_rx_ctx.ttl = net_pdu.net_metadata.ttl;
         msg_rx_ctx.src = src;
         msg_rx_ctx.dst = dst;
         msg_rx_ctx.iv_index = iv_index;

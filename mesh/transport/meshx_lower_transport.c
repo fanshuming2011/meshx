@@ -67,6 +67,7 @@ typedef struct
     meshx_msg_rx_ctx_t msg_rx_ctx;
     uint8_t *ppdu;
     uint16_t pdu_len;
+    uint16_t max_pdu_len;
     uint32_t not_received_seg;
     meshx_timer_t ack_timer;
     meshx_timer_t incomplete_timer;
@@ -76,6 +77,20 @@ typedef struct
 /* rx active task shall not exist same dst */
 static meshx_list_t meshx_lower_trans_rx_task_idle;
 static meshx_list_t meshx_lower_trans_rx_task_active;
+
+typedef struct
+{
+    uint16_t src;
+    uint32_t seq_origin;
+    uint32_t iv_index;
+    meshx_timer_t cancel_timer;
+    meshx_list_t node;
+} meshx_lower_trans_received_t;
+
+/* rx active task shall not exist same dst */
+//static meshx_list_t meshx_lower_trans_received_idle;
+//static meshx_list_t meshx_lower_trans_received_active;
+
 
 
 
@@ -559,12 +574,13 @@ NEW_SEG_MSG:
     /* first receive */
     if (meshx_list_is_empty(&meshx_lower_trans_rx_task_idle))
     {
+        MESHX_ERROR("request rx task failed: busy!");
         return NULL;
     }
 
     pnode = meshx_list_pop(&meshx_lower_trans_rx_task_idle);
     meshx_lower_trans_rx_task_t *ptask =  MESHX_CONTAINER_OF(pnode, meshx_lower_trans_rx_task_t, node);
-    if (MESHX_SUCCESS != meshx_timer_create(&ptask->ack_timer, MESHX_TIMER_MODE_REPEATED,
+    if (MESHX_SUCCESS != meshx_timer_create(&ptask->ack_timer, MESHX_TIMER_MODE_SINGLE_SHOT,
                                             meshx_lower_trans_timeout_handler, ptask))
     {
         meshx_list_append(pnode, &meshx_lower_trans_rx_task_idle);
@@ -589,8 +605,24 @@ NEW_SEG_MSG:
         MESHX_ERROR("request rx task failed: out of memory!");
         return NULL;
     }
+    ptask->max_pdu_len = max_pdu_len;
 
     ptask->msg_rx_ctx = *prx_ctx;
+    /* initialize segment flag */
+    uint8_t seg_num = 0;
+    if (prx_ctx->ctl)
+    {
+        seg_num = max_pdu_len / MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE;
+    }
+    else
+    {
+        seg_num = max_pdu_len / MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
+    }
+
+    for (uint8_t i = 0; i < seg_num; ++i)
+    {
+        ptask->not_received_seg |= (1 << i);
+    }
 
     meshx_list_append(pnode, &meshx_lower_trans_rx_task_active);
 
@@ -628,26 +660,61 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
 
             if (NULL == ptask)
             {
-                /* can't receive this segment */
+                /* TODO: ack can't receive */
+                return -MESHX_ERR_BUSY;
             }
-            else
+
+            if (ptask->max_pdu_len != max_pdu_len)
             {
-                if (0 == ptask->not_received_seg)
-                {
-
-                }
+                MESHX_ERROR("receive segment length dismatch with previous: %d-%d", max_pdu_len,
+                            ptask->max_pdu_len);
+                /* TODO: ack can't receive */
+                return -MESHX_ERR_LENGTH;
             }
 
+            if (0 == ptask->not_received_seg)
+            {
+                MESHX_INFO("already received all segments");
+                /* TODO: ack immedietely */
+                return MESHX_SUCCESS;
+            }
 
             if (0 == seg_misc.segn)
             {
                 /* only one segment */
-                /* send data to upper transport lower */
-                /* send segment ack */
+                ptask->not_received_seg = 0;
+                /* TODO: ack immedietely */
             }
             else
             {
                 /* multiple segment */
+                /* store segment */
+                if (seg_misc.sego == seg_misc.segn)
+                {
+                    memcpy(ptask->ppdu + seg_misc.sego * MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE,
+                           pseg_access_msg->pdu, len - sizeof(meshx_lower_trans_access_pdu_metadata_t) - sizeof(
+                               meshx_lower_trans_seg_access_misc_t));
+                }
+                else
+                {
+                    //memcpy(ptask->ppdu + seg_misc.sego * MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE, pseg_access_msg->pdu, MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE);
+                }
+                ptask->not_received_seg &= ~(1 << seg_misc.sego);
+                if (0 == ptask->not_received_seg)
+                {
+                    /* receive all segments */
+                    /* TODO: ack immediately and stop ack timer */
+                }
+                else
+                {
+                    /* start ack timer and restart incomplete timer */
+                    if (!meshx_timer_is_active(ptask->ack_timer))
+                    {
+                        meshx_timer_start(ptask->ack_timer,
+                                          MESHX_LOWER_TRANS_RX_ACK_BASE + MESHX_LOWER_TRANS_RX_ACK_TTL_FACTOR * pmsg_rx_ctx->ttl);
+                    }
+                    meshx_timer_restart(ptask->incomplete_timer, MESHX_LOWER_TRANS_INCOMPLETE_TIMEOUT);
+                }
             }
         }
         else
