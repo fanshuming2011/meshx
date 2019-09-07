@@ -689,16 +689,11 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
             {
                 /* multiple segment */
                 /* store segment */
-                if (seg_misc.sego == seg_misc.segn)
-                {
-                    memcpy(ptask->ppdu + seg_misc.sego * MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE,
-                           pseg_access_msg->pdu, len - sizeof(meshx_lower_trans_access_pdu_metadata_t) - sizeof(
-                               meshx_lower_trans_seg_access_misc_t));
-                }
-                else
-                {
-                    //memcpy(ptask->ppdu + seg_misc.sego * MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE, pseg_access_msg->pdu, MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE);
-                }
+                uint8_t seg_len = (seg_misc.sego == seg_misc.segn) ? len - sizeof(
+                                      meshx_lower_trans_access_pdu_metadata_t) - sizeof(meshx_lower_trans_seg_access_misc_t) :
+                                  MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
+                memcpy(ptask->ppdu + seg_misc.sego * MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE,
+                       pseg_access_msg->pdu, seg_len);
                 ptask->not_received_seg &= ~(1 << seg_misc.sego);
                 if (0 == ptask->not_received_seg)
                 {
