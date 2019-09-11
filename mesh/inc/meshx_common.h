@@ -70,24 +70,6 @@ typedef struct
 
 typedef struct
 {
-    uint8_t element_index;  /* filled on access layer */
-    uint32_t force_seg : 1; /* filled on access layer */
-    uint32_t akf : 1; /* filled on access layer */
-    uint32_t aid : 6; /* filled on access layer */
-    uint32_t ttl : 7; /* filled on access layer */
-
-    uint32_t ctl : 1; /* filled on upper transport layer */
-    uint32_t szmic : 1; /* filled on uppert transport layer */
-    uint32_t seq_zero : 13; /* filled on upper transport layer */
-    uint32_t rsvd : 2;
-    //uint32_t seq; /* filled on upper transport layer */
-
-    const meshx_network_key_t *pnet_key; /* filled on access layer or upper transport layer */
-    uint16_t dst; /* filled on access layer or upper transport layer */
-} meshx_msg_tx_ctx_t;
-
-typedef struct
-{
     uint32_t ctl : 1; /* filled on network layer */
     uint32_t ttl : 7; /* filled on network layer */
     uint32_t seq_origin : 24; /* filled on lower transport layer */
@@ -96,6 +78,49 @@ typedef struct
     uint16_t src; /* filled on network layer */
     uint16_t dst; /* filled on network layer */
 } meshx_msg_rx_ctx_t;
+
+typedef struct
+{
+    uint8_t element_index;
+    uint8_t force_seg : 1;
+    uint8_t akf : 1;
+    uint8_t rsvd : 6;
+    uint8_t ttl : 7;
+    uint8_t szmic : 1;
+    uint16_t dst;
+    union
+    {
+        const meshx_application_key_t　 *papp_key;
+        meshx_key_t *pdev_key;
+    }
+} meshx_access_msg_tx_ctx_t;
+
+typedef struct
+{
+    uint8_t force_seg : 1;
+    uint8_t rsvd : 7;
+    uint8_t opcode;
+    uint16_t dst;
+    const meshx_network_key_t *pnet_key;
+} meshx_control_msg_tx_ctx_t;
+
+typedef struct
+{
+    uint8_t ctl : 1;
+    uint8_t rsvd : 7;
+    union
+    {
+        meshx_control_msg_tx_ctx_t msg_control;
+        meshx_access_msg_tx_ctx_t msg_access;
+    };
+} meshx_upper_transport_msg_tx_ctx_t;
+
+typedef struct
+{
+    uint32_t seq;
+    meshx_upper_transport_msg_tx_ctx_t msg_upper_trans;
+} meshx_lower_transport_msg_tx_ctx_t;
+
 
 
 
@@ -114,7 +139,7 @@ typedef struct
 
 typedef struct
 {
-    uint8_t conn_id;
+    uint16_t conn_id;
 } meshx_bearer_rx_metadata_gatt_t;
 
 typedef struct

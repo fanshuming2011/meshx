@@ -454,8 +454,8 @@ static void *meshx_thread(void *pargs)
     ctx.dst = 0x1201;
     ctx.element_index = 0;
     ctx.ttl = 4;
-    ctx.aid = 0;
-    ctx.akf = 0;
+    ctx.papp_key = meshx_app_key_get(0);
+    ctx.akf = 1;
     ctx.szmic = 0;
     ctx.seq_zero = 0x9ab;
     ctx.pnet_key = meshx_net_key_get(0);

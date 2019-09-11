@@ -8,9 +8,16 @@
 #ifndef _MESHX_UPPER_TRANSPORT_H_
 #define _MESHX_UPPER_TRANSPORT_H_
 
-#include "meshx_types.h"
+#include "meshx_network.h"
 
 MESHX_BEGIN_DECLS
+
+
+MESHX_EXTERN int32_t meshx_upper_transport_init(void);
+MESHX_EXTERN int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
+                                                const uint8_t *pdata, uint16_t len, const meshx_upper_transport_msg_tx_ctx_t *pmsg_ctx);
+
+
 
 MESHX_END_DECLS
 
