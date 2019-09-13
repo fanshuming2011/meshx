@@ -16,7 +16,7 @@ MESHX_BEGIN_DECLS
 MESHX_EXTERN int32_t meshx_lower_transport_init(void);
 MESHX_EXTERN int32_t meshx_lower_transport_send(meshx_network_if_t network_if,
                                                 const uint8_t *pupper_trans_pdu, uint16_t len,
-                                                const meshx_lower_transport_msg_tx_ctx_t *pmsg_tx_ctx);
+                                                const meshx_msg_tx_ctx_t *pmsg_tx_ctx);
 MESHX_EXTERN int32_t meshx_lower_transport_receive(meshx_network_if_t network_if,
                                                    const uint8_t *pdata,
                                                    uint8_t len, meshx_msg_rx_ctx_t *pmsg_rx_ctx);

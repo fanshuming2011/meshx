@@ -241,7 +241,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
 
 int32_t meshx_network_send(meshx_network_if_t network_if,
                            const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
-                           const meshx_lower_transport_msg_tx_ctx_t *pmsg_ctx)
+                           const meshx_msg_tx_ctx_t *pmsg_tx_ctx)
 {
     if (NULL == network_if)
     {

@@ -30,7 +30,7 @@ MESHX_EXTERN int32_t meshx_net_key_delete(uint16_t net_key_index);
 MESHX_EXTERN void meshx_net_key_clear(void);
 
 MESHX_EXTERN const meshx_key_t *meshx_dev_key_get(void);
-MESHX_EXTERn int32_t meshx_dev_key_set(meshx_key_t dev_key);
+MESHX_EXTERN int32_t meshx_dev_key_set(meshx_key_t dev_key);
 
 
 MESHX_END_DECLS

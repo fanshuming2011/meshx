@@ -31,6 +31,8 @@ typedef struct
 static meshx_list_t meshx_net_keys;
 static meshx_list_t meshx_app_keys;
 
+static meshx_key_t meshx_dev_key;
+
 
 meshx_net_key_info_t *meshx_find_net_key(uint16_t net_key_index)
 {
@@ -265,7 +267,7 @@ int32_t meshx_net_key_update(uint16_t net_key_index, meshx_key_t net_key)
     return -MESHX_ERR_NOT_FOUND;
 }
 
-int32_t meshx_node_delete_net_key(uint16_t net_key_index)
+int32_t meshx_net_key_delete(uint16_t net_key_index)
 {
     meshx_list_t *pnode;
     meshx_net_key_info_t *pnet_key;
@@ -291,6 +293,17 @@ int32_t meshx_node_delete_net_key(uint16_t net_key_index)
 
 }
 
-void meshx_node_net_key_clear(void)
+void meshx_net_key_clear(void)
 {
+}
+
+const meshx_key_t *meshx_dev_key_get(void)
+{
+    return &meshx_dev_key;
+}
+
+int32_t meshx_dev_key_set(meshx_key_t dev_key)
+{
+    memcpy(meshx_dev_key, dev_key, sizeof(meshx_key_t));
+    return MESHX_SUCCESS;
 }

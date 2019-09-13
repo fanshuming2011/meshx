@@ -82,45 +82,34 @@ typedef struct
 typedef struct
 {
     uint8_t element_index;
-    uint8_t force_seg : 1;
-    uint8_t akf : 1;
-    uint8_t rsvd : 6;
-    uint8_t ttl : 7;
-    uint8_t szmic : 1;
     uint16_t dst;
+    uint32_t force_seg : 1;
+    uint32_t ttl : 7;
+    uint32_t ctl : 1;
+    uint32_t seq_zero : 13;
+    uint32_t rsvd : 10;
+
     union
     {
-        const meshx_application_key_t　 *papp_key;
-        meshx_key_t *pdev_key;
-    }
-} meshx_access_msg_tx_ctx_t;
+        struct
+        {
+            uint8_t akf : 1;
+            uint8_t szmic : 1;
+            uint8_t rsvd1 : 6;
+            union
+            {
+                const meshx_application_key_t *papp_key;
+                const meshx_key_t *pdev_key;
+            };
+        };
 
-typedef struct
-{
-    uint8_t force_seg : 1;
-    uint8_t rsvd : 7;
-    uint8_t opcode;
-    uint16_t dst;
-    const meshx_network_key_t *pnet_key;
-} meshx_control_msg_tx_ctx_t;
-
-typedef struct
-{
-    uint8_t ctl : 1;
-    uint8_t rsvd : 7;
-    union
-    {
-        meshx_control_msg_tx_ctx_t msg_control;
-        meshx_access_msg_tx_ctx_t msg_access;
+        struct
+        {
+            uint8_t opcode;
+            const meshx_network_key_t *pnet_key;
+        };
     };
-} meshx_upper_transport_msg_tx_ctx_t;
-
-typedef struct
-{
-    uint32_t seq;
-    meshx_upper_transport_msg_tx_ctx_t msg_upper_trans;
-} meshx_lower_transport_msg_tx_ctx_t;
-
+} meshx_msg_tx_ctx_t;
 
 
 
