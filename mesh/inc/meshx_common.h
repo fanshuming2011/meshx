@@ -77,6 +77,7 @@ typedef struct
     uint32_t seq; /* filled on network layer */
     uint16_t src; /* filled on network layer */
     uint16_t dst; /* filled on network layer */
+    const meshx_network_key_t *pnet_key; /* filled on network layer */
 } meshx_msg_rx_ctx_t;
 
 #if 0
@@ -136,13 +137,13 @@ typedef struct
 
 typedef struct
 {
-    uint8_t element_index;
+    uint16_t src;
     uint16_t dst;
     uint32_t force_seg : 1;
-    uint32_t ttl : 7;
+    uint32_t ttl : 8;
     uint32_t ctl : 1;
     uint32_t seq_zero : 13;
-    uint32_t rsvd : 10;
+    uint32_t rsvd : 9;
 
     union
     {

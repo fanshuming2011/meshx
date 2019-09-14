@@ -261,9 +261,8 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
         return -MESHX_ERR_CONNECT;
     }
 
-    uint16_t src = meshx_node_params.param.node_addr + pmsg_tx_ctx->element_index;
     /* filter data */
-    meshx_network_if_output_filter_data_t filter_data = {.src_addr = src, .dst_addr = pmsg_tx_ctx->dst};
+    meshx_network_if_output_filter_data_t filter_data = {.src_addr = pmsg_tx_ctx->src, .dst_addr = pmsg_tx_ctx->dst};
     if (!meshx_network_if_output_filter(network_if, &filter_data))
     {
         MESHX_INFO("data has been filtered!");
@@ -288,7 +287,7 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     }
 
     uint32_t iv_index = meshx_iv_index_get();
-    uint32_t seq = meshx_seq_use(pmsg_tx_ctx->element_index);
+    uint32_t seq = meshx_seq_use(pmsg_tx_ctx->src - meshx_node_params.param.node_addr);
     meshx_network_pdu_t net_pdu = {0};
     net_pdu.net_metadata.ivi = (iv_index & 0x01);
     net_pdu.net_metadata.nid = pmsg_tx_ctx->pnet_key->nid;
@@ -297,7 +296,7 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     net_pdu.net_metadata.seq[0] = seq >> 16;
     net_pdu.net_metadata.seq[1] = seq >> 8;
     net_pdu.net_metadata.seq[2] = seq;
-    net_pdu.net_metadata.src = MESHX_HOST_TO_BE16(src);
+    net_pdu.net_metadata.src = MESHX_HOST_TO_BE16(pmsg_tx_ctx->src);
     net_pdu.net_metadata.dst = MESHX_HOST_TO_BE16(pmsg_tx_ctx->dst);
     memcpy(net_pdu.pdu, ptrans_pdu, trans_pdu_len);
     uint8_t net_mic_len = pmsg_tx_ctx->ctl ? 8 : 4;

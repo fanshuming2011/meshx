@@ -451,8 +451,8 @@ static void *meshx_thread(void *pargs)
     /*********************** send sample lower transport data *********************/
     meshx_seq_set(0, 0x3129ab);
     ctx.ctl = 0x00;
+    ctx.src = meshx_node_params_get().node_addr;
     ctx.dst = 0x1201;
-    ctx.element_index = 0;
     ctx.ttl = 4;
     ctx.papp_key = meshx_app_key_get(0);
     ctx.akf = 1;

@@ -123,13 +123,17 @@ typedef struct
 {
     uint8_t opcode : 7;
     uint8_t seg : 1;
+} __PACKED meshx_lower_trans_ctl_pdu_metadata_t;
+
+typedef struct
+{
+    meshx_lower_trans_ctl_pdu_metadata_t metadata;
     uint8_t pdu[MESHX_LOWER_TRANS_UNSEG_CTL_MAX_PDU_SIZE];
 } __PACKED meshx_lower_trans_unseg_ctl_pdu_t;
 
 typedef struct
 {
-    uint8_t opcode : 7;
-    uint8_t seg : 1;
+    meshx_lower_trans_ctl_pdu_metadata_t ctl_metadata;
     union
     {
         struct
@@ -143,6 +147,22 @@ typedef struct
     };
     uint8_t pdu[MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE];
 } __PACKED meshx_lower_trans_seg_ctl_pdu_t;
+
+typedef struct
+{
+    union
+    {
+        struct
+        {
+            uint16_t rfu : 2;
+            uint16_t seq_zero : 13;
+            uint16_t obo : 1;
+        } __PACKED;
+        uint16_t ack_misc;
+    };
+    uint32_t block_ack;
+} __PACKED meshx_lower_trans_seg_ack_pdu_t;
+
 
 
 static void meshx_lower_transport_tx_task_run(meshx_lower_trans_tx_task_t *ptx_task);
@@ -473,6 +493,12 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
         }
         else
         {
+            meshx_lower_trans_unseg_ctl_pdu_t pdu;
+            pdu.metadata.opcode = pmsg_tx_ctx->opcode;
+            pdu.metadata.seg = 0;
+            memcpy(pdu.pdu, pupper_trans_pdu, pdu_len);
+            meshx_network_send(network_if, (const uint8_t *)&pdu,
+                               sizeof(meshx_lower_trans_ctl_pdu_metadata_t) + pdu_len, pmsg_tx_ctx);
         }
     }
     else
@@ -527,20 +553,28 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
     return MESHX_SUCCESS;
 }
 
-#if 0
 static int32_t meshx_lower_transport_seg_ack(meshx_network_if_t network_if,
-                                             meshx_msg_tx_ctx_t *pmsg_tx_ctx)
+                                             meshx_lower_trans_rx_task_t *prx_task)
 {
+    meshx_lower_trans_seg_ack_pdu_t seg_ack;
+    seg_ack.rfu = 0;
+    seg_ack.seq_zero = prx_task->msg_rx_ctx.seq_origin;
+    seg_ack.obo = 0;
+    /* TODO: use true seg ack */
+    seg_ack.block_ack = prx_task->not_received_seg;
+
     meshx_msg_tx_ctx_t msg_ctx;
     memset(&msg_ctx, 0, sizeof(msg_ctx));
-    msg_ctx.ttl = ttl;
+    msg_ctx.ttl = 5; /* TODO: use true ttl */
     msg_ctx.ctl = 1;
-    msg_ctx.dst = dst;
-    meshx_lower_transport_send(network_if, const uint8_t *pupper_trans_pdu,
-                               uint16_t pdu_len, meshx_msg_tx_ctx_t *pmsg_tx_ctx)
-
+    msg_ctx.dst = prx_task->msg_rx_ctx.src;
+    msg_ctx.opcode = 0;
+    msg_ctx.pnet_key = prx_task->msg_rx_ctx.pnet_key;
+    msg_ctx.force_seg = 0;
+    msg_ctx.src = prx_task->msg_rx_ctx.dst;
+    return meshx_lower_transport_send(network_if, (const uint8_t *)&seg_ack,
+                                      sizeof(seg_ack), &msg_ctx);
 }
-#endif
 
 static meshx_lower_trans_rx_task_t *meshx_lower_trans_rx_task_request(uint16_t max_pdu_len,
                                                                       meshx_msg_rx_ctx_t *prx_ctx)
@@ -726,7 +760,10 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
                     /* receive all segments */
                     MESHX_DEBUG("receive upper transport pdu:");
                     MESHX_DUMP_DEBUG(ptask->ppdu, ptask->pdu_len);
+
                     /* TODO: ack immediately */
+                    meshx_lower_transport_seg_ack(network_if, ptask);
+
                     meshx_timer_delete(ptask->ack_timer);
                     ptask->ack_timer = NULL;
                     meshx_timer_restart(ptask->incomplete_timer, MESHX_LOWER_TRANS_STORE_TIMEOUT);
