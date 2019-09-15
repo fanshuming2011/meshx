@@ -228,6 +228,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
         msg_rx_ctx.dst = dst;
         msg_rx_ctx.iv_index = iv_index;
         msg_rx_ctx.seq = seq;
+        msg_rx_ctx.pnet_key = pnet_key;
         ret = meshx_lower_transport_receive(network_if, net_pdu.pdu, trans_pdu_len, &msg_rx_ctx);
     }
     else

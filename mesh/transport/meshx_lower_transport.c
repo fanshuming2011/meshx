@@ -136,7 +136,7 @@ typedef struct
 
 typedef struct
 {
-    meshx_lower_trans_ctl_pdu_metadata_t ctl_metadata;
+    meshx_lower_trans_ctl_pdu_metadata_t metadata;
     union
     {
         struct
@@ -571,6 +571,8 @@ static int32_t meshx_lower_transport_seg_ack(meshx_network_if_t network_if, uint
     msg_ctx.ctl = 1;
     msg_ctx.opcode = 0;
     msg_ctx.pnet_key = pmsg_rx_ctx->pnet_key;
+
+    MESHX_DEBUG("lower transport block ack: 0x%08x", block_ack);
     return meshx_lower_transport_send(network_if, (const uint8_t *)&seg_ack,
                                       sizeof(seg_ack), &msg_ctx);
 }
@@ -690,6 +692,28 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
     if (pmsg_rx_ctx->ctl)
     {
         /* control message */
+        const meshx_lower_trans_ctl_pdu_metadata_t *pmetadata = (const meshx_lower_trans_ctl_pdu_metadata_t
+                                                                 *)pdata;
+        if (0 == pmetadata->opcode)
+        {
+            /* segment ack */
+            const meshx_lower_trans_seg_ack_pdu_t *pseg_ack = (const meshx_lower_trans_seg_ack_pdu_t *)(((
+                                                                  const meshx_lower_trans_unseg_ctl_pdu_t *)pdata)->pdu);
+            uint32_t block_ack = MESHX_BE32_TO_HOST(pseg_ack->block_ack);
+            MESHX_DEBUG("receive block ack: 0x%08x", block_ack);
+        }
+        else
+        {
+            /* actual control message */
+            if (pmetadata->seg)
+            {
+
+            }
+            else
+            {
+                /* unseg control message */
+            }
+        }
     }
     else
     {
