@@ -35,6 +35,7 @@ typedef struct
     uint32_t udb_interval; /* unit is 100ms */
     uint32_t snb_interval; /* unit is 100ms */
     uint8_t trans_retrans_count;
+    uint8_t default_ttl;
 } meshx_node_param_t;
 
 typedef enum
@@ -43,6 +44,7 @@ typedef enum
     MESHX_NODE_PARAM_TYPE_UDB_INTERVAL,
     MESHX_NODE_PARAM_TYPE_SNB_INTERVAL,
     MESHX_NODE_PARAM_TYPE_TRANS_RETRANS_COUNT,
+    MESHX_NODE_PARAM_TYPE_DEFAULT_TTL,
 } meshx_node_param_type_t;
 
 

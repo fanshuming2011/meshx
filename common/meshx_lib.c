@@ -116,3 +116,10 @@ void meshx_bin2hex(const char *pbin, uint8_t *phex, uint8_t len)
         }
     }
 }
+
+void meshx_swap(uint8_t *x, uint8_t *y)
+{
+    uint8_t temp = *x;
+    *x = *y;
+    *y = temp;
+}

@@ -36,6 +36,7 @@ static meshx_node_param_t node_default_param =
     .udb_interval = 50,
     .snb_interval = 100,
     .trans_retrans_count = 2,
+    .default_ttl = 5,
 };
 
 int32_t meshx_node_config_init(meshx_node_config_t *pconfig)
@@ -130,6 +131,9 @@ int32_t meshx_node_param_set(meshx_node_param_type_t type, const void *pdata)
     case MESHX_NODE_PARAM_TYPE_TRANS_RETRANS_COUNT:
         meshx_node_params.param.trans_retrans_count = *(uint8_t *)pdata;
         break;
+    case MESHX_NODE_PARAM_TYPE_DEFAULT_TTL:
+        meshx_node_params.param.default_ttl = *(uint8_t *)pdata;
+        break;
     default:
         MESHX_WARN("unknown parameter type: %d", type);
         ret = -MESHX_ERR_INVAL;
@@ -154,8 +158,10 @@ int32_t meshx_node_param_get(meshx_node_param_type_t type, void *pdata)
         *((uint32_t *)pdata) = meshx_node_params.param.snb_interval / 100;
         break;
     case MESHX_NODE_PARAM_TYPE_TRANS_RETRANS_COUNT:
-        *((uint16_t *)pdata) = meshx_node_params.param.trans_retrans_count;
+        *((uint8_t *)pdata) = meshx_node_params.param.trans_retrans_count;
         break;
+    case MESHX_NODE_PARAM_TYPE_DEFAULT_TTL:
+        *((uint8_t *)pdata) = meshx_node_params.param.default_ttl;
     default:
         MESHX_WARN("unknown parameter type: %d", type);
         ret = -MESHX_ERR_INVAL;
