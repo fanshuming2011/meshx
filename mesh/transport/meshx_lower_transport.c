@@ -136,20 +136,22 @@ typedef struct
     uint8_t pdu[MESHX_LOWER_TRANS_UNSEG_CTL_MAX_PDU_SIZE];
 } __PACKED meshx_lower_trans_unseg_ctl_pdu_t;
 
+typedef union
+{
+    struct
+    {
+        uint32_t segn : 5;
+        uint32_t sego : 5;
+        uint32_t seq_zero : 13;
+        uint32_t rfu : 1;
+    } __PACKED;
+    uint8_t seg_misc[3]; /* need to change to big endian */
+} meshx_lower_trans_seg_ctl_misc_t;
+
 typedef struct
 {
     meshx_lower_trans_ctl_pdu_metadata_t metadata;
-    union
-    {
-        struct
-        {
-            uint32_t segn : 5;
-            uint32_t sego : 5;
-            uint32_t seq_zero : 13;
-            uint32_t rfu : 1;
-        } __PACKED;
-        uint8_t seg_misc[3]; /* need to chang to big endian */
-    };
+    meshx_lower_trans_seg_ctl_misc_t seg_misc;
     uint8_t pdu[MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE];
 } __PACKED meshx_lower_trans_seg_ctl_pdu_t;
 
@@ -255,21 +257,15 @@ static void meshx_lower_trans_timeout_handler(void *pargs)
     meshx_async_msg_send(&msg);
 }
 
-static int32_t meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if, const uint8_t *ppdu,
-                                              uint16_t pdu_len, uint32_t block_ack, const meshx_msg_tx_ctx_t *pmsg_tx_ctx)
+/* TODO: can use only one function to send segment access and control message? */
+
+static int32_t meshx_lower_trans_send_seg_access_msg(meshx_network_if_t network_if,
+                                                     const uint8_t *ppdu,
+                                                     uint16_t pdu_len, uint32_t block_ack, const meshx_msg_tx_ctx_t *pmsg_tx_ctx)
 {
     int32_t ret = MESHX_SUCCESS;
-    uint8_t seg_num;
-    if (pmsg_tx_ctx->ctl)
-    {
-        seg_num = (pdu_len + MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE - 1) /
-                  MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE;
-    }
-    else
-    {
-        seg_num = (pdu_len + MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE - 1) /
-                  MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
-    }
+    uint8_t seg_num = (pdu_len + MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE - 1) /
+                      MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
 
     uint8_t seg_len;
     uint16_t data_offset = 0;
@@ -313,7 +309,6 @@ static int32_t meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if, con
     return ret;
 }
 
-#if 0
 static int32_t meshx_lower_trans_send_seg_ctl_msg(meshx_network_if_t network_if,
                                                   const uint8_t *ppdu,
                                                   uint16_t pdu_len, uint32_t block_ack, const meshx_msg_tx_ctx_t *pmsg_tx_ctx)
@@ -333,10 +328,10 @@ static int32_t meshx_lower_trans_send_seg_ctl_msg(meshx_network_if_t network_if,
         {
             continue;
         }
-        pdu.seq_zero = pmsg_tx_ctx->seq_zero;
-        pdu.sego = i;
-        pdu.segn = seg_num - 1;
-        meshx_swap(pdu.seg_misc, pdu.seg_misc + 2);
+        pdu.seg_misc.seq_zero = pmsg_tx_ctx->seq_zero;
+        pdu.seg_misc.sego = i;
+        pdu.seg_misc.segn = seg_num - 1;
+        meshx_swap(pdu.seg_misc.seg_misc, pdu.seg_misc.seg_misc + 2);
 
         seg_len = (seg_num == (i + 1)) ? (pdu_len - data_offset) :
                   MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
@@ -354,7 +349,6 @@ static int32_t meshx_lower_trans_send_seg_ctl_msg(meshx_network_if_t network_if,
 
     return ret;
 }
-#endif
 
 static void meshx_lower_trans_tx_task_release(meshx_lower_trans_tx_task_t *ptask)
 {
@@ -428,8 +422,17 @@ static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *pta
     else
     {
         /* send segment message */
-        meshx_lower_trans_send_seg_msg(ptask->network_if, ptask->ppdu, ptask->pdu_len, ptask->block_ack,
-                                       &ptask->msg_tx_ctx);
+        if (ptask->msg_tx_ctx.ctl)
+        {
+            meshx_lower_trans_send_seg_access_msg(ptask->network_if, ptask->ppdu, ptask->pdu_len,
+                                                  ptask->block_ack,
+                                                  &ptask->msg_tx_ctx);
+        }
+        else
+        {
+            meshx_lower_trans_send_seg_ctl_msg(ptask->network_if, ptask->ppdu, ptask->pdu_len, ptask->block_ack,
+                                               &ptask->msg_tx_ctx);
+        }
     }
 }
 
@@ -466,8 +469,21 @@ static int32_t meshx_lower_transport_tx_task_run(meshx_lower_trans_tx_task_t *pt
     }
 
     /* send segment message for the first time */
-    return meshx_lower_trans_send_seg_msg(ptx_task->network_if, ptx_task->ppdu, ptx_task->pdu_len, 0,
-                                          &ptx_task->msg_tx_ctx);
+    int32_t ret;
+    if (ptx_task->msg_tx_ctx.ctl)
+    {
+        ret = meshx_lower_trans_send_seg_access_msg(ptx_task->network_if, ptx_task->ppdu, ptx_task->pdu_len,
+                                                    ptx_task->block_ack,
+                                                    &ptx_task->msg_tx_ctx);
+    }
+    else
+    {
+        ret = meshx_lower_trans_send_seg_ctl_msg(ptx_task->network_if, ptx_task->ppdu, ptx_task->pdu_len,
+                                                 ptx_task->block_ack,
+                                                 &ptx_task->msg_tx_ctx);
+    }
+
+    return ret;
 }
 
 static int32_t meshx_lower_transport_tx_task_try(meshx_lower_trans_tx_task_t *ptx_task)
@@ -835,8 +851,18 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
             else
             {
                 pcur_task->block_ack = seg_ack.block_ack;
-                meshx_lower_trans_send_seg_msg(pcur_task->network_if, pcur_task->ppdu, pcur_task->pdu_len,
-                                               seg_ack.block_ack, &pcur_task->msg_tx_ctx);
+                if (pcur_task->msg_tx_ctx.ctl)
+                {
+                    meshx_lower_trans_send_seg_access_msg(pcur_task->network_if, pcur_task->ppdu, pcur_task->pdu_len,
+                                                          pcur_task->block_ack,
+                                                          &pcur_task->msg_tx_ctx);
+                }
+                else
+                {
+                    meshx_lower_trans_send_seg_ctl_msg(pcur_task->network_if, pcur_task->ppdu, pcur_task->pdu_len,
+                                                       pcur_task->block_ack,
+                                                       &pcur_task->msg_tx_ctx);
+                }
             }
         }
     }
