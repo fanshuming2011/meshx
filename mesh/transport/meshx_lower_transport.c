@@ -284,13 +284,13 @@ static int32_t meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if, con
     }
     pdu.metadata.akf = pmsg_tx_ctx->akf;
     pdu.metadata.seg = 1;
-    pdu.seg_misc.szmic = pmsg_tx_ctx->szmic;
     for (uint8_t i = 0; i < seg_num; ++i)
     {
         if (block_ack & (1 << i))
         {
             continue;
         }
+        pdu.seg_misc.szmic = pmsg_tx_ctx->szmic;
         pdu.seg_misc.seq_zero = pmsg_tx_ctx->seq_zero;
         pdu.seg_misc.sego = i;
         pdu.seg_misc.segn = seg_num - 1;
@@ -312,6 +312,49 @@ static int32_t meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if, con
 
     return ret;
 }
+
+#if 0
+static int32_t meshx_lower_trans_send_seg_ctl_msg(meshx_network_if_t network_if,
+                                                  const uint8_t *ppdu,
+                                                  uint16_t pdu_len, uint32_t block_ack, const meshx_msg_tx_ctx_t *pmsg_tx_ctx)
+{
+    int32_t ret = MESHX_SUCCESS;
+    uint8_t seg_num = (pdu_len + MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE - 1) /
+                      MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE;
+
+    uint8_t seg_len;
+    uint16_t data_offset = 0;
+    meshx_lower_trans_seg_ctl_pdu_t pdu;
+    pdu.metadata.opcode = pmsg_tx_ctx->opcode;
+    pdu.metadata.seg = 1;
+    for (uint8_t i = 0; i < seg_num; ++i)
+    {
+        if (block_ack & (1 << i))
+        {
+            continue;
+        }
+        pdu.seq_zero = pmsg_tx_ctx->seq_zero;
+        pdu.sego = i;
+        pdu.segn = seg_num - 1;
+        meshx_swap(pdu.seg_misc, pdu.seg_misc + 2);
+
+        seg_len = (seg_num == (i + 1)) ? (pdu_len - data_offset) :
+                  MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
+        memcpy(pdu.pdu, ppdu + data_offset, seg_len);
+        data_offset += seg_len;
+        seg_len += (sizeof(meshx_lower_trans_access_pdu_metadata_t) + 3);
+        MESHX_DEBUG("send control seg pdu: %d", i);
+        MESHX_DUMP_DEBUG(&pdu, seg_len);
+        ret = meshx_network_send(network_if, (const uint8_t *)&pdu, seg_len, pmsg_tx_ctx);
+        if (MESHX_SUCCESS != ret)
+        {
+            break;
+        }
+    }
+
+    return ret;
+}
+#endif
 
 static void meshx_lower_trans_tx_task_release(meshx_lower_trans_tx_task_t *ptask)
 {
