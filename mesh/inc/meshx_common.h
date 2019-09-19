@@ -80,61 +80,6 @@ typedef struct
     const meshx_network_key_t *pnet_key; /* filled on network layer */
 } meshx_msg_rx_ctx_t;
 
-#if 0
-typedef struct
-{
-    uint8_t element_index;
-    uint8_t dst;
-    uint8_t force_seg : 1;
-    uint8_t ttl : 7;
-} meshx_msg_tx_common_t;
-
-typedef struct
-{
-    meshx_msg_tx_common_t common;
-    uint8_t akf : 1;
-    uint8_t rsvd : 6;
-    uint8_t szmic : 1;
-    union
-    {
-        const meshx_application_key_t *papp_key;
-        const meshx_key_t *pdev_key;
-    };
-} meshx_access_msg_tx_ctx_t;
-
-typedef struct
-{
-    meshx_msg_tx_common_t common;
-    uint8_t opcode;
-    const meshx_network_key_t *pnet_key;
-} meshx_control_msg_tx_ctx_t;
-
-typedef struct
-{
-    uint8_t ctl : 1;
-    uint8_t rsvd : 7;
-    union
-    {
-        meshx_control_msg_tx_ctx_t msg_control;
-        meshx_access_msg_tx_ctx_t msg_access;
-    };
-} meshx_upper_transport_msg_tx_ctx_t;
-
-typedef struct
-{
-    uint32_t seq;
-    meshx_upper_transport_msg_tx_ctx_t msg_upper_trans;
-} meshx_lower_transport_msg_tx_ctx_t;
-
-typedef struct
-{
-    uint8_t element_index;
-    uint8_t dst;
-    uint8_t force_seg : 1;
-    uint8_t ttl : 7;
-} meshx_msg_tx_common_t;
-#endif
-
 typedef struct
 {
     uint16_t src;
