@@ -113,8 +113,14 @@ void meshx_async_msg_process(void)
     case MESHX_ASYNC_MSG_TYPE_TIMEOUT_BEACON:
         meshx_beacon_async_handle_timeout(pmsg->msg);
         break;
-    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_LOWER_TRANS:
-        meshx_lower_trans_async_handle_timeout(pmsg->msg);
+    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_LOWER_TRANS_TX:
+        meshx_lower_trans_async_handle_tx_timeout(pmsg->msg);
+        break;
+    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_LOWER_TRANS_RX_ACK:
+        meshx_lower_trans_async_handle_rx_ack_timeout(pmsg->msg);
+        break;
+    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_LOWER_TRANS_RX_INCOMPLETE:
+        meshx_lower_trans_async_handle_rx_incomplete_timeout(pmsg->msg);
         break;
     default:
         MESHX_ERROR("unkonwn message type: %d", pmsg->msg.type);

@@ -14,7 +14,9 @@ MESHX_BEGIN_DECLS
 
 #define MESHX_ASYNC_MSG_TYPE_TIMEOUT_PB_ADV                            0
 #define MESHX_ASYNC_MSG_TYPE_TIMEOUT_BEACON                            1
-#define MESHX_ASYNC_MSG_TYPE_TIMEOUT_LOWER_TRANS                       2
+#define MESHX_ASYNC_MSG_TYPE_TIMEOUT_LOWER_TRANS_TX                    2
+#define MESHX_ASYNC_MSG_TYPE_TIMEOUT_LOWER_TRANS_RX_ACK                3
+#define MESHX_ASYNC_MSG_TYPE_TIMEOUT_LOWER_TRANS_RX_INCOMPLETE         4
 
 typedef struct
 {

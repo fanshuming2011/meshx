@@ -12,7 +12,9 @@
 
 MESHX_BEGIN_DECLS
 
-MESHX_EXTERN void meshx_lower_trans_async_handle_timeout(meshx_async_msg_t msg);
+MESHX_EXTERN void meshx_lower_trans_async_handle_tx_timeout(meshx_async_msg_t msg);
+MESHX_EXTERN void meshx_lower_trans_async_handle_rx_ack_timeout(meshx_async_msg_t msg);
+MESHX_EXTERN void meshx_lower_trans_async_handle_rx_incomplete_timeout(meshx_async_msg_t msg);
 
 MESHX_END_DECLS
 

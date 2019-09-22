@@ -26,6 +26,7 @@ typedef struct
     uint8_t gap_task_num;
     uint8_t trans_tx_task_num;
     uint8_t trans_rx_task_num;
+    uint8_t trans_tx_retry_times;
 } meshx_node_config_t;
 
 /* parameters can be changed in runtime */
