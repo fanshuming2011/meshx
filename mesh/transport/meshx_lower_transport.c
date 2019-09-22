@@ -39,11 +39,11 @@
 
 #define MESHX_LOWER_TRANS_MAX_SEQ_DELTA                         0x2000
 
-#define MESHX_LOWER_TRANS_INCOMPLETE_TIMEOUT                    100000 /* ms */
+#define MESHX_LOWER_TRANS_INCOMPLETE_TIMEOUT                    10000 /* ms */
 #define MESHX_LOWER_TRANS_RX_ACK_BASE                           150 /* TODO: can configure */
 #define MESHX_LOWER_TRANS_RX_ACK_TTL_FACTOR                     50 /* 50 * ttl */ /* TODO: can configure */
 
-#define MESHX_LOWER_TRANS_STORE_TIMEOUT                         200000 /* ms */
+#define MESHX_LOWER_TRANS_STORE_TIMEOUT                         10000 /* ms */
 
 /* lower transport tx task */
 typedef struct
