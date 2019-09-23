@@ -56,7 +56,6 @@ typedef struct
     uint32_t block_ack;
     meshx_timer_t retry_timer;
     uint8_t retry_times;
-    meshx_lower_transport_seg_msg_send_cb_t send_cb;
     meshx_list_t node;
 } meshx_lower_trans_tx_task_t;
 
@@ -397,19 +396,13 @@ static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *pta
     {
         if (MESHX_ADDRESS_IS_UNICAST(ptask->msg_tx_ctx.dst))
         {
-            /* notify upper transport send failed, no ack from remote or some segment can't be received */
-            if (NULL != ptask->send_cb)
-            {
-                ptask->send_cb(MESHX_LOWER_TRANSPORT_SEG_MSG_SEND_RESULT_NO_ACK);
-            }
+            /* TODO: notify upper transport send failed, no ack from remote or some segment can't be received? */
+            MESHX_ERROR("segment message send failed: timeout, seq zero(0x%04x)", ptask->msg_tx_ctx.seq_zero);
         }
         else
         {
-            /* notify upper transport send finished */
-            if (NULL != ptask->send_cb)
-            {
-                ptask->send_cb(MESHX_LOWER_TRANSPORT_SEG_MSG_SEND_RESULT_SUCCESS);
-            }
+            /* TODO: notify upper transport send finished? */
+            MESHX_INFO("segment message send finish: seq zero(0x%04x)", ptask->msg_tx_ctx.seq_zero);
         }
 
         meshx_lower_trans_tx_task_finish(ptask);
@@ -551,8 +544,7 @@ static bool meshx_lower_trans_is_tx_task_exist(const meshx_msg_tx_ctx_t *pmsg_tx
 
 static int32_t meshx_lower_trans_process_seg_msg(meshx_network_if_t network_if,
                                                  const uint8_t *pupper_trans_pdu,
-                                                 uint16_t pdu_len, uint8_t max_seg_size, const meshx_msg_tx_ctx_t *pmsg_tx_ctx,
-                                                 meshx_lower_transport_seg_msg_send_cb_t send_cb)
+                                                 uint16_t pdu_len, uint8_t max_seg_size, const meshx_msg_tx_ctx_t *pmsg_tx_ctx)
 {
     /* segment message */
     uint8_t seg_num = (pdu_len + max_seg_size - 1) / max_seg_size;
@@ -587,8 +579,6 @@ static int32_t meshx_lower_trans_process_seg_msg(meshx_network_if_t network_if,
         ptask->seg_bits |= (1 << i);
     }
 
-    ptask->send_cb = send_cb;
-
     int32_t ret = meshx_lower_trans_tx_task_try(ptask);
     if (MESHX_SUCCESS != ret)
     {
@@ -600,8 +590,7 @@ static int32_t meshx_lower_trans_process_seg_msg(meshx_network_if_t network_if,
 }
 
 int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t *pupper_trans_pdu,
-                                   uint16_t pdu_len, const meshx_msg_tx_ctx_t *pmsg_tx_ctx,
-                                   meshx_lower_transport_seg_msg_send_cb_t send_cb)
+                                   uint16_t pdu_len, const meshx_msg_tx_ctx_t *pmsg_tx_ctx)
 {
     if (0 == pdu_len)
     {
@@ -623,7 +612,7 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
         {
             /* segment message */
             ret = meshx_lower_trans_process_seg_msg(network_if, pupper_trans_pdu, pdu_len,
-                                                    MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE, pmsg_tx_ctx, send_cb);
+                                                    MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE, pmsg_tx_ctx);
         }
         else
         {
@@ -642,8 +631,7 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
         {
             /* segment message */
             ret = meshx_lower_trans_process_seg_msg(network_if, pupper_trans_pdu, pdu_len,
-                                                    MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE, pmsg_tx_ctx,
-                                                    send_cb);
+                                                    MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE, pmsg_tx_ctx);
         }
         else
         {
@@ -690,7 +678,7 @@ static int32_t meshx_lower_trans_seg_ack(meshx_network_if_t network_if, uint32_t
 
     MESHX_DEBUG("lower transport block ack: 0x%08x", block_ack);
     return meshx_lower_transport_send(network_if, (const uint8_t *)&seg_ack,
-                                      sizeof(seg_ack), &msg_ctx, NULL);
+                                      sizeof(seg_ack), &msg_ctx);
 }
 
 static void meshx_lower_trans_rx_task_release(meshx_lower_trans_rx_task_t *ptask)
@@ -893,11 +881,7 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
             /* remote received all segments */
             MESHX_INFO("remote receive all segments, seq zero(0x%04x)", pcur_task->msg_tx_ctx.seq_zero);
             meshx_lower_trans_tx_task_finish(pcur_task);
-            /* notify upper transport send success */
-            if (NULL != pcur_task->send_cb)
-            {
-                pcur_task->send_cb(MESHX_LOWER_TRANSPORT_SEG_MSG_SEND_RESULT_SUCCESS);
-            }
+            /* TODO: notify upper transport send success? */
         }
         else
         {
@@ -905,11 +889,7 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
             {
                 MESHX_WARN("send canceled, remote can't receive!");
                 meshx_lower_trans_tx_task_finish(pcur_task);
-                /* notify upper transport send canceled, remote can't receive */
-                if (NULL != pcur_task->send_cb)
-                {
-                    pcur_task->send_cb(MESHX_LOWER_TRANSPORT_SEG_MSG_SEND_RESULT_CANCEL);
-                }
+                /* TODO: notify upper transport send canceled, remote can't receive? */
             }
             else
             {
@@ -920,11 +900,7 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
                     if (MESHX_ADDRESS_IS_UNICAST(pcur_task->msg_tx_ctx.dst))
                     {
                         MESHX_ERROR("segment message send failed: seq zero(0x%04x)", pcur_task->msg_tx_ctx.seq_zero);
-                        /* notify upper transport send failed, some segment can't be received */
-                        if (NULL != pcur_task->send_cb)
-                        {
-                            pcur_task->send_cb(MESHX_LOWER_TRANSPORT_SEG_MSG_SEND_RESULT_FAILED);
-                        }
+                        /* TODO: notify upper transport send failed, some segment can't be received? */
                     }
                 }
                 else
