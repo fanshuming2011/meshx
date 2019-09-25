@@ -24,6 +24,7 @@
 #include "meshx_endianness.h"
 #include "meshx_sample_data.h"
 #include "meshx_node_internal.h"
+#include "meshx_key.h"
 
 int32_t meshx_provision_init(void)
 {
@@ -444,6 +445,7 @@ static int32_t meshx_provision_calculate_session_device_key(meshx_provision_dev_
              dev_key);
     MESHX_DEBUG("device key:");
     MESHX_DUMP_DEBUG(dev_key, 16);
+    meshx_dev_key_set(dev_key);
 
     return MESHX_SUCCESS;
 }

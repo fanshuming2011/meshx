@@ -13,6 +13,8 @@
 
 MESHX_BEGIN_DECLS
 
+#define MESHX_NONCE_SIZE                  13
+
 #define MESHX_NONCE_TYPE_NETWORK          0
 #define MESHX_NONCE_TYPE_APPLICAITON      1
 #define MESHX_NONCE_TYPE_DEVICE           2
@@ -32,8 +34,8 @@ typedef struct
 typedef struct
 {
     uint8_t nonce_type;
-    uint8_t aszmic: 1;
     uint8_t pad: 7;
+    uint8_t aszmic: 1;
     uint8_t seq[3];
     uint16_t src;
     uint16_t dst;

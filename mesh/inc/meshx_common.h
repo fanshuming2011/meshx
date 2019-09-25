@@ -84,11 +84,13 @@ typedef struct
 {
     uint16_t src;
     uint16_t dst;
-    uint32_t force_seg : 1;
-    uint32_t ttl : 8;
+    uint32_t ttl : 7;
     uint32_t ctl : 1;
-    uint32_t seq_zero : 13;
-    uint32_t rsvd : 9;
+    uint32_t seq : 24;
+    uint32_t iv_index;
+    uint16_t seq_zero : 13;
+    uint16_t force_seg : 1;
+    uint16_t rsvd : 2;
 
     union
     {
