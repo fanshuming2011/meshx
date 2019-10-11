@@ -70,18 +70,6 @@ typedef struct
 
 typedef struct
 {
-    uint32_t ctl : 1; /* filled on network layer */
-    uint32_t ttl : 7; /* filled on network layer */
-    uint32_t seq_origin : 24; /* filled on lower transport layer */
-    uint32_t iv_index; /* filled on network layer */
-    uint32_t seq; /* filled on network layer */
-    uint16_t src; /* filled on network layer */
-    uint16_t dst; /* filled on network layer */
-    const meshx_network_key_t *pnet_key; /* filled on network layer */
-} meshx_msg_rx_ctx_t;
-
-typedef struct
-{
     uint16_t src;
     uint16_t dst;
     uint32_t ttl : 7;
@@ -112,7 +100,7 @@ typedef struct
             uint8_t opcode;
         };
     };
-} meshx_msg_tx_ctx_t;
+} meshx_msg_ctx_t;
 
 
 
