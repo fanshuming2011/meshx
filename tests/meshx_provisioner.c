@@ -449,12 +449,14 @@ static void *meshx_thread(void *pargs)
     /*******************************************************/
 
     /*********************** send sample lower transport data *********************/
+    const meshx_application_key_t *papp_key = meshx_app_key_get(0);
     meshx_seq_set(0, 0x3129ab);
     ctx.ctl = 0x00;
     ctx.src = meshx_node_params_get().node_addr;
     ctx.dst = 0x1201;
     ctx.ttl = 4;
-    ctx.papp_key = meshx_app_key_get(0);
+    ctx.papp_key = &papp_key->app_key;
+    ctx.aid = papp_key->aid;
     ctx.akf = 1;
     ctx.szmic = 0;
     ctx.seq_zero = 0x9ab;

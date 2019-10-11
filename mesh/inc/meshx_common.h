@@ -91,6 +91,7 @@ typedef struct
     uint16_t seq_zero : 13;
     uint16_t force_seg : 1;
     uint16_t rsvd : 2;
+    const meshx_network_key_t *pnet_key;
 
     union
     {
@@ -98,10 +99,10 @@ typedef struct
         {
             uint8_t akf : 1;
             uint8_t szmic : 1;
-            uint8_t rsvd1 : 6;
+            uint8_t aid : 6;
             union
             {
-                const meshx_application_key_t *papp_key;
+                const meshx_key_t *papp_key;
                 const meshx_key_t *pdev_key;
             };
         };
@@ -109,7 +110,6 @@ typedef struct
         struct
         {
             uint8_t opcode;
-            const meshx_network_key_t *pnet_key;
         };
     };
 } meshx_msg_tx_ctx_t;

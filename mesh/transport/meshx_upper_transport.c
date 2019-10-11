@@ -63,7 +63,7 @@ static void meshx_upper_transport_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
     uint8_t *padd = NULL;
     uint8_t add_len = 0;
 
-    const meshx_key_t *pencrypt_key = pmsg_tx_ctx->akf ? &pmsg_tx_ctx->papp_key->app_key :
+    const meshx_key_t *pencrypt_key = pmsg_tx_ctx->akf ? pmsg_tx_ctx->papp_key :
                                       pmsg_tx_ctx->pdev_key;
     /* encrypt data */
     meshx_aes_ccm_encrypt(*pencrypt_key, nonce, MESHX_NONCE_SIZE,

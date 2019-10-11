@@ -269,7 +269,7 @@ static int32_t meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if,
         meshx_lower_trans_seg_access_pdu_t *paccess_pdu = (meshx_lower_trans_seg_access_pdu_t *)pdu;
         if (pmsg_tx_ctx->akf)
         {
-            paccess_pdu->metadata.aid = pmsg_tx_ctx->papp_key->aid;
+            paccess_pdu->metadata.aid = pmsg_tx_ctx->aid;
         }
         else
         {
@@ -639,7 +639,7 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
             meshx_lower_trans_unseg_access_pdu_t pdu;
             if (pmsg_tx_ctx->akf)
             {
-                pdu.metadata.aid = pmsg_tx_ctx->papp_key->aid;
+                pdu.metadata.aid = pmsg_tx_ctx->aid;
             }
             else
             {
