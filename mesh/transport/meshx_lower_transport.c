@@ -37,13 +37,16 @@
 #define MESHX_LOWER_TRANS_TX_RETRY_BASE                         200    /* TODO: can configure */
 #define MESHX_LOWER_TRANS_TX_RETRY_TTL_FACTOR                   50 /* 50 * ttl */ /* TODO: can configure */
 
-#define MESHX_LOWER_TRANS_MAX_SEQ_DELTA                         0x2000
+#define MESHX_LOWER_TRANS_SEQ_ORIGIN(seq_zero, seq) \
+    ((seq_zero) + (((seq) & ~0x1fff) - ((seq_zero) > ((seq) & 0x1fff) ? 0x2000 : 0)))
+
 
 #define MESHX_LOWER_TRANS_INCOMPLETE_TIMEOUT                    10000 /* ms */
 #define MESHX_LOWER_TRANS_RX_ACK_BASE                           150 /* TODO: can configure */
 #define MESHX_LOWER_TRANS_RX_ACK_TTL_FACTOR                     50 /* 50 * ttl */ /* TODO: can configure */
 
 #define MESHX_LOWER_TRANS_STORE_TIMEOUT                         10000 /* ms */
+
 
 /* lower transport tx task */
 typedef struct
@@ -936,7 +939,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
         meshx_swap(seg_misc.seg_misc, seg_misc.seg_misc + 2);
 
         /* store segment message */
-        pmsg_ctx->seq_origin = seg_misc.seq_zero;
+        pmsg_ctx->seq_origin = MESHX_LOWER_TRANS_SEQ_ORIGIN(seg_misc.seq_zero, pmsg_ctx->seq);
         sego = seg_misc.sego;
         segn = seg_misc.segn;
         max_pdu_len = (seg_misc.segn + 1) * MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE;
@@ -949,7 +952,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
         meshx_swap(seg_misc.seg_misc, seg_misc.seg_misc + 2);
 
         /* store segment message */
-        pmsg_ctx->seq_origin = seg_misc.seq_zero;
+        pmsg_ctx->seq_origin = MESHX_LOWER_TRANS_SEQ_ORIGIN(seg_misc.seq_zero, pmsg_ctx->seq);
         sego = seg_misc.sego;
         segn = seg_misc.segn;
         max_pdu_len = (seg_misc.segn + 1) * MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;

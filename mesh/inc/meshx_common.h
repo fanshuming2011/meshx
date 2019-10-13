@@ -70,19 +70,21 @@ typedef struct
 
 typedef struct
 {
+    /* common parameters */
     uint16_t src;
     uint16_t dst;
     uint32_t ttl : 7;
     uint32_t ctl : 1;
     uint32_t seq : 24;
     uint32_t iv_index;
-    uint16_t seq_zero : 13;
+    uint32_t seq_origin : 24;
     uint16_t force_seg : 1;
-    uint16_t rsvd : 2;
+    uint16_t rsvd : 7;
     const meshx_network_key_t *pnet_key;
 
     union
     {
+        /* access message parameters */
         struct
         {
             uint8_t akf : 1;
@@ -95,6 +97,7 @@ typedef struct
             };
         };
 
+        /* control message parameters */
         struct
         {
             uint8_t opcode;
