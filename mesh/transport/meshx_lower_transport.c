@@ -242,9 +242,9 @@ static void meshx_lower_trans_tx_timeout_handler(void *pargs)
     meshx_async_msg_send(&msg);
 }
 
-static void meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if,
-                                           const uint8_t *ppdu,
-                                           uint16_t pdu_len, uint32_t block_ack, meshx_msg_ctx_t *pmsg_ctx)
+static int32_t meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if,
+                                              const uint8_t *ppdu,
+                                              uint16_t pdu_len, uint32_t block_ack, meshx_msg_ctx_t *pmsg_ctx)
 {
     uint8_t seg_num;
     if (pmsg_ctx->ctl)
@@ -290,12 +290,15 @@ static void meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if,
             continue;
         }
 
+        /* use sequence */
+        pmsg_ctx->seq = meshx_seq_use(pmsg_ctx->src - meshx_node_params.param.node_addr);
+
         /* check sequence */
         if (!MESHX_LOWER_TRANS_IS_SEQ_ORIGIN_VALID(pmsg_ctx->seq, pmsg_ctx->seq_origin))
         {
             MESHX_ERROR("seq is 8192 higher than seq origin: seq 0x%08x, seq origin 0x%08x", pmsg_ctx->seq,
                         pmsg_ctx->seq_origin);
-            return ;
+            return -MESHX_ERR_INVAL;
         }
 
         if (pmsg_ctx->ctl)
@@ -340,9 +343,9 @@ static void meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if,
         MESHX_DEBUG("send access seg pdu: %d", i);
         MESHX_DUMP_DEBUG(pdu, seg_len);
         meshx_network_send(network_if, pdu, seg_len, pmsg_ctx);
-        /* increase sequence */
-        pmsg_ctx->seq = meshx_seq_use(pmsg_ctx->src - meshx_node_params.param.node_addr);
     }
+
+    return MESHX_SUCCESS;
 }
 
 static void meshx_lower_trans_tx_task_release(meshx_lower_trans_tx_task_t *ptask)
@@ -477,15 +480,22 @@ static int32_t meshx_lower_trans_tx_task_run(meshx_lower_trans_tx_task_t *ptx_ta
     MESHX_INFO("run lower trans task(0x%08x)", ptx_task);
     meshx_list_append(&meshx_lower_trans_tx_task_active, &ptx_task->node);
 
-    /* start retrans timer */
-    meshx_lower_trans_tx_timer_start(ptx_task);
-
     /* send segment message for the first time */
-    meshx_lower_trans_send_seg_msg(ptx_task->network_if, ptx_task->ppdu, ptx_task->pdu_len,
-                                   ptx_task->block_ack,
-                                   &ptx_task->msg_ctx);
+    int32_t ret;
+    ret = meshx_lower_trans_send_seg_msg(ptx_task->network_if, ptx_task->ppdu, ptx_task->pdu_len,
+                                         ptx_task->block_ack,
+                                         &ptx_task->msg_ctx);
+    if (MESHX_SUCCESS != ret)
+    {
+        meshx_lower_trans_tx_task_finish(ptx_task);
+    }
+    else
+    {
+        /* start retrans timer */
+        meshx_lower_trans_tx_timer_start(ptx_task);
+    }
 
-    return MESHX_SUCCESS;
+    return ret;
 }
 
 static int32_t meshx_lower_trans_tx_task_try(meshx_lower_trans_tx_task_t *ptx_task)
@@ -528,6 +538,7 @@ static meshx_lower_trans_tx_task_t *meshx_lower_trans_tx_task_request(uint16_t p
         return NULL;
     }
 
+    MESHX_INFO("request lower trans task(0x%08x)", ptask);
     ptask->retry_times = 0;
     ptask->block_ack = 0;
     ptask->seg_bits = 0;
@@ -582,12 +593,14 @@ static int32_t meshx_lower_trans_process_seg_msg(meshx_network_if_t network_if,
         return -MESHX_ERR_ALREADY;
     }
 
+#if 0
     if (MESHX_LOWER_TRANS_IS_SEQ_ORIGIN_VALID(pmsg_ctx->seq, pmsg_ctx->seq_origin))
     {
         MESHX_ERROR("seq is 8192 higher than seq origin: seq 0x%08x, seq origin 0x%08x", pmsg_ctx->seq,
                     pmsg_ctx->seq_origin);
         return -MESHX_ERR_INVAL;
     }
+#endif
 
     /* store segment message for retransmit */
     meshx_lower_trans_tx_task_t *ptask = meshx_lower_trans_tx_task_request(pdu_len);
@@ -605,14 +618,7 @@ static int32_t meshx_lower_trans_process_seg_msg(meshx_network_if_t network_if,
         ptask->seg_bits |= (1 << i);
     }
 
-    int32_t ret = meshx_lower_trans_tx_task_try(ptask);
-    if (MESHX_SUCCESS != ret)
-    {
-        /* release task */
-        meshx_lower_trans_tx_task_release(ptask);
-    }
-
-    return ret;
+    return meshx_lower_trans_tx_task_try(ptask);
 }
 
 int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t *pupper_trans_pdu,

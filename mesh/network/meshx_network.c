@@ -218,18 +218,18 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
         {
             MESHX_DEBUG("decrypt net pdu:");
             MESHX_DUMP_DEBUG(&net_pdu, len - net_mic_len);
-        }
 
-        /* send data to lower transport lower */
-        meshx_msg_ctx_t msg_ctx;
-        msg_ctx.ctl = net_pdu.net_metadata.ctl;
-        msg_ctx.ttl = net_pdu.net_metadata.ttl;
-        msg_ctx.src = src;
-        msg_ctx.dst = dst;
-        msg_ctx.iv_index = iv_index;
-        msg_ctx.seq = seq;
-        msg_ctx.pnet_key = pnet_key;
-        ret = meshx_lower_transport_receive(network_if, net_pdu.pdu, trans_pdu_len, &msg_ctx);
+            /* send data to lower transport lower */
+            meshx_msg_ctx_t msg_ctx;
+            msg_ctx.ctl = net_pdu.net_metadata.ctl;
+            msg_ctx.ttl = net_pdu.net_metadata.ttl;
+            msg_ctx.src = src;
+            msg_ctx.dst = dst;
+            msg_ctx.iv_index = iv_index;
+            msg_ctx.seq = seq;
+            msg_ctx.pnet_key = pnet_key;
+            ret = meshx_lower_transport_receive(network_if, net_pdu.pdu, trans_pdu_len, &msg_ctx);
+        }
     }
     else
     {

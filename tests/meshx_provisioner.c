@@ -461,7 +461,7 @@ static void *meshx_thread(void *pargs)
     ctx.aid = papp_key->aid;
     ctx.akf = 1;
     ctx.szmic = 0;
-    ctx.seq_origin = 0x9ab;
+    ctx.seq_origin = 0x3129ab;
     uint8_t upper_trans_pdu[] = {0xee, 0x9d, 0xdd, 0xfd, 0x21, 0x69, 0x32, 0x6d, 0x23, 0xf3, 0xaf, 0xdf, 0xcf, 0xdc, 0x18, 0xc5, 0x2f, 0xde, 0xf7, 0x72, 0xe0, 0xe1, 0x73, 0x08};
     meshx_lower_transport_send(adv_net_if, upper_trans_pdu, sizeof(upper_trans_pdu), &ctx);
     /*******************************************************/
