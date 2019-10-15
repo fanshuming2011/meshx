@@ -435,7 +435,7 @@ static void *meshx_thread(void *pargs)
     meshx_network_if_t adv_net_if = meshx_network_if_get(adv_bearer);
 
     /*********************** send sample network data *********************/
-    meshx_msg_tx_ctx_t ctx;
+    meshx_msg_ctx_t ctx;
 #if 0
     ctx.ctl = 0x01;
     ctx.dst = 0xfffd;
@@ -455,12 +455,13 @@ static void *meshx_thread(void *pargs)
     ctx.src = meshx_node_params_get().node_addr;
     ctx.dst = 0x1201;
     ctx.ttl = 4;
+    ctx.seq = 0x3129ab;
+    ctx.pnet_key = meshx_net_key_get(0);
     ctx.papp_key = &papp_key->app_key;
     ctx.aid = papp_key->aid;
     ctx.akf = 1;
     ctx.szmic = 0;
-    ctx.seq_zero = 0x9ab;
-    ctx.pnet_key = meshx_net_key_get(0);
+    ctx.seq_origin = 0x9ab;
     uint8_t upper_trans_pdu[] = {0xee, 0x9d, 0xdd, 0xfd, 0x21, 0x69, 0x32, 0x6d, 0x23, 0xf3, 0xaf, 0xdf, 0xcf, 0xdc, 0x18, 0xc5, 0x2f, 0xde, 0xf7, 0x72, 0xe0, 0xe1, 0x73, 0x08};
     meshx_lower_transport_send(adv_net_if, upper_trans_pdu, sizeof(upper_trans_pdu), &ctx);
     /*******************************************************/
