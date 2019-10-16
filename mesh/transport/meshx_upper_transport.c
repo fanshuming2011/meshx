@@ -76,7 +76,7 @@ static void meshx_upper_transport_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
 
 int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
                                    const uint8_t *pdata, uint16_t len,
-                                   const meshx_msg_ctx_t *pmsg_ctx)
+                                   meshx_msg_ctx_t *pmsg_ctx)
 {
     int32_t ret = MESHX_SUCCESS;
     if (pmsg_ctx->ctl)

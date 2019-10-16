@@ -455,7 +455,8 @@ static void *meshx_thread(void *pargs)
     ctx.src = meshx_node_params_get().node_addr;
     ctx.dst = 0x1201;
     ctx.ttl = 4;
-    ctx.seq = 0x3129ab;
+    //ctx.seq = 0x3129ab;
+    ctx.iv_index = meshx_iv_index_get();
     ctx.pnet_key = meshx_net_key_get(0);
     ctx.papp_key = &papp_key->app_key;
     ctx.aid = papp_key->aid;
