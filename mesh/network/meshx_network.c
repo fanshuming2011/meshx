@@ -170,15 +170,41 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     }
 
     /* get net key */
-    const meshx_network_key_t *pnet_key = meshx_net_key_get_by_nid(net_pdu.net_metadata.nid);
+    const meshx_network_key_t *pnet_key = NULL;
+    meshx_net_key_traverse_start(&pnet_key, net_pdu.net_metadata.nid);
     if (NULL == pnet_key)
     {
-        MESHX_INFO("no key's nid is %d", net_pdu.net_metadata.nid);
+        MESHX_INFO("no key's nid is 0x%x", net_pdu.net_metadata.nid);
         return -MESHX_ERR_KEY;
     }
 
-    /* restore header */
-    meshx_network_obfuscation(&net_pdu, iv_index, pnet_key);
+    int32_t ret = MESHX_SUCCESS;
+    uint8_t net_mic_len, trans_pdu_len;
+    while (NULL != pnet_key)
+    {
+        /* restore header */
+        meshx_network_obfuscation(&net_pdu, iv_index, pnet_key);
+
+        /* decrypt transport layer data */
+        net_mic_len = net_pdu.net_metadata.ctl ? 8 : 4;
+        trans_pdu_len = len - sizeof(meshx_network_metadata_t) - net_mic_len;
+        ret = meshx_network_decrypt(&net_pdu, trans_pdu_len, iv_index, pnet_key);
+        if (MESHX_SUCCESS == ret)
+        {
+            break;
+        }
+        else
+        {
+            meshx_net_key_traverse_continue(&pnet_key, net_pdu.net_metadata.nid);
+        }
+    }
+
+    if (NULL == pnet_key)
+    {
+        MESHX_WARN("can't decrypt pdu by network key that nid is 0x%x", net_pdu.net_metadata.nid);
+        return -MESHX_ERR_KEY;
+    }
+
 
     /* TODO: check nmc, rpl and relay or loopback interface */
     uint16_t src = MESHX_BE16_TO_HOST(net_pdu.net_metadata.src);
@@ -205,31 +231,23 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
 
     meshx_nmc_add(nmc);
 
-    int32_t ret = MESHX_SUCCESS;
+    MESHX_DEBUG("decrypt net pdu:");
+    MESHX_DUMP_DEBUG(&net_pdu, len - net_mic_len);
+
+
     if (meshx_node_is_my_address(dst))
     {
         /* message send to me */
-
-        /* decrypt transport layer data */
-        uint8_t net_mic_len = net_pdu.net_metadata.ctl ? 8 : 4;
-        uint8_t trans_pdu_len = len - sizeof(meshx_network_metadata_t) - net_mic_len;
-        ret = meshx_network_decrypt(&net_pdu, trans_pdu_len, iv_index, pnet_key);
-        if (MESHX_SUCCESS == ret)
-        {
-            MESHX_DEBUG("decrypt net pdu:");
-            MESHX_DUMP_DEBUG(&net_pdu, len - net_mic_len);
-
-            /* send data to lower transport lower */
-            meshx_msg_ctx_t msg_ctx;
-            msg_ctx.ctl = net_pdu.net_metadata.ctl;
-            msg_ctx.ttl = net_pdu.net_metadata.ttl;
-            msg_ctx.src = src;
-            msg_ctx.dst = dst;
-            msg_ctx.iv_index = iv_index;
-            msg_ctx.seq = seq;
-            msg_ctx.pnet_key = pnet_key;
-            ret = meshx_lower_transport_receive(network_if, net_pdu.pdu, trans_pdu_len, &msg_ctx);
-        }
+        /* send data to lower transport lower */
+        meshx_msg_ctx_t msg_ctx;
+        msg_ctx.ctl = net_pdu.net_metadata.ctl;
+        msg_ctx.ttl = net_pdu.net_metadata.ttl;
+        msg_ctx.src = src;
+        msg_ctx.dst = dst;
+        msg_ctx.iv_index = iv_index;
+        msg_ctx.seq = seq;
+        msg_ctx.pnet_key = pnet_key;
+        ret = meshx_lower_transport_receive(network_if, net_pdu.pdu, trans_pdu_len, &msg_ctx);
     }
     else
     {

@@ -72,6 +72,39 @@ const meshx_application_key_t *meshx_app_key_get(uint16_t app_key_index)
     return NULL;
 }
 
+void meshx_app_key_traverse_start(const meshx_application_key_t **ptraverse_key, uint8_t aid)
+{
+    *ptraverse_key = NULL;
+    meshx_list_t *pnode;
+    meshx_app_key_info_t *papp_key;
+    meshx_list_foreach(pnode, &meshx_app_keys)
+    {
+        papp_key = MESHX_CONTAINER_OF(pnode, meshx_app_key_info_t, node);
+        if (papp_key->app_key.aid == aid)
+        {
+            *ptraverse_key = &papp_key->app_key;
+            break;
+        }
+    }
+}
+
+void meshx_app_key_traverse_continue(const meshx_application_key_t **ptraverse_key, uint8_t aid)
+{
+    const meshx_app_key_info_t *pinfo = (const meshx_app_key_info_t *)(*ptraverse_key);
+    *ptraverse_key = NULL;
+    meshx_list_t *pnode;
+    meshx_app_key_info_t *papp_key;
+    for (pnode = pinfo->node.pnext; pnode != &meshx_net_keys; pnode = pnode->pnext)
+    {
+        papp_key = MESHX_CONTAINER_OF(pnode, meshx_app_key_info_t, node);
+        if (papp_key->app_key.aid == aid)
+        {
+            *ptraverse_key = &papp_key->app_key;
+            break;
+        }
+    }
+}
+
 static void meshx_app_key_derive(meshx_application_key_t *papp_key)
 {
     meshx_k4(papp_key->app_key, &papp_key->aid);
@@ -163,8 +196,9 @@ const meshx_network_key_t *meshx_net_key_get(uint16_t net_key_index)
     return NULL;
 }
 
-const meshx_network_key_t *meshx_net_key_get_by_nid(uint8_t nid)
+void meshx_net_key_traverse_start(const meshx_network_key_t **ptraverse_key, uint8_t nid)
 {
+    *ptraverse_key = NULL;
     meshx_list_t *pnode;
     meshx_net_key_info_t *pnet_key;
     meshx_list_foreach(pnode, &meshx_net_keys)
@@ -172,11 +206,27 @@ const meshx_network_key_t *meshx_net_key_get_by_nid(uint8_t nid)
         pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
         if (pnet_key->net_key.nid == nid)
         {
-            return &pnet_key->net_key;
+            *ptraverse_key = &pnet_key->net_key;
+            break;
         }
     }
+}
 
-    return NULL;
+void meshx_net_key_traverse_continue(const meshx_network_key_t **ptraverse_key, uint8_t nid)
+{
+    const meshx_net_key_info_t *pinfo = (const meshx_net_key_info_t *)(*ptraverse_key);
+    *ptraverse_key = NULL;
+    meshx_list_t *pnode;
+    meshx_net_key_info_t *pnet_key;
+    for (pnode = pinfo->node.pnext; pnode != &meshx_net_keys; pnode = pnode->pnext)
+    {
+        pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
+        if (pnet_key->net_key.nid == nid)
+        {
+            *ptraverse_key = &pnet_key->net_key;
+            break;
+        }
+    }
 }
 
 static void meshx_net_key_derive(meshx_network_key_t *pnet_key)
