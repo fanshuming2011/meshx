@@ -438,14 +438,12 @@ static int32_t meshx_provision_calculate_session_device_key(meshx_provision_dev_
     MESHX_DEBUG("session nonce:");
     MESHX_DUMP_DEBUG(prov_dev->session_nonce, 16);
 
-    uint8_t dev_key[16];
     P[2] = 'd';
     P[3] = 'k';
     meshx_k1(prov_dev->share_secret, sizeof(prov_dev->share_secret), prov_salt, P, sizeof(P),
-             dev_key);
+             prov_dev->device_key);
     MESHX_DEBUG("device key:");
-    MESHX_DUMP_DEBUG(dev_key, 16);
-    meshx_dev_key_set(dev_key);
+    MESHX_DUMP_DEBUG(prov_dev->device_key, 16);
 
     return MESHX_SUCCESS;
 }

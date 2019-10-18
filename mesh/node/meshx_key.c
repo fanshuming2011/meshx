@@ -363,7 +363,7 @@ const meshx_device_key_t *meshx_dev_key_get(uint16_t addr)
     return NULL;
 }
 
-int32_t meshx_dev_key_set(uint16_t primary_addr, uint8_t element_num, meshx_key_t dev_key)
+int32_t meshx_dev_key_add(uint16_t primary_addr, uint8_t element_num, meshx_key_t dev_key)
 {
     return MESHX_SUCCESS;
 }

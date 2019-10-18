@@ -30,6 +30,7 @@ struct _meshx_provision_dev
     uint8_t confirmation_salt[16];
     uint8_t session_key[16];
     uint8_t session_nonce[16];
+    uint8_t device_key[16];
     meshx_provision_invite_t invite;
     meshx_provision_capabilites_t capabilites;
     meshx_provision_start_t start;

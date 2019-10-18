@@ -405,7 +405,7 @@ static void meshx_prov_init(void)
     /* add keys */
     meshx_net_key_add(0, sample_net_key);
     meshx_app_key_add(0, 0, sample_app_key);
-    meshx_dev_key_set(sample_dev_key);
+    meshx_dev_key_add(0, 1, sample_dev_key);
 }
 
 static void *meshx_thread(void *pargs)
@@ -459,7 +459,7 @@ static void *meshx_thread(void *pargs)
     //ctx.seq = 0x3129ab;
     ctx.iv_index = meshx_iv_index_get();
     ctx.pnet_key = meshx_net_key_get(0);
-    ctx.pdev_key = meshx_dev_key_get();
+    ctx.pdev_key = &meshx_dev_key_get(0)->dev_key;
     ctx.aid = papp_key->aid;
     ctx.akf = 0;
     ctx.szmic = 0;
