@@ -28,10 +28,16 @@ typedef struct
     meshx_list_t node;
 } meshx_app_key_info_t;
 
+typedef struct
+{
+    meshx_device_key_t dev_key;
+    meshx_list_t node;
+} meshx_dev_key_info_t;
+
+
 static meshx_list_t meshx_net_keys;
 static meshx_list_t meshx_app_keys;
-
-static meshx_key_t meshx_dev_key;
+static meshx_list_t meshx_dev_keys;
 
 
 meshx_net_key_info_t *meshx_find_net_key(uint16_t net_key_index)
@@ -320,40 +326,55 @@ int32_t meshx_net_key_update(uint16_t net_key_index, meshx_key_t net_key)
 int32_t meshx_net_key_delete(uint16_t net_key_index)
 {
     meshx_list_t *pnode;
-    meshx_net_key_info_t *pnet_key;
+    meshx_net_key_info_t *pnet_key = NULL;
     meshx_list_foreach(pnode, &meshx_net_keys)
     {
         pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
         if (pnet_key->net_key.net_key_index == net_key_index)
         {
             meshx_list_remove(pnode);
-            break;
+            /* TODO: update all bind app keys? */
+            meshx_free(pnet_key);
+            return MESHX_SUCCESS;
         }
     }
 
-    if (NULL == pnet_key)
-    {
-        return -MESHX_ERR_NOT_FOUND;
-    }
-
-    /* TODO: update all bind app keys? */
-    meshx_free(pnet_key);
-
-    return MESHX_SUCCESS;
-
+    return -MESHX_ERR_NOT_FOUND;
 }
 
 void meshx_net_key_clear(void)
 {
 }
 
-const meshx_key_t *meshx_dev_key_get(void)
+const meshx_device_key_t *meshx_dev_key_get(uint16_t addr)
 {
-    return &meshx_dev_key;
+    meshx_list_t *pnode;
+    meshx_dev_key_info_t *pdev_key;
+    meshx_list_foreach(pnode, &meshx_dev_keys)
+    {
+        pdev_key = MESHX_CONTAINER_OF(pnode, meshx_dev_key_info_t, node);
+        if ((addr >= pdev_key->dev_key.primary_addr) &&
+            (addr <= (pdev_key->dev_key.primary_addr + pdev_key->dev_key.element_num)))
+        {
+            return &pdev_key->dev_key;
+        }
+    }
+
+    return NULL;
 }
 
-int32_t meshx_dev_key_set(meshx_key_t dev_key)
+int32_t meshx_dev_key_set(uint16_t primary_addr, uint8_t element_num, meshx_key_t dev_key)
 {
-    memcpy(meshx_dev_key, dev_key, sizeof(meshx_key_t));
     return MESHX_SUCCESS;
 }
+
+void meshx_dev_key_delete(meshx_key_t dev_key)
+{
+
+}
+
+void meshx_dev_key_delete_by_addr(uint16_t addr)
+{
+
+}
+

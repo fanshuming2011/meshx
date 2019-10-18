@@ -70,6 +70,13 @@ typedef struct
 
 typedef struct
 {
+    uint16_t primary_addr;
+    uint8_t element_num;
+    meshx_key_t dev_key;
+} meshx_device_key_t;
+
+typedef struct
+{
     /* common parameters */
     uint16_t src;
     uint16_t dst;

@@ -351,7 +351,7 @@ static void meshx_dev_init(void)
     /* add keys */
     meshx_net_key_add(0, sample_net_key);
     meshx_app_key_add(0, 0, sample_app_key);
-    meshx_dev_key_set(sample_dev_key);
+    meshx_dev_key_add(0, 1, sample_dev_key);
 }
 
 static void *meshx_thread(void *pargs)

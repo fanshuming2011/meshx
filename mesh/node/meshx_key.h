@@ -36,8 +36,11 @@ MESHX_EXTERN int32_t meshx_net_key_update(uint16_t net_key_index, meshx_key_t ne
 MESHX_EXTERN int32_t meshx_net_key_delete(uint16_t net_key_index);
 MESHX_EXTERN void meshx_net_key_clear(void);
 
-MESHX_EXTERN const meshx_key_t *meshx_dev_key_get(void);
-MESHX_EXTERN int32_t meshx_dev_key_set(meshx_key_t dev_key);
+MESHX_EXTERN const meshx_device_key_t *meshx_dev_key_get(uint16_t addr);
+MESHX_EXTERN int32_t meshx_dev_key_add(uint16_t primary_addr, uint8_t element_num,
+                                       meshx_key_t dev_key);
+MESHX_EXTERN void meshx_dev_key_delete(meshx_key_t dev_key);
+MESHX_EXTERN void meshx_dev_key_delete_by_addr(uint16_t addr);
 
 
 MESHX_END_DECLS
