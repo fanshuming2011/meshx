@@ -405,6 +405,7 @@ static void meshx_prov_init(void)
     /* add keys */
     meshx_net_key_add(0, sample_net_key);
     meshx_app_key_add(0, 0, sample_app_key);
+    meshx_dev_key_set(sample_dev_key);
 }
 
 static void *meshx_thread(void *pargs)
@@ -458,13 +459,13 @@ static void *meshx_thread(void *pargs)
     //ctx.seq = 0x3129ab;
     ctx.iv_index = meshx_iv_index_get();
     ctx.pnet_key = meshx_net_key_get(0);
-    ctx.papp_key = &papp_key->app_key;
+    ctx.pdev_key = meshx_dev_key_get();
     ctx.aid = papp_key->aid;
-    ctx.akf = 1;
+    ctx.akf = 0;
     ctx.szmic = 0;
     ctx.seq_origin = 0x3129ab;
-    uint8_t upper_trans_pdu[] = {0xee, 0x9d, 0xdd, 0xfd, 0x21, 0x69, 0x32, 0x6d, 0x23, 0xf3, 0xaf, 0xdf, 0xcf, 0xdc, 0x18, 0xc5, 0x2f, 0xde, 0xf7, 0x72, 0xe0, 0xe1, 0x73, 0x08};
-    meshx_lower_transport_send(adv_net_if, upper_trans_pdu, sizeof(upper_trans_pdu), &ctx);
+    uint8_t access_pdu[] = {0x00, 0x56, 0x34, 0x12, 0x63, 0x96, 0x47, 0x71, 0x73, 0x4f, 0xbd, 0x76, 0xe3, 0xb4, 0x05, 0x19, 0xd1, 0xd9, 0x4a, 0x48};
+    meshx_upper_transport_send(adv_net_if, access_pdu, sizeof(access_pdu), &ctx);
     /*******************************************************/
 
     //meshx_bearer_rx_metadata_t rx_metadata;

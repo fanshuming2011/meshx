@@ -5,7 +5,8 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
-#define TRACE_MODULE "MESHX_UPPER_TRANSPORT"
+#define MESHX_TRACE_MODULE "MESHX_UPPER_TRANSPORT"
+#include <string.h>
 #include "meshx_trace.h"
 #include "meshx_upper_transport.h"
 #include "meshx_lower_transport.h"
@@ -33,10 +34,11 @@ static void meshx_upper_transport_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
         meshx_application_nonce_t *papp_nonce = (meshx_application_nonce_t *)nonce;
         papp_nonce->nonce_type = MESHX_NONCE_TYPE_APPLICAITON;
         papp_nonce->pad = 0;
+        /* TODO: only valid in segment access message, other message shall be 0 */
         papp_nonce->aszmic = pmsg_ctx->szmic;
-        papp_nonce->seq[0] = pmsg_ctx->seq >> 16;
-        papp_nonce->seq[1] = pmsg_ctx->seq >> 8;
-        papp_nonce->seq[2] = pmsg_ctx->seq;
+        papp_nonce->seq[0] = pmsg_ctx->seq_origin >> 16;
+        papp_nonce->seq[1] = pmsg_ctx->seq_origin >> 8;
+        papp_nonce->seq[2] = pmsg_ctx->seq_origin;
         papp_nonce->src = MESHX_HOST_TO_BE16(pmsg_ctx->src);
         papp_nonce->dst = MESHX_HOST_TO_BE16(pmsg_ctx->dst);
         papp_nonce->iv_index = MESHX_HOST_TO_BE32(pmsg_ctx->iv_index);
@@ -48,15 +50,16 @@ static void meshx_upper_transport_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
         meshx_device_nonce_t *pdev_nonce = (meshx_device_nonce_t *)nonce;
         pdev_nonce->nonce_type = MESHX_NONCE_TYPE_DEVICE;
         pdev_nonce->pad = 0;
+        /* TODO: only valid in segment access message, other message shall be 0 */
         pdev_nonce->aszmic = pmsg_ctx->szmic;
-        pdev_nonce->seq[0] = pmsg_ctx->seq >> 16;
-        pdev_nonce->seq[1] = pmsg_ctx->seq >> 8;
-        pdev_nonce->seq[2] = pmsg_ctx->seq;
+        pdev_nonce->seq[0] = pmsg_ctx->seq_origin >> 16;
+        pdev_nonce->seq[1] = pmsg_ctx->seq_origin >> 8;
+        pdev_nonce->seq[2] = pmsg_ctx->seq_origin;
         pdev_nonce->src = MESHX_HOST_TO_BE16(pmsg_ctx->src);
         pdev_nonce->dst = MESHX_HOST_TO_BE16(pmsg_ctx->dst);
         pdev_nonce->iv_index = MESHX_HOST_TO_BE32(pmsg_ctx->iv_index);
         MESHX_DEBUG("device nonce:");
-        MESHX_DUMP_DEBUG(&pdev_nonce, sizeof(meshx_device_nonce_t));
+        MESHX_DUMP_DEBUG(pdev_nonce, sizeof(meshx_device_nonce_t));
     }
 
     /* TODO: label uuid */
@@ -116,7 +119,10 @@ int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
             trans_mic_len += 4;
         }
 
+        /* TODO: use allocate data instead of stack data? */
         uint8_t pdu[MESHX_UPPER_TRANPORT_MAX_ACCESS_PDU_SIZE + 4];
+        memcpy(pdu, pdata, len);
+
         /* encrypt and authenticate access pdu */
         meshx_upper_transport_encrypt(pdu, len, pdu + len, trans_mic_len, pmsg_ctx);
 

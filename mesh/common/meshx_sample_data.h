@@ -25,6 +25,7 @@ MESHX_EXTERN const meshx_provision_data_t sample_prov_data;
 MESHX_EXTERN meshx_key_t sample_net_key;
 MESHX_EXTERN meshx_key_t sample_net_key1;
 MESHX_EXTERN meshx_key_t sample_app_key;
+MESHX_EXTERN meshx_key_t sample_dev_key;
 
 
 MESHX_END_DECLS
