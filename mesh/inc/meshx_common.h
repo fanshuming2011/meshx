@@ -85,7 +85,7 @@ typedef struct
     uint32_t seq : 24;
     uint32_t iv_index;
     uint32_t seq_origin : 24;
-    uint16_t force_seg : 1;
+    uint16_t seg : 1;
     uint16_t rsvd : 7;
     const meshx_network_key_t *pnet_key;
 

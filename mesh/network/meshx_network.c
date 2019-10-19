@@ -144,6 +144,9 @@ static int32_t meshx_network_decrypt(meshx_network_pdu_t *pnet_pdu, uint8_t tran
 
 int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdata, uint8_t len)
 {
+    MESHX_DEBUG("receive network data:");
+    MESHX_DUMP_DEBUG(pdata, len);
+
     if (NULL == network_if)
     {
         MESHX_ERROR("network interface is NULL");
@@ -240,6 +243,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
         /* message send to me */
         /* send data to lower transport lower */
         meshx_msg_ctx_t msg_ctx;
+        memset(&msg_ctx, 0, sizeof(meshx_msg_ctx_t));
         msg_ctx.ctl = net_pdu.net_metadata.ctl;
         msg_ctx.ttl = net_pdu.net_metadata.ttl;
         msg_ctx.src = src;

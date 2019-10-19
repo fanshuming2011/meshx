@@ -21,6 +21,7 @@
 #include "meshx_endianness.h"
 #include "meshx_seq.h"
 #include "meshx_iv_index.h"
+#include "meshx_upper_transport.h"
 
 /**
  *  NOTE: only one segment message can send to the same destination once a time,
@@ -641,8 +642,9 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
     if (pmsg_tx_ctx->ctl)
     {
         /* control message */
-        if (pmsg_tx_ctx->force_seg || (pdu_len > MESHX_LOWER_TRANS_UNSEG_CTL_MAX_PDU_SIZE))
+        if (pmsg_tx_ctx->seg || (pdu_len > MESHX_LOWER_TRANS_UNSEG_CTL_MAX_PDU_SIZE))
         {
+            pmsg_tx_ctx->seg = 1;
             /* segment message */
             ret = meshx_lower_trans_process_seg_msg(network_if, pupper_trans_pdu, pdu_len,
                                                     MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE, pmsg_tx_ctx);
@@ -661,8 +663,9 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
     else
     {
         /* access message */
-        if (pmsg_tx_ctx->force_seg || (pdu_len > MESHX_LOWER_TRANS_UNSEG_ACCESS_MAX_PDU_SIZE))
+        if (pmsg_tx_ctx->seg || (pdu_len > MESHX_LOWER_TRANS_UNSEG_ACCESS_MAX_PDU_SIZE))
         {
+            pmsg_tx_ctx->seg = 1;
             /* segment message */
             ret = meshx_lower_trans_process_seg_msg(network_if, pupper_trans_pdu, pdu_len,
                                                     MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE, pmsg_tx_ctx);
@@ -705,7 +708,7 @@ static int32_t meshx_lower_trans_seg_ack(meshx_network_if_t network_if, uint32_t
     memset(&msg_tx_ctx, 0, sizeof(msg_tx_ctx));
     msg_tx_ctx.src = pmsg_rx_ctx->dst;
     msg_tx_ctx.dst = pmsg_rx_ctx->src;
-    msg_tx_ctx.force_seg = 0;
+    msg_tx_ctx.seg = 0;
     msg_tx_ctx.ttl = meshx_node_params.param.default_ttl;
     msg_tx_ctx.ctl = 1;
     msg_tx_ctx.iv_index = meshx_iv_index_get();
@@ -985,6 +988,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
 
         /* store segment message */
         pmsg_rx_ctx->seq_origin = MESHX_LOWER_TRANS_SEQ_ORIGIN(seg_misc.seq_zero, pmsg_rx_ctx->seq);
+        pmsg_rx_ctx->opcode = pseg_ctl_msg->metadata.opcode;
         sego = seg_misc.sego;
         segn = seg_misc.segn;
         max_pdu_len = (seg_misc.segn + 1) * MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE;
@@ -998,6 +1002,9 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
 
         /* store segment message */
         pmsg_rx_ctx->seq_origin = MESHX_LOWER_TRANS_SEQ_ORIGIN(seg_misc.seq_zero, pmsg_rx_ctx->seq);
+        pmsg_rx_ctx->akf = pseg_access_msg->metadata.akf;
+        pmsg_rx_ctx->aid = pseg_access_msg->metadata.aid;
+        pmsg_rx_ctx->szmic = seg_misc.szmic;
         sego = seg_misc.sego;
         segn = seg_misc.segn;
         max_pdu_len = (seg_misc.segn + 1) * MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
@@ -1009,6 +1016,37 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
     {
         meshx_lower_trans_seg_ack(network_if, 0, pmsg_rx_ctx);
         return -MESHX_ERR_BUSY;
+    }
+
+    /* check parameters */
+    if (pmsg_rx_ctx->ctl)
+    {
+        if (ptask->msg_rx_ctx.opcode != pmsg_rx_ctx->opcode)
+        {
+            MESHX_ERROR("received opcode(%d) mismatch with previous(%d)", pmsg_rx_ctx->opcode,
+                        ptask->msg_rx_ctx.opcode);
+            /* ack can't receive */
+            meshx_lower_trans_seg_ack(network_if, 0, pmsg_rx_ctx);
+            /* release rx task */
+            meshx_lower_trans_rx_task_release(ptask);
+            return -MESHX_ERR_INVAL;
+        }
+    }
+    else
+    {
+        if ((ptask->msg_rx_ctx.akf != pmsg_rx_ctx->akf) ||
+            (ptask->msg_rx_ctx.aid != pmsg_rx_ctx->aid) ||
+            (ptask->msg_rx_ctx.szmic != pmsg_rx_ctx->szmic))
+        {
+            MESHX_ERROR("received akf-aid-szmic(%d-%d-%d) mismatch with previous(%d-%d-%d)", pmsg_rx_ctx->akf,
+                        pmsg_rx_ctx->aid, pmsg_rx_ctx->szmic, ptask->msg_rx_ctx.akf, ptask->msg_rx_ctx.aid,
+                        ptask->msg_rx_ctx.szmic);
+            /* ack can't receive */
+            meshx_lower_trans_seg_ack(network_if, 0, pmsg_rx_ctx);
+            /* release rx task */
+            meshx_lower_trans_rx_task_release(ptask);
+            return -MESHX_ERR_INVAL;
+        }
     }
 
     if (ptask->max_pdu_len != max_pdu_len)
@@ -1064,9 +1102,9 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
         ptask->ack_timer = NULL;
         meshx_timer_restart(ptask->incomplete_timer, MESHX_LOWER_TRANS_STORE_TIMEOUT);
 
-        /* TODO: notify upper transport layer */
-        MESHX_DEBUG("receive upper transport pdu: type %d", pmsg_rx_ctx->ctl);
-        MESHX_DUMP_DEBUG(ptask->ppdu, ptask->pdu_len);
+        /* notify upper transport layer */
+        pmsg_rx_ctx->seg = 1;
+        meshx_upper_transport_receive(network_if, ptask->ppdu, ptask->pdu_len, pmsg_rx_ctx);
     }
     else
     {
@@ -1106,9 +1144,9 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
             ptask->ack_timer = NULL;
             meshx_timer_restart(ptask->incomplete_timer, MESHX_LOWER_TRANS_STORE_TIMEOUT);
 
-            /* TODO: notify upper transport layer */
-            MESHX_DEBUG("receive upper transport pdu: type %d", pmsg_rx_ctx->ctl);
-            MESHX_DUMP_DEBUG(ptask->ppdu, ptask->pdu_len);
+            /* notify upper transport layer */
+            pmsg_rx_ctx->seg = 1;
+            meshx_upper_transport_receive(network_if, ptask->ppdu, ptask->pdu_len, pmsg_rx_ctx);
         }
         else
         {
@@ -1156,9 +1194,10 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
                 const meshx_lower_trans_unseg_ctl_pdu_t *ppdu = (const meshx_lower_trans_unseg_ctl_pdu_t *)pdata;
                 uint8_t pdu_len = len - sizeof(meshx_lower_trans_ctl_pdu_metadata_t);
 
-                /* TODO: notify upper transport layer and fill prx_msg_ctx */
-                MESHX_DEBUG("receive upper transport pdu: type %d", pmsg_ctx->ctl);
-                MESHX_DUMP_DEBUG(ppdu->pdu, pdu_len);
+                /* notify upper transport layer and fill prx_msg_ctx */
+                pmsg_ctx->seg = 0;
+                pmsg_ctx->opcode = pmetadata->opcode;
+                meshx_upper_transport_receive(network_if, ppdu->pdu, pdu_len, pmsg_ctx);
             }
         }
     }
@@ -1178,9 +1217,12 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
                                                                pdata;
             uint8_t pdu_len = len - sizeof(meshx_lower_trans_access_pdu_metadata_t);
 
-            /* TODO: notify upper transport layer and fill prx_msg_ctx */
-            MESHX_DEBUG("receive upper transport pdu: type %d", pmsg_ctx->ctl);
-            MESHX_DUMP_DEBUG(ppdu->pdu, pdu_len);
+            /* notify upper transport layer and fill prx_msg_ctx */
+            pmsg_ctx->akf = pmetadata->akf;
+            pmsg_ctx->aid = pmetadata->aid;
+            pmsg_ctx->seg = 0;
+            pmsg_ctx->szmic = 0;
+            meshx_upper_transport_receive(network_if, ppdu->pdu, pdu_len, pmsg_ctx);
         }
     }
 
