@@ -18,6 +18,7 @@ int32_t meshx_init(void)
     meshx_nmc_init();
     meshx_app_key_init();
     meshx_net_key_init();
+    meshx_dev_key_init();
 
     meshx_bearer_init();
     if (meshx_node_params.config.adv_bearer_enable)

@@ -346,6 +346,12 @@ void meshx_net_key_clear(void)
 {
 }
 
+int32_t meshx_dev_key_init(void)
+{
+    meshx_list_init_head(&meshx_dev_keys);
+    return MESHX_SUCCESS;
+}
+
 const meshx_device_key_t *meshx_dev_key_get(uint16_t addr)
 {
     meshx_list_t *pnode;
@@ -354,7 +360,7 @@ const meshx_device_key_t *meshx_dev_key_get(uint16_t addr)
     {
         pdev_key = MESHX_CONTAINER_OF(pnode, meshx_dev_key_info_t, node);
         if ((addr >= pdev_key->dev_key.primary_addr) &&
-            (addr <= (pdev_key->dev_key.primary_addr + pdev_key->dev_key.element_num)))
+            (addr <= (pdev_key->dev_key.primary_addr + pdev_key->dev_key.element_num - 1)))
         {
             return &pdev_key->dev_key;
         }
@@ -365,6 +371,48 @@ const meshx_device_key_t *meshx_dev_key_get(uint16_t addr)
 
 int32_t meshx_dev_key_add(uint16_t primary_addr, uint8_t element_num, meshx_key_t dev_key)
 {
+    if ((MESHX_ADDRESS_UNASSIGNED == primary_addr) || (0 == element_num))
+    {
+        MESHX_ERROR("invalid parameters: primary addr 0x%04x, element num %d", primary_addr, element_num);
+        return -MESHX_ERR_INVAL;
+    }
+
+    if (meshx_list_length(&meshx_dev_keys) >= meshx_node_params.config.dev_key_num)
+    {
+        MESHX_ERROR("dev key num reaches maximum number: %d", meshx_node_params.config.dev_key_num);
+        return -MESHX_ERR_RESOURCE;
+    }
+
+    meshx_list_t *pnode;
+    meshx_dev_key_info_t *pdev_key;
+    uint16_t addr_start, addr_end;
+    meshx_list_foreach(pnode, &meshx_dev_keys)
+    {
+        pdev_key = MESHX_CONTAINER_OF(pnode, meshx_dev_key_info_t, node);
+        addr_start = pdev_key->dev_key.primary_addr;
+        addr_end = pdev_key->dev_key.primary_addr + pdev_key->dev_key.element_num - 1;
+        if (((primary_addr >= addr_start) && (primary_addr <= addr_end)) ||
+            (((primary_addr + element_num - 1) >= addr_start) &&
+             ((primary_addr + element_num - 1) <= addr_end)))
+        {
+            MESHX_ERROR("dev key addr range overlap with existed addr: add(0x%04x-%d), exist(0x%04x-%d)",
+                        primary_addr, element_num, addr_start, pdev_key->dev_key.element_num);
+            return -MESHX_ERR_ALREADY;
+        }
+    }
+
+    pdev_key = meshx_malloc(sizeof(meshx_dev_key_info_t));
+    if (NULL == pdev_key)
+    {
+        MESHX_ERROR("can't add dev key: out of memory");
+        return -MESHX_ERR_MEM;
+    }
+
+    pdev_key->dev_key.primary_addr = primary_addr;
+    pdev_key->dev_key.element_num = element_num;
+    memcpy(pdev_key->dev_key.dev_key, dev_key, sizeof(meshx_key_t));
+    meshx_list_append(&meshx_dev_keys, &pdev_key->node);
+
     return MESHX_SUCCESS;
 }
 

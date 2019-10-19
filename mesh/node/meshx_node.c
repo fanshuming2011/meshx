@@ -23,6 +23,7 @@ static meshx_node_config_t node_default_config =
     .gatt_bearer_enable = TRUE,
     .net_key_num = 2,
     .app_key_num = 2,
+    .dev_key_num = 10,
     .nmc_size = 64,
     .rpl_size = 16,
     .gap_task_num = 20,

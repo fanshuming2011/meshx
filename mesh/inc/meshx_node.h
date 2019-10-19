@@ -21,6 +21,7 @@ typedef struct
     bool gatt_bearer_enable;
     uint16_t net_key_num;
     uint16_t app_key_num;
+    uint16_t dev_key_num;
     uint16_t nmc_size;
     uint16_t rpl_size;
     uint8_t gap_task_num;
