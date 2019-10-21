@@ -40,9 +40,9 @@
 #define MESHX_LOWER_TRANS_TX_RETRY_BASE                         200    /* TODO: can configure */
 #define MESHX_LOWER_TRANS_TX_RETRY_TTL_FACTOR                   50 /* 50 * ttl */ /* TODO: can configure */
 
-#define MESHX_LOWER_TRANS_IS_SEQ_ORIGIN_VALID(seq, seq_origin) (((seq) >= (seq_origin)) && (((seq) - (seq_origin)) < 0x2000))
-#define MESHX_LOWER_TRANS_SEQ_ZERO(seq)                        ((seq) & 0x1fff)
-#define MESHX_LOWER_TRANS_SEQ_ORIGIN(seq_zero, seq) \
+#define MESHX_LOWER_TRANS_IS_SEQ_AUTH_VALID(seq, seq_auth)      (((seq) >= (seq_auth)) && (((seq) - (seq_auth)) < 0x2000))
+#define MESHX_LOWER_TRANS_SEQ_ZERO(seq)                         ((seq) & 0x1fff)
+#define MESHX_LOWER_TRANS_SEQ_AUTH(seq_zero, seq) \
     ((seq_zero) + (((seq) & ~0x1fff) - ((seq_zero) > ((seq) & 0x1fff) ? 0x2000 : 0)))
 
 
@@ -296,10 +296,10 @@ static int32_t meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if,
         pmsg_ctx->seq = meshx_seq_use(pmsg_ctx->src - meshx_node_params.param.node_addr);
 
         /* check sequence */
-        if (!MESHX_LOWER_TRANS_IS_SEQ_ORIGIN_VALID(pmsg_ctx->seq, pmsg_ctx->seq_origin))
+        if (!MESHX_LOWER_TRANS_IS_SEQ_AUTH_VALID(pmsg_ctx->seq, pmsg_ctx->seq_auth))
         {
-            MESHX_ERROR("seq is 8192 higher than seq origin: seq 0x%08x, seq origin 0x%08x", pmsg_ctx->seq,
-                        pmsg_ctx->seq_origin);
+            MESHX_ERROR("seq is 8192 higher than seq auth: seq 0x%08x, seq auth 0x%08x", pmsg_ctx->seq,
+                        pmsg_ctx->seq_auth);
             return -MESHX_ERR_INVAL;
         }
 
@@ -310,7 +310,7 @@ static int32_t meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if,
             seg_len = (seg_num == (i + 1)) ? (pdu_len - data_offset) :
                       MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE;
 
-            pctl_pdu->seg_misc.seq_zero = MESHX_LOWER_TRANS_SEQ_ZERO(pmsg_ctx->seq_origin);
+            pctl_pdu->seg_misc.seq_zero = MESHX_LOWER_TRANS_SEQ_ZERO(pmsg_ctx->seq_auth);
             pctl_pdu->seg_misc.sego = i;
             pctl_pdu->seg_misc.segn = seg_num - 1;
             meshx_swap(pctl_pdu->seg_misc.seg_misc, pctl_pdu->seg_misc.seg_misc + 2);
@@ -324,7 +324,7 @@ static int32_t meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if,
                       MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
 
             paccess_pdu->seg_misc.szmic = pmsg_ctx->szmic;
-            paccess_pdu->seg_misc.seq_zero = MESHX_LOWER_TRANS_SEQ_ZERO(pmsg_ctx->seq_origin);
+            paccess_pdu->seg_misc.seq_zero = MESHX_LOWER_TRANS_SEQ_ZERO(pmsg_ctx->seq_auth);
             paccess_pdu->seg_misc.sego = i;
             paccess_pdu->seg_misc.segn = seg_num - 1;
             meshx_swap(paccess_pdu->seg_misc.seg_misc, paccess_pdu->seg_misc.seg_misc + 2);
@@ -412,13 +412,13 @@ static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *pta
         {
             /* TODO: notify upper transport send failed, no ack from remote or some segment can't be received? */
             MESHX_ERROR("segment message send failed: timeout, seq zero(0x%04x)",
-                        MESHX_LOWER_TRANS_SEQ_ZERO(ptask->msg_tx_ctx.seq_origin));
+                        MESHX_LOWER_TRANS_SEQ_ZERO(ptask->msg_tx_ctx.seq_auth));
         }
         else
         {
             /* TODO: notify upper transport send finished? */
             MESHX_INFO("segment message send finish: seq zero(0x%04x)",
-                       MESHX_LOWER_TRANS_SEQ_ZERO(ptask->msg_tx_ctx.seq_origin));
+                       MESHX_LOWER_TRANS_SEQ_ZERO(ptask->msg_tx_ctx.seq_auth));
         }
 
         meshx_lower_trans_tx_task_finish(ptask);
@@ -430,7 +430,7 @@ static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *pta
                                        ptask->block_ack,
                                        &ptask->msg_tx_ctx);
 
-        if (!MESHX_LOWER_TRANS_IS_SEQ_ORIGIN_VALID(ptask->msg_tx_ctx.seq, ptask->msg_tx_ctx.seq_origin))
+        if (!MESHX_LOWER_TRANS_IS_SEQ_AUTH_VALID(ptask->msg_tx_ctx.seq, ptask->msg_tx_ctx.seq_auth))
         {
             /* TODO: notify upper transport send failed, seq is 8192 higher than seq origin? */
             meshx_lower_trans_tx_task_finish(ptask);
@@ -513,7 +513,7 @@ static int32_t meshx_lower_trans_tx_task_try(meshx_lower_trans_tx_task_t *ptx_ta
         {
             /* can't send segment message to same dst at a time */
             MESHX_INFO("pending lower trans task: 0x%08x", ptx_task);
-            meshx_list_append(&meshx_lower_trans_tx_task_pending, pnode);
+            meshx_list_append(&meshx_lower_trans_tx_task_pending, &ptx_task->node);
             return MESHX_SUCCESS;
         }
     }
@@ -565,7 +565,7 @@ static bool meshx_lower_trans_is_tx_task_exist(const meshx_msg_ctx_t *pmsg_ctx)
     {
         pcur_task = MESHX_CONTAINER_OF(pnode, meshx_lower_trans_tx_task_t, node);
         if ((pcur_task->msg_tx_ctx.dst == pmsg_ctx->dst) &&
-            (pcur_task->msg_tx_ctx.seq_origin == pmsg_ctx->seq_origin))
+            (pcur_task->msg_tx_ctx.seq_auth == pmsg_ctx->seq_auth))
         {
             return TRUE;
         }
@@ -591,18 +591,9 @@ static int32_t meshx_lower_trans_process_seg_msg(meshx_network_if_t network_if,
     if (meshx_lower_trans_is_tx_task_exist(pmsg_tx_ctx))
     {
         MESHX_ERROR("message already sending: dst 0x%04x, seq zero 0x%08x", pmsg_tx_ctx->dst,
-                    MESHX_LOWER_TRANS_SEQ_ZERO(pmsg_tx_ctx->seq_origin));
+                    MESHX_LOWER_TRANS_SEQ_ZERO(pmsg_tx_ctx->seq_auth));
         return -MESHX_ERR_ALREADY;
     }
-
-#if 0
-    if (MESHX_LOWER_TRANS_IS_SEQ_ORIGIN_VALID(pmsg_ctx->seq, pmsg_ctx->seq_origin))
-    {
-        MESHX_ERROR("seq is 8192 higher than seq origin: seq 0x%08x, seq origin 0x%08x", pmsg_ctx->seq,
-                    pmsg_ctx->seq_origin);
-        return -MESHX_ERR_INVAL;
-    }
-#endif
 
     /* store segment message for retransmit */
     meshx_lower_trans_tx_task_t *ptask = meshx_lower_trans_tx_task_request(pdu_len);
@@ -655,7 +646,6 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
             pdu.metadata.opcode = pmsg_tx_ctx->opcode;
             pdu.metadata.seg = 0;
             memcpy(pdu.pdu, pupper_trans_pdu, pdu_len);
-            pmsg_tx_ctx->seq = meshx_seq_use(pmsg_tx_ctx->src - meshx_node_params.param.node_addr);
             ret = meshx_network_send(network_if, (const uint8_t *)&pdu,
                                      sizeof(meshx_lower_trans_ctl_pdu_metadata_t) + pdu_len, pmsg_tx_ctx);
         }
@@ -685,7 +675,6 @@ int32_t meshx_lower_transport_send(meshx_network_if_t network_if, const uint8_t 
             pdu.metadata.akf = pmsg_tx_ctx->akf;
             pdu.metadata.seg = 0;
             memcpy(pdu.pdu, pupper_trans_pdu, pdu_len);
-            pmsg_tx_ctx->seq = meshx_seq_use(pmsg_tx_ctx->src - meshx_node_params.param.node_addr);
             ret = meshx_network_send(network_if, (const uint8_t *)&pdu,
                                      sizeof(meshx_lower_trans_access_pdu_metadata_t) + pdu_len, pmsg_tx_ctx);
         }
@@ -699,7 +688,7 @@ static int32_t meshx_lower_trans_seg_ack(meshx_network_if_t network_if, uint32_t
 {
     meshx_lower_trans_seg_ack_pdu_t seg_ack;
     seg_ack.rfu = 0;
-    seg_ack.seq_zero = MESHX_LOWER_TRANS_SEQ_ZERO(pmsg_rx_ctx->seq_origin);
+    seg_ack.seq_zero = MESHX_LOWER_TRANS_SEQ_ZERO(pmsg_rx_ctx->seq_auth);
     seg_ack.obo = 0;
     seg_ack.ack_misc = (seg_ack.ack_misc >> 8) | (seg_ack.ack_misc << 8);
     seg_ack.block_ack = MESHX_HOST_TO_BE32(block_ack);
@@ -714,6 +703,7 @@ static int32_t meshx_lower_trans_seg_ack(meshx_network_if_t network_if, uint32_t
     msg_tx_ctx.iv_index = meshx_iv_index_get();
     msg_tx_ctx.pnet_key = pmsg_rx_ctx->pnet_key;
     msg_tx_ctx.opcode = 0;
+    msg_tx_ctx.seq = meshx_seq_use(msg_tx_ctx.src - meshx_node_params.param.node_addr);
 
     MESHX_DEBUG("lower transport block ack: 0x%08x", block_ack);
     return meshx_lower_transport_send(network_if, (const uint8_t *)&seg_ack,
@@ -797,9 +787,9 @@ static meshx_lower_trans_rx_task_t *meshx_lower_trans_rx_task_request(uint16_t m
         prx_task = MESHX_CONTAINER_OF(pnode, meshx_lower_trans_rx_task_t, node);
         if (prx_task->msg_rx_ctx.src == pmsg_rx_ctx->src)
         {
-            uint64_t seq_auth_rx = meshx_lower_trans_seq_auth(pmsg_rx_ctx->iv_index, pmsg_rx_ctx->seq_origin);
+            uint64_t seq_auth_rx = meshx_lower_trans_seq_auth(pmsg_rx_ctx->iv_index, pmsg_rx_ctx->seq_auth);
             uint64_t seq_auth_store = meshx_lower_trans_seq_auth(prx_task->msg_rx_ctx.iv_index,
-                                                                 prx_task->msg_rx_ctx.seq_origin);
+                                                                 prx_task->msg_rx_ctx.seq_auth);
             if (seq_auth_rx > seq_auth_store)
             {
                 if (NULL != prx_task->ppdu)
@@ -810,8 +800,8 @@ static meshx_lower_trans_rx_task_t *meshx_lower_trans_rx_task_request(uint16_t m
                 if (0 != prx_task->not_received_seg)
                 {
                     /* receive new seg message, cancel old message */
-                    MESHX_WARN("receive new seg message, cancel old: seq origin 0x%08x",
-                               prx_task->msg_rx_ctx.seq_origin);
+                    MESHX_WARN("receive new seg message, cancel old: seq zero 0x%04x",
+                               MESHX_LOWER_TRANS_SEQ_ZERO(prx_task->msg_rx_ctx.seq_auth));
                 }
                 meshx_list_remove(&prx_task->node);
                 meshx_list_append(&meshx_lower_trans_rx_task_idle, &prx_task->node);
@@ -825,8 +815,8 @@ static meshx_lower_trans_rx_task_t *meshx_lower_trans_rx_task_request(uint16_t m
             else
             {
                 /* receive old seg message, abandom */
-                MESHX_INFO("receive old segment: iv index 0x%08x, seq origin 0x%08x", pmsg_rx_ctx->iv_index,
-                           pmsg_rx_ctx->seq_origin);
+                MESHX_INFO("receive old segment: iv index 0x%08x, seq zero 0x%04x", pmsg_rx_ctx->iv_index,
+                           MESHX_LOWER_TRANS_SEQ_ZERO(pmsg_rx_ctx->seq_auth));
                 return NULL;
             }
         }
@@ -906,7 +896,7 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
     meshx_list_foreach(pnode, &meshx_lower_trans_tx_task_active)
     {
         pcur_task = MESHX_CONTAINER_OF(pnode, meshx_lower_trans_tx_task_t, node);
-        if (MESHX_LOWER_TRANS_SEQ_ZERO(pcur_task->msg_tx_ctx.seq_origin) == seg_ack.seq_zero)
+        if (MESHX_LOWER_TRANS_SEQ_ZERO(pcur_task->msg_tx_ctx.seq_auth) == seg_ack.seq_zero)
         {
             break;
         }
@@ -919,7 +909,7 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
         {
             /* remote received all segments */
             MESHX_INFO("remote receive all segments, seq zero 0x%04x",
-                       MESHX_LOWER_TRANS_SEQ_ZERO(pcur_task->msg_tx_ctx.seq_origin));
+                       MESHX_LOWER_TRANS_SEQ_ZERO(pcur_task->msg_tx_ctx.seq_auth));
             meshx_lower_trans_tx_task_finish(pcur_task);
             /* TODO: notify upper transport send success? */
         }
@@ -940,7 +930,7 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
                     if (MESHX_ADDRESS_IS_UNICAST(pcur_task->msg_tx_ctx.dst))
                     {
                         MESHX_ERROR("segment message send failed: seq zero 0x%04x",
-                                    MESHX_LOWER_TRANS_SEQ_ZERO(pcur_task->msg_tx_ctx.seq_origin));
+                                    MESHX_LOWER_TRANS_SEQ_ZERO(pcur_task->msg_tx_ctx.seq_auth));
                         /* TODO: notify upper transport send failed, some segment can't be received? */
                     }
                 }
@@ -950,8 +940,8 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
                     meshx_lower_trans_send_seg_msg(pcur_task->network_if, pcur_task->ppdu, pcur_task->pdu_len,
                                                    pcur_task->block_ack,
                                                    &pcur_task->msg_tx_ctx);
-                    if (!MESHX_LOWER_TRANS_IS_SEQ_ORIGIN_VALID(pcur_task->msg_tx_ctx.seq,
-                                                               pcur_task->msg_tx_ctx.seq_origin))
+                    if (!MESHX_LOWER_TRANS_IS_SEQ_AUTH_VALID(pcur_task->msg_tx_ctx.seq,
+                                                             pcur_task->msg_tx_ctx.seq_auth))
                     {
                         meshx_lower_trans_tx_task_finish(pcur_task);
                         /* TODO: notify upper transport send failed, seq is 8192 higher than seq origin? */
@@ -968,7 +958,7 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
     else
     {
         MESHX_WARN("receive invalid segment ack: seq zero 0x%04x",
-                   MESHX_LOWER_TRANS_SEQ_ZERO(pcur_task->msg_tx_ctx.seq_origin));
+                   MESHX_LOWER_TRANS_SEQ_ZERO(pcur_task->msg_tx_ctx.seq_auth));
     }
 }
 
@@ -987,7 +977,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
         meshx_swap(seg_misc.seg_misc, seg_misc.seg_misc + 2);
 
         /* store segment message */
-        pmsg_rx_ctx->seq_origin = MESHX_LOWER_TRANS_SEQ_ORIGIN(seg_misc.seq_zero, pmsg_rx_ctx->seq);
+        pmsg_rx_ctx->seq_auth = MESHX_LOWER_TRANS_SEQ_AUTH(seg_misc.seq_zero, pmsg_rx_ctx->seq);
         pmsg_rx_ctx->opcode = pseg_ctl_msg->metadata.opcode;
         sego = seg_misc.sego;
         segn = seg_misc.segn;
@@ -1001,7 +991,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
         meshx_swap(seg_misc.seg_misc, seg_misc.seg_misc + 2);
 
         /* store segment message */
-        pmsg_rx_ctx->seq_origin = MESHX_LOWER_TRANS_SEQ_ORIGIN(seg_misc.seq_zero, pmsg_rx_ctx->seq);
+        pmsg_rx_ctx->seq_auth = MESHX_LOWER_TRANS_SEQ_AUTH(seg_misc.seq_zero, pmsg_rx_ctx->seq);
         pmsg_rx_ctx->akf = pseg_access_msg->metadata.akf;
         pmsg_rx_ctx->aid = pseg_access_msg->metadata.aid;
         pmsg_rx_ctx->szmic = seg_misc.szmic;
@@ -1164,12 +1154,12 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
 }
 
 int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, uint8_t *pdata,
-                                      uint8_t len, meshx_msg_ctx_t *pmsg_ctx)
+                                      uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     MESHX_DEBUG("receive lower transport data:");
     MESHX_DUMP_DEBUG(pdata, len);
     int32_t ret = MESHX_SUCCESS;
-    if (pmsg_ctx->ctl)
+    if (pmsg_rx_ctx->ctl)
     {
         /* control message */
         meshx_lower_trans_ctl_pdu_metadata_t *pmetadata = (meshx_lower_trans_ctl_pdu_metadata_t *)pdata;
@@ -1186,7 +1176,7 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, uint8_t *pd
             /* actual control message */
             if (pmetadata->seg)
             {
-                ret = meshx_lower_trans_receive_seg_msg(network_if, pdata, len, pmsg_ctx);
+                ret = meshx_lower_trans_receive_seg_msg(network_if, pdata, len, pmsg_rx_ctx);
             }
             else
             {
@@ -1195,9 +1185,10 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, uint8_t *pd
                 uint8_t pdu_len = len - sizeof(meshx_lower_trans_ctl_pdu_metadata_t);
 
                 /* notify upper transport layer and fill prx_msg_ctx */
-                pmsg_ctx->seg = 0;
-                pmsg_ctx->opcode = pmetadata->opcode;
-                meshx_upper_transport_receive(network_if, ppdu->pdu, pdu_len, pmsg_ctx);
+                pmsg_rx_ctx->seg = 0;
+                pmsg_rx_ctx->opcode = pmetadata->opcode;
+                pmsg_rx_ctx->seq_auth = pmsg_rx_ctx->seq;
+                meshx_upper_transport_receive(network_if, ppdu->pdu, pdu_len, pmsg_rx_ctx);
             }
         }
     }
@@ -1208,7 +1199,7 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, uint8_t *pd
                                                              pdata;
         if (pmetadata->seg)
         {
-            ret = meshx_lower_trans_receive_seg_msg(network_if, pdata, len, pmsg_ctx);
+            ret = meshx_lower_trans_receive_seg_msg(network_if, pdata, len, pmsg_rx_ctx);
         }
         else
         {
@@ -1217,11 +1208,12 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, uint8_t *pd
             uint8_t pdu_len = len - sizeof(meshx_lower_trans_access_pdu_metadata_t);
 
             /* notify upper transport layer and fill prx_msg_ctx */
-            pmsg_ctx->akf = pmetadata->akf;
-            pmsg_ctx->aid = pmetadata->aid;
-            pmsg_ctx->seg = 0;
-            pmsg_ctx->szmic = 0;
-            meshx_upper_transport_receive(network_if, ppdu->pdu, pdu_len, pmsg_ctx);
+            pmsg_rx_ctx->akf = pmetadata->akf;
+            pmsg_rx_ctx->aid = pmetadata->aid;
+            pmsg_rx_ctx->seg = 0;
+            pmsg_rx_ctx->szmic = 0;
+            pmsg_rx_ctx->seq_auth = pmsg_rx_ctx->seq;
+            meshx_upper_transport_receive(network_if, ppdu->pdu, pdu_len, pmsg_rx_ctx);
         }
     }
 

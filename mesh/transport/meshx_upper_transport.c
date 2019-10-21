@@ -17,6 +17,7 @@
 #include "meshx_node_internal.h"
 #include "meshx_access.h"
 #include "meshx_mem.h"
+#include "meshx_seq.h"
 
 #define MESHX_UNSEG_ACCESS_MAX_PDU_SIZE                    15
 #define MESHX_MAX_CTL_PDU_SIZE                             256
@@ -36,11 +37,10 @@ static void meshx_upper_transport_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
         meshx_application_nonce_t *papp_nonce = (meshx_application_nonce_t *)nonce;
         papp_nonce->nonce_type = MESHX_NONCE_TYPE_APPLICAITON;
         papp_nonce->pad = 0;
-        /* TODO: only valid in segment access message, other message shall be 0 */
         papp_nonce->aszmic = pmsg_tx_ctx->szmic;
-        papp_nonce->seq[0] = pmsg_tx_ctx->seq_origin >> 16;
-        papp_nonce->seq[1] = pmsg_tx_ctx->seq_origin >> 8;
-        papp_nonce->seq[2] = pmsg_tx_ctx->seq_origin;
+        papp_nonce->seq[0] = pmsg_tx_ctx->seq_auth >> 16;
+        papp_nonce->seq[1] = pmsg_tx_ctx->seq_auth >> 8;
+        papp_nonce->seq[2] = pmsg_tx_ctx->seq_auth;
         papp_nonce->src = MESHX_HOST_TO_BE16(pmsg_tx_ctx->src);
         papp_nonce->dst = MESHX_HOST_TO_BE16(pmsg_tx_ctx->dst);
         papp_nonce->iv_index = MESHX_HOST_TO_BE32(pmsg_tx_ctx->iv_index);
@@ -52,11 +52,10 @@ static void meshx_upper_transport_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
         meshx_device_nonce_t *pdev_nonce = (meshx_device_nonce_t *)nonce;
         pdev_nonce->nonce_type = MESHX_NONCE_TYPE_DEVICE;
         pdev_nonce->pad = 0;
-        /* TODO: only valid in segment access message, other message shall be 0 */
         pdev_nonce->aszmic = pmsg_tx_ctx->szmic;
-        pdev_nonce->seq[0] = pmsg_tx_ctx->seq_origin >> 16;
-        pdev_nonce->seq[1] = pmsg_tx_ctx->seq_origin >> 8;
-        pdev_nonce->seq[2] = pmsg_tx_ctx->seq_origin;
+        pdev_nonce->seq[0] = pmsg_tx_ctx->seq_auth >> 16;
+        pdev_nonce->seq[1] = pmsg_tx_ctx->seq_auth >> 8;
+        pdev_nonce->seq[2] = pmsg_tx_ctx->seq_auth;
         pdev_nonce->src = MESHX_HOST_TO_BE16(pmsg_tx_ctx->src);
         pdev_nonce->dst = MESHX_HOST_TO_BE16(pmsg_tx_ctx->dst);
         pdev_nonce->iv_index = MESHX_HOST_TO_BE32(pmsg_tx_ctx->iv_index);
@@ -92,9 +91,9 @@ static int32_t meshx_upper_transport_decrypt(uint8_t *paccess_pdu, uint8_t pdu_l
         papp_nonce->pad = 0;
         /* TODO: only valid in segment access message, other message shall be 0 */
         papp_nonce->aszmic = pmsg_rx_ctx->szmic;
-        papp_nonce->seq[0] = pmsg_rx_ctx->seq_origin >> 16;
-        papp_nonce->seq[1] = pmsg_rx_ctx->seq_origin >> 8;
-        papp_nonce->seq[2] = pmsg_rx_ctx->seq_origin;
+        papp_nonce->seq[0] = pmsg_rx_ctx->seq_auth >> 16;
+        papp_nonce->seq[1] = pmsg_rx_ctx->seq_auth >> 8;
+        papp_nonce->seq[2] = pmsg_rx_ctx->seq_auth;
         papp_nonce->src = MESHX_HOST_TO_BE16(pmsg_rx_ctx->src);
         papp_nonce->dst = MESHX_HOST_TO_BE16(pmsg_rx_ctx->dst);
         papp_nonce->iv_index = MESHX_HOST_TO_BE32(pmsg_rx_ctx->iv_index);
@@ -143,9 +142,9 @@ static int32_t meshx_upper_transport_decrypt(uint8_t *paccess_pdu, uint8_t pdu_l
         pdev_nonce->pad = 0;
         /* TODO: only valid in segment access message, other message shall be 0 */
         pdev_nonce->aszmic = pmsg_rx_ctx->szmic;
-        pdev_nonce->seq[0] = pmsg_rx_ctx->seq_origin >> 16;
-        pdev_nonce->seq[1] = pmsg_rx_ctx->seq_origin >> 8;
-        pdev_nonce->seq[2] = pmsg_rx_ctx->seq_origin;
+        pdev_nonce->seq[0] = pmsg_rx_ctx->seq_auth >> 16;
+        pdev_nonce->seq[1] = pmsg_rx_ctx->seq_auth >> 8;
+        pdev_nonce->seq[2] = pmsg_rx_ctx->seq_auth;
         pdev_nonce->src = MESHX_HOST_TO_BE16(pmsg_rx_ctx->src);
         pdev_nonce->dst = MESHX_HOST_TO_BE16(pmsg_rx_ctx->dst);
         pdev_nonce->iv_index = MESHX_HOST_TO_BE32(pmsg_rx_ctx->iv_index);
@@ -199,6 +198,10 @@ int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
             return -MESHX_ERR_MEM;
         }
         memcpy(ppdu, pdata, len);
+
+        /* allocate sequence */
+        pmsg_tx_ctx->seq = meshx_seq_use(pmsg_tx_ctx->src - meshx_node_params.param.node_addr);
+        pmsg_tx_ctx->seq_auth = pmsg_tx_ctx->seq;
 
         /* encrypt and authenticate access pdu */
         meshx_upper_transport_encrypt(ppdu, len, ppdu + len, trans_mic_len, pmsg_tx_ctx);

@@ -31,6 +31,21 @@ int32_t meshx_access_send(meshx_network_if_t network_if,
         return -MESHX_ERR_INVAL;
     }
 
+    /* check keys, because app key and dev key is union, so only check one */
+    if ((NULL == pmsg_tx_ctx->pnet_key) || (NULL == pmsg_tx_ctx->papp_key))
+    {
+        MESHX_ERROR("invalid key: net key 0x%08x, app key or dev key 0x%08x", pmsg_tx_ctx->pnet_key,
+                    pmsg_tx_ctx->papp_key);
+        return -MESHX_ERR_KEY;
+    }
+
+    if ((pmsg_tx_ctx->akf && (0 == pmsg_tx_ctx->aid)) || ((!pmsg_tx_ctx->akf) &&
+                                                          (0 != pmsg_tx_ctx->aid)))
+    {
+        MESHX_ERROR("invalid akf(%d) and aid(0x%x)", pmsg_tx_ctx->akf, pmsg_tx_ctx->aid);
+        return -MESHX_ERR_INVAL;
+    }
+
     /* check parameters length */
     if ((len <= MESHX_UNSEG_ACCESS_MAX_PDU_SIZE) && (0 == pmsg_tx_ctx->seg) &&
         (pmsg_tx_ctx->szmic))
