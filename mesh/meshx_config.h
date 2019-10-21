@@ -25,6 +25,8 @@
 /* network interface */
 #define MESHX_NETWORK_IF_MAX_NUM                   9
 
+#define MESHX_REDUNDANCY_CHECK                     1
+
 
 
 

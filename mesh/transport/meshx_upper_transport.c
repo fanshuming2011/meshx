@@ -15,10 +15,11 @@
 #include "meshx_security.h"
 #include "meshx_endianness.h"
 #include "meshx_node_internal.h"
+#include "meshx_access.h"
+#include "meshx_mem.h"
 
 #define MESHX_UNSEG_ACCESS_MAX_PDU_SIZE                    15
-#define MESHX_UPPER_TRANPORT_MAX_CTL_PDU_SIZE              256
-#define MESHX_UPPER_TRANPORT_MAX_ACCESS_PDU_SIZE           380
+#define MESHX_MAX_CTL_PDU_SIZE                             256
 
 int32_t meshx_upper_transport_init(void)
 {
@@ -176,56 +177,41 @@ int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
     int32_t ret = MESHX_SUCCESS;
     if (pmsg_tx_ctx->ctl)
     {
-        if (len > MESHX_UPPER_TRANPORT_MAX_CTL_PDU_SIZE)
+        if (len > MESHX_MAX_CTL_PDU_SIZE)
         {
-            MESHX_ERROR("control message exceed maximum size: %d", MESHX_UPPER_TRANPORT_MAX_CTL_PDU_SIZE);
+            MESHX_ERROR("control message exceed maximum size: %d", MESHX_MAX_CTL_PDU_SIZE);
             return -MESHX_ERR_LENGTH;
         }
         ret = meshx_lower_transport_send(network_if, pdata, len, pmsg_tx_ctx);
     }
     else
     {
-        if ((len <= MESHX_UNSEG_ACCESS_MAX_PDU_SIZE) && (0 == pmsg_tx_ctx->seg) &&
-            (pmsg_tx_ctx->szmic))
-        {
-            /* unsegment access message TransMIC fixed to 32bits */
-            MESHX_ERROR("unsegment access message TransMIC fixed to 32bits");
-            return -MESHX_ERR_INVAL;
-        }
-
-        if (pmsg_tx_ctx->szmic && (len > MESHX_UPPER_TRANPORT_MAX_ACCESS_PDU_SIZE - 4))
-        {
-            MESHX_ERROR("access message exceed maximum size: %d", MESHX_UPPER_TRANPORT_MAX_ACCESS_PDU_SIZE - 4);
-            return -MESHX_ERR_LENGTH;
-        }
-
-        if ((0 == pmsg_tx_ctx->szmic) && (len > MESHX_UPPER_TRANPORT_MAX_ACCESS_PDU_SIZE))
-        {
-            MESHX_ERROR("access message exceed maximum size: %d", MESHX_UPPER_TRANPORT_MAX_ACCESS_PDU_SIZE);
-            return -MESHX_ERR_LENGTH;
-        }
-
         uint8_t trans_mic_len = 4;
         if (pmsg_tx_ctx->szmic)
         {
             trans_mic_len = 8;
         }
 
-        /* TODO: use allocate data instead of stack data? */
-        uint8_t pdu[MESHX_UPPER_TRANPORT_MAX_ACCESS_PDU_SIZE + 4];
-        memcpy(pdu, pdata, len);
+        uint8_t *ppdu = meshx_malloc(len + trans_mic_len);
+        if (NULL == ppdu)
+        {
+            MESHX_ERROR("allocate access pdu data failed!");
+            return -MESHX_ERR_MEM;
+        }
+        memcpy(ppdu, pdata, len);
 
         /* encrypt and authenticate access pdu */
-        meshx_upper_transport_encrypt(pdu, len, pdu + len, trans_mic_len, pmsg_tx_ctx);
+        meshx_upper_transport_encrypt(ppdu, len, ppdu + len, trans_mic_len, pmsg_tx_ctx);
 
-        ret = meshx_lower_transport_send(network_if, pdu, len + trans_mic_len, pmsg_tx_ctx);
+        ret = meshx_lower_transport_send(network_if, ppdu, len + trans_mic_len, pmsg_tx_ctx);
+        meshx_free(ppdu);
     }
 
     return ret;
 }
 
 int32_t meshx_upper_transport_receive(meshx_network_if_t network_if,
-                                      const uint8_t *pdata,
+                                      uint8_t *pdata,
                                       uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     MESHX_DEBUG("receive upper transport pdu: type %d", pmsg_rx_ctx->ctl);
@@ -246,15 +232,12 @@ int32_t meshx_upper_transport_receive(meshx_network_if_t network_if,
             trans_mic_len = 8;
         }
 
-        /* TODO: use allocate data instead of stack data? */
-        uint8_t pdu[MESHX_UPPER_TRANPORT_MAX_ACCESS_PDU_SIZE + 4];
-        memcpy(pdu, pdata, len);
-
-        ret = meshx_upper_transport_decrypt(pdu, len - trans_mic_len, pdu + len - trans_mic_len,
+        ret = meshx_upper_transport_decrypt(pdata, len - trans_mic_len, pdata + len - trans_mic_len,
                                             trans_mic_len, pmsg_rx_ctx);
         if (MESHX_SUCCESS == ret)
         {
             /* notify access layer */
+            ret = meshx_access_receive(network_if, pdata, len - trans_mic_len, pmsg_rx_ctx);
         }
         else
         {

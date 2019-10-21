@@ -1163,7 +1163,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_network_if_t network_if,
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8_t *pdata,
+int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, uint8_t *pdata,
                                       uint8_t len, meshx_msg_ctx_t *pmsg_ctx)
 {
     MESHX_DEBUG("receive lower transport data:");
@@ -1172,13 +1172,13 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
     if (pmsg_ctx->ctl)
     {
         /* control message */
-        const meshx_lower_trans_ctl_pdu_metadata_t *pmetadata = (const meshx_lower_trans_ctl_pdu_metadata_t
-                                                                 *)pdata;
+        meshx_lower_trans_ctl_pdu_metadata_t *pmetadata = (meshx_lower_trans_ctl_pdu_metadata_t *)pdata;
+
         if (0 == pmetadata->opcode)
         {
             /* segment ack */
-            const meshx_lower_trans_seg_ack_pdu_t *pseg_ack = (const meshx_lower_trans_seg_ack_pdu_t *)(((
-                                                                  const meshx_lower_trans_unseg_ctl_pdu_t *)pdata)->pdu);
+            meshx_lower_trans_seg_ack_pdu_t *pseg_ack = (meshx_lower_trans_seg_ack_pdu_t *)(((
+                    meshx_lower_trans_unseg_ctl_pdu_t *)pdata)->pdu);
             meshx_lower_trans_recv_block_ack(pseg_ack);
         }
         else
@@ -1191,7 +1191,7 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
             else
             {
                 /* unseg control message */
-                const meshx_lower_trans_unseg_ctl_pdu_t *ppdu = (const meshx_lower_trans_unseg_ctl_pdu_t *)pdata;
+                meshx_lower_trans_unseg_ctl_pdu_t *ppdu = (meshx_lower_trans_unseg_ctl_pdu_t *)pdata;
                 uint8_t pdu_len = len - sizeof(meshx_lower_trans_ctl_pdu_metadata_t);
 
                 /* notify upper transport layer and fill prx_msg_ctx */
@@ -1204,8 +1204,8 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
     else
     {
         /* access message */
-        const meshx_lower_trans_access_pdu_metadata_t *pmetadata = (const
-                                                                    meshx_lower_trans_access_pdu_metadata_t *)pdata;
+        meshx_lower_trans_access_pdu_metadata_t *pmetadata = (meshx_lower_trans_access_pdu_metadata_t *)
+                                                             pdata;
         if (pmetadata->seg)
         {
             ret = meshx_lower_trans_receive_seg_msg(network_if, pdata, len, pmsg_ctx);
@@ -1213,8 +1213,7 @@ int32_t meshx_lower_transport_receive(meshx_network_if_t network_if, const uint8
         else
         {
             /* unsegment access message */
-            const meshx_lower_trans_unseg_access_pdu_t *ppdu = (const meshx_lower_trans_unseg_access_pdu_t *)
-                                                               pdata;
+            meshx_lower_trans_unseg_access_pdu_t *ppdu = (meshx_lower_trans_unseg_access_pdu_t *)pdata;
             uint8_t pdu_len = len - sizeof(meshx_lower_trans_access_pdu_metadata_t);
 
             /* notify upper transport layer and fill prx_msg_ctx */

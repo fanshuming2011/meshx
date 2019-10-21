@@ -15,7 +15,11 @@ MESHX_BEGIN_DECLS
 
 MESHX_EXTERN int32_t meshx_access_init(void);
 MESHX_EXTERN int32_t meshx_access_send(meshx_network_if_t network_if,
-                                       const uint8_t *pdata, uint16_t len, const meshx_access_msg_tx_ctx_t *pmsg_ctx);
+                                       const uint8_t *pdata, uint16_t len, meshx_msg_ctx_t *pmsg_tx_ctx);
+MESHX_EXTERN int32_t meshx_access_receive(meshx_network_if_t network_if,
+                                          const uint8_t *pdata,
+                                          uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx);
+
 
 
 MESHX_END_DECLS
