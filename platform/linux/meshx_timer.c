@@ -23,12 +23,17 @@ typedef struct
     timer_t timer;
     meshx_timer_mode_t mode;
     meshx_timer_handler_t timeout_handler;
+    bool is_active;
     void *pargs;
 } meshx_timer_wrapper_t;
 
 void timer_handle_thread(union sigval sig)
 {
     meshx_timer_wrapper_t *ptimer_wrapper = sig.sival_ptr;
+    if (ptimer_wrapper->mode == MESHX_TIMER_MODE_SINGLE_SHOT)
+    {
+        ptimer_wrapper->is_active = FALSE;
+    }
     ptimer_wrapper->timeout_handler(ptimer_wrapper->pargs);
 }
 
@@ -61,6 +66,7 @@ int32_t meshx_timer_create(meshx_timer_t *ptimer, meshx_timer_mode_t mode,
     ptimer_wrapper->timer = timer_id;
     ptimer_wrapper->mode = mode;
     ptimer_wrapper->timeout_handler = phandler;
+    ptimer_wrapper->is_active = FALSE;
     ptimer_wrapper->pargs = pargs;
 
     return MESHX_SUCCESS;
@@ -96,6 +102,7 @@ int32_t meshx_timer_start(meshx_timer_t timer, uint32_t interval)
         MESHX_ERROR("failed to set timer");
         return -MESHX_ERR_FAIL;
     }
+    ptimer_wrapper->is_active = (interval == 0) ? FALSE : TRUE;
 
     return MESHX_SUCCESS;
 }
@@ -146,6 +153,7 @@ bool meshx_timer_is_active(meshx_timer_t timer)
         MESHX_ERROR("invalid timer: 0x%x", timer);
         return FALSE;
     }
+#if 0
     struct itimerspec curr_val;
     if (-1 == timer_gettime(ptimer_wrapper->timer, &curr_val))
     {
@@ -154,4 +162,6 @@ bool meshx_timer_is_active(meshx_timer_t timer)
     }
 
     return ((0 == curr_val.it_value.tv_sec) && (0 == curr_val.it_value.tv_nsec));
+#endif
+    return ptimer_wrapper->is_active;
 }
