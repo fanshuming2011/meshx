@@ -29,7 +29,7 @@ static meshx_node_config_t node_default_config =
     .gap_task_num = 20,
     .trans_tx_task_num = 3,
     .trans_rx_task_num = 3,
-    .trans_tx_retry_times = 1,
+    .trans_tx_retry_times = 2,
 };
 
 static meshx_node_param_t node_default_param =

@@ -403,6 +403,30 @@ static void meshx_lower_trans_tx_task_finish(meshx_lower_trans_tx_task_t *ptx_ta
     }
 }
 
+static void meshx_lower_trans_tx_timer_start(const meshx_lower_trans_tx_task_t *ptx_task)
+{
+    /* check destination address */
+    if (MESHX_ADDRESS_IS_UNICAST(ptx_task->msg_tx_ctx.dst))
+    {
+        /* set timer to retrans delay */
+        if (meshx_timer_is_active(ptx_task->retry_timer))
+        {
+            meshx_timer_restart(ptx_task->retry_timer,
+                                MESHX_LOWER_TRANS_TX_RETRY_BASE + MESHX_LOWER_TRANS_TX_RETRY_TTL_FACTOR * ptx_task->msg_tx_ctx.ttl);
+        }
+        else
+        {
+            meshx_timer_start(ptx_task->retry_timer,
+                              MESHX_LOWER_TRANS_TX_RETRY_BASE + MESHX_LOWER_TRANS_TX_RETRY_TTL_FACTOR * ptx_task->msg_tx_ctx.ttl);
+        }
+    }
+    else
+    {
+        /* set timer to small random delay */
+        meshx_timer_start(ptx_task->retry_timer, meshx_lower_trans_random());
+    }
+}
+
 static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *ptask)
 {
     ptask->retry_times ++;
@@ -433,7 +457,14 @@ static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *pta
         if (!MESHX_LOWER_TRANS_IS_SEQ_AUTH_VALID(ptask->msg_tx_ctx.seq, ptask->msg_tx_ctx.seq_auth))
         {
             /* TODO: notify upper transport send failed, seq is 8192 higher than seq origin? */
+            MESHX_ERROR("segment message send failed: seq(0x%06x) is 8192 higher than seq auth(0x%06x)",
+                        ptask->msg_tx_ctx.seq, ptask->msg_tx_ctx.seq_auth);
             meshx_lower_trans_tx_task_finish(ptask);
+        }
+        else
+        {
+            /* restart timer */
+            meshx_lower_trans_tx_timer_start(ptask);
         }
     }
 }
@@ -441,30 +472,6 @@ static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *pta
 void meshx_lower_trans_async_handle_tx_timeout(meshx_async_msg_t msg)
 {
     meshx_lower_trans_handle_tx_timeout(msg.pdata);
-}
-
-static void meshx_lower_trans_tx_timer_start(const meshx_lower_trans_tx_task_t *ptx_task)
-{
-    /* check destination address */
-    if (MESHX_ADDRESS_IS_UNICAST(ptx_task->msg_tx_ctx.dst))
-    {
-        /* set timer to retrans delay */
-        if (meshx_timer_is_active(ptx_task->retry_timer))
-        {
-            meshx_timer_restart(ptx_task->retry_timer,
-                                MESHX_LOWER_TRANS_TX_RETRY_BASE + MESHX_LOWER_TRANS_TX_RETRY_TTL_FACTOR * ptx_task->msg_tx_ctx.ttl);
-        }
-        else
-        {
-            meshx_timer_start(ptx_task->retry_timer,
-                              MESHX_LOWER_TRANS_TX_RETRY_BASE + MESHX_LOWER_TRANS_TX_RETRY_TTL_FACTOR * ptx_task->msg_tx_ctx.ttl);
-        }
-    }
-    else
-    {
-        /* set timer to small random delay */
-        meshx_timer_start(ptx_task->retry_timer, meshx_lower_trans_random());
-    }
 }
 
 static int32_t meshx_lower_trans_tx_task_run(meshx_lower_trans_tx_task_t *ptx_task)
