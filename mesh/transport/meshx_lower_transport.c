@@ -348,7 +348,7 @@ static int32_t meshx_lower_trans_send_seg_msg(meshx_network_if_t network_if,
             seg_len += (sizeof(meshx_lower_trans_access_pdu_metadata_t) + sizeof(
                             meshx_lower_trans_seg_access_misc_t));
         }
-        MESHX_DEBUG("send access seg pdu: %d", i);
+        MESHX_INFO("send segment pdu: %d-%d", i, seg_num);
         MESHX_DUMP_DEBUG(pdu, seg_len);
         meshx_network_send(network_if, pdu, seg_len, pmsg_ctx);
     }
@@ -360,7 +360,7 @@ static void meshx_lower_trans_tx_task_release(meshx_lower_trans_tx_task_t *ptask
 {
     MESHX_ASSERT(NULL != ptask);
     meshx_list_remove(&ptask->node);
-    MESHX_DEBUG("release task(0x%08x)", ptask);
+    MESHX_INFO("release task(0x%08x)", ptask);
     if (NULL != ptask->retry_timer)
     {
         meshx_timer_delete(ptask->retry_timer);
@@ -727,7 +727,7 @@ static void meshx_lower_trans_rx_task_release(meshx_lower_trans_rx_task_t *ptask
 {
     MESHX_ASSERT(NULL != ptask);
     meshx_list_remove(&ptask->node);
-    MESHX_DEBUG("release rx task: 0x%08x", ptask);
+    MESHX_INFO("release rx task: 0x%08x", ptask);
 
     if (NULL != ptask->ack_timer)
     {

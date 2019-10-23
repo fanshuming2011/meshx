@@ -130,7 +130,11 @@ int32_t meshx_access_receive(meshx_network_if_t network_if,
                              const uint8_t *pdata,
                              uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
-    //MESHX_INFO("opcode 0x%x, data");
+    MESHX_INFO("access message: src 0x%04x, dst 0x%04x, ttl %d, seq-seq auth 0x%06x-0x%06x, iv index 0x%08x, seg %d, akf %d, nid %d, aid %d",
+               pmsg_rx_ctx->src, pmsg_rx_ctx->dst, pmsg_rx_ctx->ttl, pmsg_rx_ctx->seq, pmsg_rx_ctx->seq_auth,
+               pmsg_rx_ctx->iv_index, pmsg_rx_ctx->seg, pmsg_rx_ctx->akf, pmsg_rx_ctx->pnet_key->nid,
+               pmsg_rx_ctx->aid);
+    MESHX_DUMP_INFO(pdata, len);
     return MESHX_SUCCESS;
 }
 

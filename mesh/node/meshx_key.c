@@ -114,7 +114,7 @@ void meshx_app_key_traverse_continue(const meshx_application_key_t **ptraverse_k
 static void meshx_app_key_derive(meshx_application_key_t *papp_key)
 {
     meshx_k4(papp_key->app_key, &papp_key->aid);
-    MESHX_DEBUG("aid: 0x%x", papp_key->aid);
+    MESHX_INFO("aid: 0x%x", papp_key->aid);
 }
 
 int32_t meshx_app_key_add(uint16_t net_key_index, uint16_t app_key_index,
@@ -155,8 +155,8 @@ int32_t meshx_app_key_add(uint16_t net_key_index, uint16_t app_key_index,
     papp_key->app_key.app_key_index = app_key_index;
     memcpy(papp_key->app_key.app_key, app_key, sizeof(meshx_key_t));
     papp_key->app_key.pnet_key_bind = &pnet_key->net_key;
-    MESHX_DEBUG("application key: index %d-%d, value ", app_key_index, net_key_index);
-    MESHX_DUMP_DEBUG(papp_key->app_key.app_key, sizeof(meshx_key_t));
+    MESHX_INFO("application key add: index %d-%d", app_key_index, net_key_index);
+    MESHX_DUMP_INFO(papp_key->app_key.app_key, sizeof(meshx_key_t));
     meshx_app_key_derive(&papp_key->app_key);
     meshx_list_append(&meshx_app_keys, &papp_key->node);
 
@@ -257,7 +257,7 @@ static void meshx_net_key_derive(meshx_network_key_t *pnet_key)
     P[0] = 0x00;
     meshx_k2(pnet_key->net_key, P, 1, &pnet_key->nid, pnet_key->encryption_key,
              pnet_key->privacy_key);
-    MESHX_DEBUG("nid: 0x%x", pnet_key->nid);
+    MESHX_INFO("nid: 0x%x", pnet_key->nid);
     MESHX_DEBUG("encryption key:");
     MESHX_DUMP_DEBUG(pnet_key->encryption_key, sizeof(meshx_key_t));
     MESHX_DEBUG("privacy key:");
@@ -297,8 +297,8 @@ int32_t meshx_net_key_add(uint16_t net_key_index, meshx_key_t net_key)
 
     pnet_key->net_key.net_key_index = net_key_index;
     memcpy(pnet_key->net_key.net_key, net_key, sizeof(meshx_key_t));
-    MESHX_DEBUG("network key: index %d, value ", net_key_index);
-    MESHX_DUMP_DEBUG(pnet_key->net_key.net_key, sizeof(meshx_key_t));
+    MESHX_INFO("network key add: index %d", net_key_index);
+    MESHX_DUMP_INFO(pnet_key->net_key.net_key, sizeof(meshx_key_t));
     meshx_net_key_derive(&pnet_key->net_key);
     meshx_list_append(&meshx_net_keys, &pnet_key->node);
 
@@ -411,6 +411,9 @@ int32_t meshx_dev_key_add(uint16_t primary_addr, uint8_t element_num, meshx_key_
     pdev_key->dev_key.primary_addr = primary_addr;
     pdev_key->dev_key.element_num = element_num;
     memcpy(pdev_key->dev_key.dev_key, dev_key, sizeof(meshx_key_t));
+    MESHX_INFO("device key add: primary addr 0x%04x, element num %d", pdev_key->dev_key.primary_addr,
+               pdev_key->dev_key.element_num);
+    MESHX_DUMP_INFO(pdev_key->dev_key.dev_key, sizeof(meshx_key_t));
     meshx_list_append(&meshx_dev_keys, &pdev_key->node);
 
     return MESHX_SUCCESS;

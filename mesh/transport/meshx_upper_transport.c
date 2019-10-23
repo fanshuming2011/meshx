@@ -105,7 +105,7 @@ static int32_t meshx_upper_transport_decrypt(uint8_t *paccess_pdu, uint8_t pdu_l
         meshx_app_key_traverse_start(&papp_key, pmsg_rx_ctx->aid);
         if (NULL == papp_key)
         {
-            MESHX_INFO("no key's aid is 0x%x", pmsg_rx_ctx->aid);
+            MESHX_ERROR("no key's aid is 0x%x", pmsg_rx_ctx->aid);
             return -MESHX_ERR_KEY;
         }
 
@@ -188,7 +188,7 @@ int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
             return -MESHX_ERR_LENGTH;
         }
 
-        MESHX_INFO("send control message: src 0x%04x, dst 0x%04x, ttl %d, seq 0x%06x, iv index 0x%08x, seg %d, opcode 0x%x",
+        MESHX_INFO("control message: src 0x%04x, dst 0x%04x, ttl %d, seq 0x%06x, iv index 0x%08x, seg %d, opcode 0x%x",
                    pmsg_tx_ctx->src, pmsg_tx_ctx->dst, pmsg_tx_ctx->ttl, pmsg_tx_ctx->seq,
                    pmsg_tx_ctx->iv_index, pmsg_tx_ctx->seg, pmsg_tx_ctx->opcode);
         MESHX_DUMP_INFO(pdata, len);
@@ -215,9 +215,10 @@ int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
         pmsg_tx_ctx->seq = meshx_seq_use(pmsg_tx_ctx->src - meshx_node_params.param.node_addr);
         pmsg_tx_ctx->seq_auth = pmsg_tx_ctx->seq;
 
-        MESHX_INFO("send access message: src 0x%04x, dst 0x%04x, ttl %d, seq 0x%06x, iv index 0x%08x, seg %d, akf %d, nid %d, aid %d",
+        MESHX_INFO("access message: src 0x%04x, dst 0x%04x, ttl %d, seq auth 0x%06x, iv index 0x%08x, seg %d, akf %d, nid %d, aid %d",
                    pmsg_tx_ctx->src, pmsg_tx_ctx->dst, pmsg_tx_ctx->ttl, pmsg_tx_ctx->seq,
-                   pmsg_tx_ctx->iv_index, pmsg_tx_ctx->seg, pmsg_tx_ctx->pnet_key->nid, pmsg_tx_ctx->aid);
+                   pmsg_tx_ctx->iv_index, pmsg_tx_ctx->seg, pmsg_tx_ctx->akf, pmsg_tx_ctx->pnet_key->nid,
+                   pmsg_tx_ctx->aid);
         MESHX_DUMP_INFO(pdata, len);
 
         /* encrypt and authenticate access pdu */

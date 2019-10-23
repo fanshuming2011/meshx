@@ -147,18 +147,20 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     MESHX_DEBUG("receive network data:");
     MESHX_DUMP_DEBUG(pdata, len);
 
+#if MESHX_REDUNDANCY_CHECK
     if (NULL == network_if)
     {
         MESHX_ERROR("network interface is NULL");
         return -MESHX_ERR_INVAL;
     }
+#endif
 
     /* filter data */
     /* TODO: add input filter data, use adv information? */
     meshx_network_if_input_filter_data_t filter_data = {};
     if (!meshx_network_if_input_filter(network_if, &filter_data))
     {
-        MESHX_INFO("network data has been filtered!");
+        MESHX_WARN("network data has been filtered!");
         return -MESHX_ERR_FILTER;
     }
 
@@ -177,7 +179,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     meshx_net_key_traverse_start(&pnet_key, net_pdu.net_metadata.nid);
     if (NULL == pnet_key)
     {
-        MESHX_INFO("no key's nid is 0x%x", net_pdu.net_metadata.nid);
+        MESHX_DEBUG("no key's nid is 0x%x", net_pdu.net_metadata.nid);
         return -MESHX_ERR_KEY;
     }
 
@@ -204,7 +206,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
 
     if (NULL == pnet_key)
     {
-        MESHX_WARN("can't decrypt pdu by network key that nid is 0x%x", net_pdu.net_metadata.nid);
+        MESHX_ERROR("can't decrypt pdu with network key that nid is 0x%x", net_pdu.net_metadata.nid);
         return -MESHX_ERR_KEY;
     }
 
