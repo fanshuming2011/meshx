@@ -718,7 +718,7 @@ static int32_t meshx_lower_trans_seg_ack(meshx_network_if_t network_if, uint32_t
     msg_tx_ctx.opcode = 0;
     msg_tx_ctx.seq = meshx_seq_use(msg_tx_ctx.src - meshx_node_params.param.node_addr);
 
-    MESHX_DEBUG("lower transport block ack: 0x%08x", block_ack);
+    MESHX_INFO("lower transport block ack: 0x%08x", block_ack);
     return meshx_lower_transport_send(network_if, (const uint8_t *)&seg_ack,
                                       sizeof(seg_ack), &msg_tx_ctx);
 }

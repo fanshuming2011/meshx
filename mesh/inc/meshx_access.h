@@ -12,8 +12,11 @@
 
 MESHX_BEGIN_DECLS
 
+#define MESHX_ACCESS_OPCODE_SIZE(opcode)  ((opcode) >= 0xC00000 ? 3 : ((opcode) >= 0x8000 ? 2 : 1))
 
 MESHX_EXTERN int32_t meshx_access_init(void);
+MESHX_EXTERN void meshx_access_opcode_to_buf(uint32_t opcode, uint8_t *pdata);
+MESHX_EXTERN uint32_t meshx_access_buf_to_opcode(const uint8_t *pdata);
 MESHX_EXTERN int32_t meshx_access_send(meshx_network_if_t network_if,
                                        const uint8_t *pdata, uint16_t len, meshx_msg_ctx_t *pmsg_tx_ctx);
 MESHX_EXTERN int32_t meshx_access_receive(meshx_network_if_t network_if,

@@ -173,6 +173,12 @@ int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
                                    const uint8_t *pdata, uint16_t len,
                                    meshx_msg_ctx_t *pmsg_tx_ctx)
 {
+    if (!meshx_network_if_is_connect(network_if))
+    {
+        MESHX_ERROR("network interface is disconnected!");
+        return -MESHX_ERR_CONNECT;
+    }
+
     int32_t ret = MESHX_SUCCESS;
     if (pmsg_tx_ctx->ctl)
     {
@@ -181,6 +187,12 @@ int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
             MESHX_ERROR("control message exceed maximum size: %d", MESHX_MAX_CTL_PDU_SIZE);
             return -MESHX_ERR_LENGTH;
         }
+
+        MESHX_INFO("send control message: src 0x%04x, dst 0x%04x, ttl %d, seq 0x%06x, iv index 0x%08x, seg %d, opcode 0x%x",
+                   pmsg_tx_ctx->src, pmsg_tx_ctx->dst, pmsg_tx_ctx->ttl, pmsg_tx_ctx->seq,
+                   pmsg_tx_ctx->iv_index, pmsg_tx_ctx->seg, pmsg_tx_ctx->opcode);
+        MESHX_DUMP_INFO(pdata, len);
+
         ret = meshx_lower_transport_send(network_if, pdata, len, pmsg_tx_ctx);
     }
     else
@@ -202,6 +214,11 @@ int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
         /* allocate sequence */
         pmsg_tx_ctx->seq = meshx_seq_use(pmsg_tx_ctx->src - meshx_node_params.param.node_addr);
         pmsg_tx_ctx->seq_auth = pmsg_tx_ctx->seq;
+
+        MESHX_INFO("send access message: src 0x%04x, dst 0x%04x, ttl %d, seq 0x%06x, iv index 0x%08x, seg %d, akf %d, nid %d, aid %d",
+                   pmsg_tx_ctx->src, pmsg_tx_ctx->dst, pmsg_tx_ctx->ttl, pmsg_tx_ctx->seq,
+                   pmsg_tx_ctx->iv_index, pmsg_tx_ctx->seg, pmsg_tx_ctx->pnet_key->nid, pmsg_tx_ctx->aid);
+        MESHX_DUMP_INFO(pdata, len);
 
         /* encrypt and authenticate access pdu */
         meshx_upper_transport_encrypt(ppdu, len, ppdu + len, trans_mic_len, pmsg_tx_ctx);

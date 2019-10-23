@@ -192,6 +192,28 @@ void meshx_network_if_disconnect(meshx_network_if_t network_if)
     pinterface->output_filter = NULL;
 }
 
+bool meshx_network_if_is_connect(meshx_network_if_t network_if)
+{
+    if (NULL == network_if)
+    {
+        MESHX_ERROR("invalid network interface: 0x%08x", network_if);
+        return FALSE;
+    }
+
+    meshx_network_interface_t *pinterface = (meshx_network_interface_t *)network_if;
+    if (MESHX_NETWORK_IF_TYPE_INVALID == pinterface->type)
+    {
+        return FALSE;
+    }
+
+    if (MESHX_NETWORK_IF_TYPE_LOOPBACK == pinterface->type)
+    {
+        return TRUE;
+    }
+
+    return (NULL != pinterface->bearer);
+}
+
 bool meshx_network_if_input_filter(meshx_network_if_t network_if,
                                    const meshx_network_if_input_filter_data_t *pdata)
 {
