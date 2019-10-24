@@ -6,13 +6,13 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #include <string.h>
-#define MESHX_TRACE_MODULE "MESHX_NETWORK"
+#define MESHX_TRACE_MODULE "MESHX_NET"
 #include "meshx_trace.h"
-#include "meshx_network.h"
+#include "meshx_net.h"
 #include "meshx_errno.h"
 #include "meshx_config.h"
 #include "meshx_bearer_internal.h"
-#include "meshx_network_internal.h"
+#include "meshx_net_internal.h"
 #include "meshx_seq.h"
 #include "meshx_iv_index.h"
 #include "meshx_node.h"
@@ -24,10 +24,10 @@
 #include "meshx_key.h"
 #include "meshx_lower_transport.h"
 
-#define MESHX_NETWORK_TRANS_PDU_MAX_LEN         20
-#define MESHX_NETWORK_ENCRYPT_OFFSET            7
-#define MESHX_NETWORK_OBFUSCATION_OFFSET        1
-#define MESHX_NETWORK_OBFUSCATION_SIZE          6
+#define MESHX_NET_TRANS_PDU_MAX_LEN         20
+#define MESHX_NET_ENCRYPT_OFFSET            7
+#define MESHX_NET_OBFUSCATION_OFFSET        1
+#define MESHX_NET_OBFUSCATION_SIZE          6
 
 typedef struct
 {
@@ -38,26 +38,26 @@ typedef struct
     uint8_t seq[3];
     uint16_t src;
     uint16_t dst;
-} __PACKED meshx_network_metadata_t;
+} __PACKED meshx_net_metadata_t;
 
 typedef struct
 {
-    meshx_network_metadata_t net_metadata;
-    uint8_t pdu[MESHX_NETWORK_TRANS_PDU_MAX_LEN]; /* netmic is 32bit if ctl is 0, netmic is 64bit if ctl is 1*/
-} __PACKED meshx_network_pdu_t;
+    meshx_net_metadata_t net_metadata;
+    uint8_t pdu[MESHX_NET_TRANS_PDU_MAX_LEN]; /* netmic is 32bit if ctl is 0, netmic is 64bit if ctl is 1*/
+} __PACKED meshx_net_pdu_t;
 
 
-int32_t meshx_network_init(void)
+int32_t meshx_net_init(void)
 {
-    meshx_network_if_init();
+    meshx_net_iface_init();
     return MESHX_SUCCESS;
 }
 
-static void meshx_network_encrypt(meshx_network_pdu_t *pnet_pdu, uint8_t trans_pdu_len,
-                                  uint32_t iv_index, const meshx_network_key_t *pnet_key)
+static void meshx_net_encrypt(meshx_net_pdu_t *pnet_pdu, uint8_t trans_pdu_len,
+                              uint32_t iv_index, const meshx_net_key_t *pnet_key)
 {
-    meshx_network_nonce_t net_nonce;
-    net_nonce.nonce_type = MESHX_NONCE_TYPE_NETWORK;
+    meshx_net_nonce_t net_nonce;
+    net_nonce.nonce_type = MESHX_NONCE_TYPE_NET;
     net_nonce.ctl = pnet_pdu->net_metadata.ctl;
     net_nonce.ttl = pnet_pdu->net_metadata.ttl;
     net_nonce.seq[0] = pnet_pdu->net_metadata.seq[0];
@@ -66,50 +66,50 @@ static void meshx_network_encrypt(meshx_network_pdu_t *pnet_pdu, uint8_t trans_p
     net_nonce.src = pnet_pdu->net_metadata.src;
     net_nonce.pad = 0;
     net_nonce.iv_index = MESHX_HOST_TO_BE32(iv_index);
-    MESHX_DEBUG("network nonce:");
-    MESHX_DUMP_DEBUG(&net_nonce, sizeof(meshx_network_nonce_t));
+    MESHX_DEBUG("net nonce:");
+    MESHX_DUMP_DEBUG(&net_nonce, sizeof(meshx_net_nonce_t));
 
     uint8_t net_mic_len = pnet_pdu->net_metadata.ctl ? 8 : 4;
     /* encrypt data */
     meshx_aes_ccm_encrypt(pnet_key->encryption_key, (const uint8_t *)&net_nonce,
-                          sizeof(meshx_network_nonce_t),
-                          NULL, 0, (const uint8_t *)pnet_pdu + MESHX_NETWORK_ENCRYPT_OFFSET,
+                          sizeof(meshx_net_nonce_t),
+                          NULL, 0, (const uint8_t *)pnet_pdu + MESHX_NET_ENCRYPT_OFFSET,
                           sizeof(pnet_pdu->net_metadata.dst) + trans_pdu_len,
-                          (uint8_t *)pnet_pdu + MESHX_NETWORK_ENCRYPT_OFFSET, pnet_pdu->pdu + trans_pdu_len, net_mic_len);
+                          (uint8_t *)pnet_pdu + MESHX_NET_ENCRYPT_OFFSET, pnet_pdu->pdu + trans_pdu_len, net_mic_len);
     MESHX_DEBUG("encrypt and auth trans pdu:");
-    MESHX_DUMP_DEBUG((uint8_t *)pnet_pdu + MESHX_NETWORK_ENCRYPT_OFFSET,
+    MESHX_DUMP_DEBUG((uint8_t *)pnet_pdu + MESHX_NET_ENCRYPT_OFFSET,
                      sizeof(pnet_pdu->net_metadata.dst) + trans_pdu_len + net_mic_len);
 }
 
-static void meshx_network_obfuscation(meshx_network_pdu_t *pnet_pdu, uint32_t iv_index,
-                                      const meshx_network_key_t *pnet_key)
+static void meshx_net_obfuscation(meshx_net_pdu_t *pnet_pdu, uint32_t iv_index,
+                                  const meshx_net_key_t *pnet_key)
 {
     iv_index = MESHX_HOST_TO_BE32(iv_index);
     uint8_t privacy_plaintext[16];
     memset(privacy_plaintext, 0, 5);
     memcpy(privacy_plaintext + 5, &iv_index, 4);
-    memcpy(privacy_plaintext + 9, (const uint8_t *)pnet_pdu + MESHX_NETWORK_ENCRYPT_OFFSET, 7);
+    memcpy(privacy_plaintext + 9, (const uint8_t *)pnet_pdu + MESHX_NET_ENCRYPT_OFFSET, 7);
     MESHX_DEBUG("privacy plaintext:");
     MESHX_DUMP_DEBUG(privacy_plaintext, 16);
     meshx_e(privacy_plaintext, pnet_key->privacy_key, privacy_plaintext);
     MESHX_DEBUG("PECB:");
     MESHX_DUMP_DEBUG(privacy_plaintext, 16);
-    uint8_t *pdata = (uint8_t *)pnet_pdu + MESHX_NETWORK_OBFUSCATION_OFFSET;
-    for (uint8_t i = 0; i < MESHX_NETWORK_OBFUSCATION_SIZE; ++i)
+    uint8_t *pdata = (uint8_t *)pnet_pdu + MESHX_NET_OBFUSCATION_OFFSET;
+    for (uint8_t i = 0; i < MESHX_NET_OBFUSCATION_SIZE; ++i)
     {
         *pdata = *pdata ^ privacy_plaintext[i];
         pdata ++;
     }
-    MESHX_DEBUG("obfuscation network header:");
-    MESHX_DUMP_DEBUG((uint8_t *)pnet_pdu + MESHX_NETWORK_OBFUSCATION_OFFSET,
-                     MESHX_NETWORK_OBFUSCATION_SIZE);
+    MESHX_DEBUG("obfuscation net header:");
+    MESHX_DUMP_DEBUG((uint8_t *)pnet_pdu + MESHX_NET_OBFUSCATION_OFFSET,
+                     MESHX_NET_OBFUSCATION_SIZE);
 }
 
-static int32_t meshx_network_decrypt(meshx_network_pdu_t *pnet_pdu, uint8_t trans_pdu_len,
-                                     uint32_t iv_index, const meshx_network_key_t *pnet_key)
+static int32_t meshx_net_decrypt(meshx_net_pdu_t *pnet_pdu, uint8_t trans_pdu_len,
+                                 uint32_t iv_index, const meshx_net_key_t *pnet_key)
 {
-    meshx_network_nonce_t net_nonce;
-    net_nonce.nonce_type = MESHX_NONCE_TYPE_NETWORK;
+    meshx_net_nonce_t net_nonce;
+    net_nonce.nonce_type = MESHX_NONCE_TYPE_NET;
     net_nonce.ctl = pnet_pdu->net_metadata.ctl;
     net_nonce.ttl = pnet_pdu->net_metadata.ttl;
     net_nonce.seq[0] = pnet_pdu->net_metadata.seq[0];
@@ -118,55 +118,55 @@ static int32_t meshx_network_decrypt(meshx_network_pdu_t *pnet_pdu, uint8_t tran
     net_nonce.src = pnet_pdu->net_metadata.src;
     net_nonce.pad = 0;
     net_nonce.iv_index = MESHX_HOST_TO_BE32(iv_index);
-    MESHX_DEBUG("network nonce:");
-    MESHX_DUMP_DEBUG(&net_nonce, sizeof(meshx_network_nonce_t));
+    MESHX_DEBUG("net nonce:");
+    MESHX_DUMP_DEBUG(&net_nonce, sizeof(meshx_net_nonce_t));
 
     uint8_t net_mic_len = pnet_pdu->net_metadata.ctl ? 8 : 4;
     /* decrypt data */
     int32_t ret = meshx_aes_ccm_decrypt(pnet_key->encryption_key, (const uint8_t *)&net_nonce,
-                                        sizeof(meshx_network_nonce_t),
-                                        NULL, 0, (const uint8_t *)pnet_pdu + MESHX_NETWORK_ENCRYPT_OFFSET,
+                                        sizeof(meshx_net_nonce_t),
+                                        NULL, 0, (const uint8_t *)pnet_pdu + MESHX_NET_ENCRYPT_OFFSET,
                                         sizeof(pnet_pdu->net_metadata.dst) + trans_pdu_len,
-                                        (uint8_t *)pnet_pdu + MESHX_NETWORK_ENCRYPT_OFFSET, pnet_pdu->pdu + trans_pdu_len, net_mic_len);
+                                        (uint8_t *)pnet_pdu + MESHX_NET_ENCRYPT_OFFSET, pnet_pdu->pdu + trans_pdu_len, net_mic_len);
     if (MESHX_SUCCESS == ret)
     {
         MESHX_DEBUG("dencrypt trans pdu:");
-        MESHX_DUMP_DEBUG((uint8_t *)pnet_pdu + MESHX_NETWORK_ENCRYPT_OFFSET,
+        MESHX_DUMP_DEBUG((uint8_t *)pnet_pdu + MESHX_NET_ENCRYPT_OFFSET,
                          sizeof(pnet_pdu->net_metadata.dst) + trans_pdu_len);
     }
     else
     {
-        MESHX_ERROR("decrypt network pdu failed!");
+        MESHX_ERROR("decrypt net pdu failed!");
     }
 
     return ret;
 }
 
-int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdata, uint8_t len)
+int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata, uint8_t len)
 {
-    MESHX_DEBUG("receive network data:");
+    MESHX_DEBUG("receive net data:");
     MESHX_DUMP_DEBUG(pdata, len);
 
 #if MESHX_REDUNDANCY_CHECK
-    if (NULL == network_if)
+    if (NULL == net_iface)
     {
-        MESHX_ERROR("network interface is NULL");
+        MESHX_ERROR("net interface is NULL");
         return -MESHX_ERR_INVAL;
     }
 #endif
 
     /* filter data */
     /* TODO: add input filter data, use adv information? */
-    meshx_network_if_input_filter_data_t filter_data = {};
-    if (!meshx_network_if_input_filter(network_if, &filter_data))
+    meshx_net_iface_ifilter_data_t filter_data = {};
+    if (!meshx_net_iface_ifilter(net_iface, &filter_data))
     {
-        MESHX_WARN("network data has been filtered!");
+        MESHX_WARN("net data has been filtered!");
         return -MESHX_ERR_FILTER;
     }
 
     /* copy data */
     uint32_t iv_index = meshx_iv_index_get();
-    meshx_network_pdu_t net_pdu = *(const meshx_network_pdu_t *)pdata;
+    meshx_net_pdu_t net_pdu = *(const meshx_net_pdu_t *)pdata;
 
     /* check ivi to choose correct iv index */
     if ((iv_index & 0x01) !=  net_pdu.net_metadata.ivi)
@@ -175,7 +175,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     }
 
     /* get net key */
-    const meshx_network_key_t *pnet_key = NULL;
+    const meshx_net_key_t *pnet_key = NULL;
     meshx_net_key_traverse_start(&pnet_key, net_pdu.net_metadata.nid);
     if (NULL == pnet_key)
     {
@@ -188,12 +188,12 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     while (NULL != pnet_key)
     {
         /* restore header */
-        meshx_network_obfuscation(&net_pdu, iv_index, pnet_key);
+        meshx_net_obfuscation(&net_pdu, iv_index, pnet_key);
 
         /* decrypt transport layer data */
         net_mic_len = net_pdu.net_metadata.ctl ? 8 : 4;
-        trans_pdu_len = len - sizeof(meshx_network_metadata_t) - net_mic_len;
-        ret = meshx_network_decrypt(&net_pdu, trans_pdu_len, iv_index, pnet_key);
+        trans_pdu_len = len - sizeof(meshx_net_metadata_t) - net_mic_len;
+        ret = meshx_net_decrypt(&net_pdu, trans_pdu_len, iv_index, pnet_key);
         if (MESHX_SUCCESS == ret)
         {
             break;
@@ -206,7 +206,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
 
     if (NULL == pnet_key)
     {
-        MESHX_ERROR("can't decrypt pdu with network key that nid is 0x%x", net_pdu.net_metadata.nid);
+        MESHX_ERROR("can't decrypt pdu with net key that nid is 0x%x", net_pdu.net_metadata.nid);
         return -MESHX_ERR_KEY;
     }
 
@@ -253,7 +253,7 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
         msg_ctx.iv_index = iv_index;
         msg_ctx.seq = seq;
         msg_ctx.pnet_key = pnet_key;
-        ret = meshx_lower_transport_receive(network_if, net_pdu.pdu, trans_pdu_len, &msg_ctx);
+        ret = meshx_lower_transport_receive(net_iface, net_pdu.pdu, trans_pdu_len, &msg_ctx);
     }
     else
     {
@@ -264,39 +264,43 @@ int32_t meshx_network_receive(meshx_network_if_t network_if, const uint8_t *pdat
     return ret;
 }
 
-int32_t meshx_network_send(meshx_network_if_t network_if,
-                           const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
-                           const meshx_msg_ctx_t *pmsg_ctx)
+int32_t meshx_net_send(meshx_net_iface_t net_iface,
+                       const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
+                       const meshx_msg_ctx_t *pmsg_ctx)
 {
-    if (NULL == network_if)
+#if MESHX_REDUNDANCY_CHECK
+    if (NULL == net_iface)
     {
-        MESHX_ERROR("network interface is NULL");
+        MESHX_ERROR("net interface is NULL");
         return -MESHX_ERR_INVAL;
     }
 
-    if (trans_pdu_len > MESHX_NETWORK_TRANS_PDU_MAX_LEN)
+    if (trans_pdu_len > MESHX_NET_TRANS_PDU_MAX_LEN)
     {
         return -MESHX_ERR_LENGTH;
     }
+#endif
 
-    meshx_bearer_t bearer = meshx_network_if_get_bearer(network_if);
-    if (NULL == bearer)
+    uint8_t net_iface_type = meshx_net_iface_type_get(net_iface);
+    meshx_bearer_t bearer = meshx_net_iface_get_bearer(net_iface);
+    if ((NULL == bearer) && (MESHX_NET_IFACE_TYPE_LOOPBACK != net_iface_type))
     {
-        MESHX_ERROR("network interface(0x%08x) hasn't connected to any bearer", network_if);
+        MESHX_ERROR("net interface(0x%08x) hasn't connected to any bearer", net_iface);
         return -MESHX_ERR_CONNECT;
     }
 
     /* filter data */
-    meshx_network_if_output_filter_data_t filter_data = {.src_addr = pmsg_ctx->src, .dst_addr = pmsg_ctx->dst};
-    if (!meshx_network_if_output_filter(network_if, &filter_data))
+    meshx_net_iface_ofilter_data_t filter_data = {.src_addr = pmsg_ctx->src, .dst_addr = pmsg_ctx->dst};
+    if (!meshx_net_iface_ofilter(net_iface, &filter_data))
     {
         MESHX_INFO("data has been filtered!");
         return -MESHX_ERR_FILTER;
     }
 
+#if MESHX_REDUNDANCY_CHECK
     if (pmsg_ctx->ctl)
     {
-        if (trans_pdu_len > MESHX_NETWORK_TRANS_PDU_MAX_LEN - 8)
+        if (trans_pdu_len > MESHX_NET_TRANS_PDU_MAX_LEN - 8)
         {
             MESHX_ERROR("invalid trans pdu length for control message: %d-%d", pmsg_ctx->ctl, trans_pdu_len);
             return -MESHX_ERR_LENGTH;
@@ -304,15 +308,16 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     }
     else
     {
-        if (trans_pdu_len > MESHX_NETWORK_TRANS_PDU_MAX_LEN - 4)
+        if (trans_pdu_len > MESHX_NET_TRANS_PDU_MAX_LEN - 4)
         {
             MESHX_ERROR("invalid trans pdu length for access message: %d-%d", pmsg_ctx->ctl, trans_pdu_len);
             return -MESHX_ERR_LENGTH;
         }
     }
+#endif
 
     uint32_t seq = pmsg_ctx->seq;
-    meshx_network_pdu_t net_pdu = {0};
+    meshx_net_pdu_t net_pdu = {0};
     net_pdu.net_metadata.ivi = (pmsg_ctx->iv_index & 0x01);
     net_pdu.net_metadata.nid = pmsg_ctx->pnet_key->nid;
     net_pdu.net_metadata.ctl = pmsg_ctx->ctl;
@@ -324,15 +329,15 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     net_pdu.net_metadata.dst = MESHX_HOST_TO_BE16(pmsg_ctx->dst);
     memcpy(net_pdu.pdu, ptrans_pdu, trans_pdu_len);
     uint8_t net_mic_len = pmsg_ctx->ctl ? 8 : 4;
-    uint8_t net_pdu_len = sizeof(meshx_network_metadata_t) + trans_pdu_len + net_mic_len;
-    MESHX_DEBUG("origin network pdu:");
+    uint8_t net_pdu_len = sizeof(meshx_net_metadata_t) + trans_pdu_len + net_mic_len;
+    MESHX_DEBUG("origin net pdu:");
     MESHX_DUMP_DEBUG(&net_pdu, net_pdu_len);
 
     /* encrypt dst field and trans pdu */
-    meshx_network_encrypt(&net_pdu, trans_pdu_len, pmsg_ctx->iv_index, pmsg_ctx->pnet_key);
+    meshx_net_encrypt(&net_pdu, trans_pdu_len, pmsg_ctx->iv_index, pmsg_ctx->pnet_key);
 
     /* obfuscation ctl, ttl, seq, src fields */
-    meshx_network_obfuscation(&net_pdu, pmsg_ctx->iv_index, pmsg_ctx->pnet_key);
+    meshx_net_obfuscation(&net_pdu, pmsg_ctx->iv_index, pmsg_ctx->pnet_key);
 
     MESHX_DEBUG("encrypt and obsfucation net pdu:");
     MESHX_DUMP_DEBUG(&net_pdu, net_pdu_len);
@@ -345,7 +350,7 @@ int32_t meshx_network_send(meshx_network_if_t network_if,
     }
     else
     {
-        pkt_type = MESHX_BEARER_GATT_PKT_TYPE_NETWORK;
+        pkt_type = MESHX_BEARER_GATT_PKT_TYPE_NET;
     }
 
     return meshx_bearer_send(bearer, pkt_type, (const uint8_t *)&net_pdu, net_pdu_len);

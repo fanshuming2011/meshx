@@ -12,7 +12,7 @@
 #include "meshx_trace.h"
 #include "meshx_assert.h"
 #include "meshx_gap.h"
-#include "meshx_network.h"
+#include "meshx_net.h"
 #include "meshx_node_internal.h"
 
 

@@ -18,14 +18,14 @@ MESHX_BEGIN_DECLS
 #define MESHX_ERR_INVAL                3 /* Invalid argument */
 #define MESHX_ERR_INVAL_ADTYPE         4 /* Invalid adtype */
 #define MESHX_ERR_STATE                5 /* Invalid state */
-#define MESHX_ERR_INVAL_NETWORK_IF     6 /* Invalid network interface */
+#define MESHX_ERR_INVAL_NET_IFACE      6 /* Invalid network interface */
 #define MESHX_ERR_BUSY                 7 /* Device or resource busy*/
 #define MESHX_ERR_AGAIN                8 /* Try again*/
 #define MESHX_ERR_ALREADY              9 /* Operation already done */
 #define MESHX_ERR_LENGTH               10 /* Invalid parameter length */
 #define MESHX_ERR_MAX                  11 /* Reach maximum limitation */
 #define MESHX_ERR_CONNECT              12 /* Bearer has not connected to network interface */
-#define MESHX_ERR_FILTER               13 /* Do not pass netwrok interface filter */
+#define MESHX_ERR_FILTER               13 /* Do not pass network interface filter */
 #define MESHX_ERR_DIFF                 14 /* Value is different */
 #define MESHX_ERR_STOP                 15 /* Stop execution */
 #define MESHX_ERR_RESOURCE             16 /* No resource */

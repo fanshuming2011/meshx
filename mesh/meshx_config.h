@@ -23,7 +23,7 @@
 #define MESHX_GAP_SCAN_INTERVAL                    160 /* 100ms */
 
 /* network interface */
-#define MESHX_NETWORK_IF_MAX_NUM                   9
+#define MESHX_NET_IFACE_MAX_NUM                    9
 
 #define MESHX_REDUNDANCY_CHECK                     1
 

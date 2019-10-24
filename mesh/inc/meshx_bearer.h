@@ -21,11 +21,11 @@ MESHX_BEGIN_DECLS
                                                         (type == MESHX_BEARER_ADV_PKT_TYPE_MESH_MSG) || \
                                                         (type == MESHX_BEARER_ADV_PKT_TYPE_BEACON))
 
-#define MESHX_BEARER_GATT_PKT_TYPE_NETWORK              0x00
+#define MESHX_BEARER_GATT_PKT_TYPE_NET                  0x00
 #define MESHX_BEARER_GATT_PKT_TYPE_BEACON               0x01
 #define MESHX_BEARER_GATT_PKT_TYPE_PROXY_CONFIG         0x02
 #define MESHX_BEARER_GATT_PKT_TYPE_PROVISION            0x03
-#define MESHX_IS_BEARER_GATT_ADV_PKT_TYPE_VALID(type)   ((type == MESHX_BEARER_GATT_PKT_TYPE_NETWORK) || \
+#define MESHX_IS_BEARER_GATT_ADV_PKT_TYPE_VALID(type)   ((type == MESHX_BEARER_GATT_PKT_TYPE_NET) || \
                                                          (type == MESHX_BEARER_GATT_PKT_TYPE_BEACON) || \
                                                          (type == MESHX_BEARER_GATT_PKT_TYPE_PROXY_CONFIG) || \
                                                          (type == MESHX_BEARER_GATT_PKT_TYPE_PROVISION))

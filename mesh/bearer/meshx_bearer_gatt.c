@@ -10,7 +10,7 @@
 #include "meshx_bearer_internal.h"
 #include "meshx_errno.h"
 #include "meshx_assert.h"
-#include "meshx_network.h"
+#include "meshx_net.h"
 
 
 typedef struct

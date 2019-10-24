@@ -205,7 +205,7 @@ typedef struct
 
 typedef struct
 {
-    meshx_key_t network_key;
+    meshx_key_t net_key;
     uint16_t key_index;
     uint8_t key_refresh_flag : 1;
     uint8_t iv_update_flag : 1;

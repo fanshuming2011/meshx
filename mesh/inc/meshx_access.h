@@ -8,7 +8,7 @@
 #ifndef _MESHX_ACCESS_H_
 #define _MESHX_ACCESS_H_
 
-#include "meshx_network.h"
+#include "meshx_net.h"
 
 MESHX_BEGIN_DECLS
 
@@ -17,9 +17,9 @@ MESHX_BEGIN_DECLS
 MESHX_EXTERN int32_t meshx_access_init(void);
 MESHX_EXTERN void meshx_access_opcode_to_buf(uint32_t opcode, uint8_t *pdata);
 MESHX_EXTERN uint32_t meshx_access_buf_to_opcode(const uint8_t *pdata);
-MESHX_EXTERN int32_t meshx_access_send(meshx_network_if_t network_if,
+MESHX_EXTERN int32_t meshx_access_send(meshx_net_iface_t net_iface,
                                        const uint8_t *pdata, uint16_t len, meshx_msg_ctx_t *pmsg_tx_ctx);
-MESHX_EXTERN int32_t meshx_access_receive(meshx_network_if_t network_if,
+MESHX_EXTERN int32_t meshx_access_receive(meshx_net_iface_t net_iface,
                                           const uint8_t *pdata,
                                           uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx);
 

@@ -25,15 +25,17 @@ int32_t meshx_init(void)
     {
         meshx_gap_init(meshx_node_params.config.gap_task_num);
     }
-    meshx_network_init();
+    meshx_net_init();
     meshx_lower_transport_init();
+    meshx_upper_transport_init();
+    meshx_access_init();
     meshx_provision_init();
 
     meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV};
     meshx_bearer_t adv_bearer = meshx_bearer_create(adv_param);
 
-    meshx_network_if_t adv_network_if = meshx_network_if_create();
-    meshx_network_if_connect(adv_network_if, adv_bearer, NULL, NULL);
+    meshx_net_iface_t adv_net_iface = meshx_net_iface_create();
+    meshx_net_iface_connect(adv_net_iface, adv_bearer, NULL, NULL);
 
 
     return MESHX_SUCCESS;

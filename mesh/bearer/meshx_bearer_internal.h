@@ -11,14 +11,14 @@
 #include "meshx_types.h"
 #include "meshx_errno.h"
 #include "meshx_bearer.h"
-#include "meshx_network.h"
+#include "meshx_net.h"
 
 MESHX_BEGIN_DECLS
 
 struct _meshx_bearer
 {
     uint8_t type;
-    meshx_network_if_t network_if;
+    meshx_net_iface_t net_iface;
 };
 
 

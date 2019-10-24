@@ -8,16 +8,16 @@
 #ifndef _MESHX_LOWER_TRANSPORT_H_
 #define _MESHX_LOWER_TRANSPORT_H_
 
-#include "meshx_network.h"
+#include "meshx_net.h"
 
 MESHX_BEGIN_DECLS
 
 
 MESHX_EXTERN int32_t meshx_lower_transport_init(void);
-MESHX_EXTERN int32_t meshx_lower_transport_send(meshx_network_if_t network_if,
+MESHX_EXTERN int32_t meshx_lower_transport_send(meshx_net_iface_t net_iface,
                                                 const uint8_t *pupper_trans_pdu, uint16_t len,
                                                 meshx_msg_ctx_t *pmsg_tx_ctx);
-MESHX_EXTERN int32_t meshx_lower_transport_receive(meshx_network_if_t network_if,
+MESHX_EXTERN int32_t meshx_lower_transport_receive(meshx_net_iface_t net_iface,
                                                    uint8_t *pdata,
                                                    uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx);
 

@@ -94,7 +94,7 @@ const meshx_provision_start_t sample_prov_start =
 
 const meshx_provision_data_t sample_prov_data =
 {
-    .network_key = SAMPLE_NET_KEY1,
+    .net_key = SAMPLE_NET_KEY1,
     .key_index = 0x0567,
     .key_refresh_flag = 0,
     .iv_update_flag = 0,

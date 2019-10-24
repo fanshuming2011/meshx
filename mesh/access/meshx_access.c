@@ -78,7 +78,7 @@ uint32_t meshx_access_buf_to_opcode(const uint8_t *pdata)
     return opcode;
 }
 
-int32_t meshx_access_send(meshx_network_if_t network_if,
+int32_t meshx_access_send(meshx_net_iface_t net_iface,
                           const uint8_t *pdata, uint16_t len, meshx_msg_ctx_t *pmsg_tx_ctx)
 {
     /* check address */
@@ -123,10 +123,10 @@ int32_t meshx_access_send(meshx_network_if_t network_if,
         return -MESHX_ERR_LENGTH;
     }
 
-    return meshx_upper_transport_send(network_if, pdata, len, pmsg_tx_ctx);
+    return meshx_upper_transport_send(net_iface, pdata, len, pmsg_tx_ctx);
 }
 
-int32_t meshx_access_receive(meshx_network_if_t network_if,
+int32_t meshx_access_receive(meshx_net_iface_t net_iface,
                              const uint8_t *pdata,
                              uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {

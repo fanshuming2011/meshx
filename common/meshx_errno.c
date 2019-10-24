@@ -28,7 +28,7 @@ static const char *meshx_err_str_table[] =
     "invalid parameter length",
     "reach maximum limitation",
     "bearer has not connected to network interface",
-    "do not pass netwrok interface filter",
+    "do not pass network interface filter",
     "value is different",
     "stop execution",
     "no resource",

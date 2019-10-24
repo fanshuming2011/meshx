@@ -18,13 +18,13 @@
 
 typedef struct
 {
-    meshx_network_key_t net_key;
+    meshx_net_key_t net_key;
     meshx_list_t node;
 } meshx_net_key_info_t;
 
 typedef struct
 {
-    meshx_application_key_t app_key;
+    meshx_app_key_t app_key;
     meshx_list_t node;
 } meshx_app_key_info_t;
 
@@ -62,7 +62,7 @@ int32_t meshx_app_key_init(void)
     return MESHX_SUCCESS;
 }
 
-const meshx_application_key_t *meshx_app_key_get(uint16_t app_key_index)
+const meshx_app_key_t *meshx_app_key_get(uint16_t app_key_index)
 {
     meshx_list_t *pnode;
     meshx_app_key_info_t *papp_key;
@@ -78,7 +78,7 @@ const meshx_application_key_t *meshx_app_key_get(uint16_t app_key_index)
     return NULL;
 }
 
-void meshx_app_key_traverse_start(const meshx_application_key_t **ptraverse_key, uint8_t aid)
+void meshx_app_key_traverse_start(const meshx_app_key_t **ptraverse_key, uint8_t aid)
 {
     *ptraverse_key = NULL;
     meshx_list_t *pnode;
@@ -94,7 +94,7 @@ void meshx_app_key_traverse_start(const meshx_application_key_t **ptraverse_key,
     }
 }
 
-void meshx_app_key_traverse_continue(const meshx_application_key_t **ptraverse_key, uint8_t aid)
+void meshx_app_key_traverse_continue(const meshx_app_key_t **ptraverse_key, uint8_t aid)
 {
     const meshx_app_key_info_t *pinfo = (const meshx_app_key_info_t *)(*ptraverse_key);
     *ptraverse_key = NULL;
@@ -111,7 +111,7 @@ void meshx_app_key_traverse_continue(const meshx_application_key_t **ptraverse_k
     }
 }
 
-static void meshx_app_key_derive(meshx_application_key_t *papp_key)
+static void meshx_app_key_derive(meshx_app_key_t *papp_key)
 {
     meshx_k4(papp_key->app_key, &papp_key->aid);
     MESHX_INFO("aid: 0x%x", papp_key->aid);
@@ -186,7 +186,7 @@ int32_t meshx_net_key_init(void)
     return MESHX_SUCCESS;
 }
 
-const meshx_network_key_t *meshx_net_key_get(uint16_t net_key_index)
+const meshx_net_key_t *meshx_net_key_get(uint16_t net_key_index)
 {
     meshx_list_t *pnode;
     meshx_net_key_info_t *pnet_key;
@@ -202,7 +202,7 @@ const meshx_network_key_t *meshx_net_key_get(uint16_t net_key_index)
     return NULL;
 }
 
-void meshx_net_key_traverse_start(const meshx_network_key_t **ptraverse_key, uint8_t nid)
+void meshx_net_key_traverse_start(const meshx_net_key_t **ptraverse_key, uint8_t nid)
 {
     *ptraverse_key = NULL;
     meshx_list_t *pnode;
@@ -218,7 +218,7 @@ void meshx_net_key_traverse_start(const meshx_network_key_t **ptraverse_key, uin
     }
 }
 
-void meshx_net_key_traverse_continue(const meshx_network_key_t **ptraverse_key, uint8_t nid)
+void meshx_net_key_traverse_continue(const meshx_net_key_t **ptraverse_key, uint8_t nid)
 {
     const meshx_net_key_info_t *pinfo = (const meshx_net_key_info_t *)(*ptraverse_key);
     *ptraverse_key = NULL;
@@ -235,7 +235,7 @@ void meshx_net_key_traverse_continue(const meshx_network_key_t **ptraverse_key, 
     }
 }
 
-static void meshx_net_key_derive(meshx_network_key_t *pnet_key)
+static void meshx_net_key_derive(meshx_net_key_t *pnet_key)
 {
     /* identity key */
     uint8_t salt_M[] = {'n', 'k', 'i', 'k'};
@@ -263,9 +263,9 @@ static void meshx_net_key_derive(meshx_network_key_t *pnet_key)
     MESHX_DEBUG("privacy key:");
     MESHX_DUMP_DEBUG(pnet_key->privacy_key, sizeof(meshx_key_t));
     /* network id */
-    meshx_k3(pnet_key->net_key, pnet_key->network_id);
+    meshx_k3(pnet_key->net_key, pnet_key->net_id);
     MESHX_DEBUG("network id:");
-    MESHX_DUMP_DEBUG(pnet_key->network_id, sizeof(meshx_network_id_t));
+    MESHX_DUMP_DEBUG(pnet_key->net_id, sizeof(meshx_net_id_t));
 }
 
 int32_t meshx_net_key_add(uint16_t net_key_index, meshx_key_t net_key)

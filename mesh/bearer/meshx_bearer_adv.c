@@ -15,7 +15,7 @@
 #include "meshx_assert.h"
 #include "meshx_list.h"
 #include "meshx_mem.h"
-#include "meshx_network.h"
+#include "meshx_net.h"
 #include "meshx_provision_internal.h"
 #include "meshx_beacon_internal.h"
 
@@ -55,7 +55,7 @@ meshx_bearer_t meshx_bearer_adv_create(meshx_bearer_param_adv_t adv_param)
     }
 
     bearer_adv.bearer.type = MESHX_BEARER_TYPE_ADV;
-    bearer_adv.bearer.network_if = NULL;
+    bearer_adv.bearer.net_iface = NULL;
     bearer_adv.param = adv_param;
     MESHX_INFO("create adv bearer(0x%08x) success", &bearer_adv);
     return &bearer_adv.bearer;
@@ -111,13 +111,13 @@ int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const 
     switch (adv_type)
     {
     case MESHX_GAP_ADTYPE_MESH_MSG:
-        if (NULL == bearer->network_if)
+        if (NULL == bearer->net_iface)
         {
             MESHX_WARN("adv bearer(0x%08x) hasn't connected to any network interface!", bearer);
             ret = -MESHX_ERR_CONNECT;
             break;
         }
-        ret = meshx_network_receive(bearer->network_if, pdata, len);
+        ret = meshx_net_receive(bearer->net_iface, pdata, len);
         break;
     case MESHX_GAP_ADTYPE_PB_ADV:
         ret = meshx_provision_receive(bearer, pdata, len);

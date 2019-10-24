@@ -433,7 +433,7 @@ static void *meshx_thread(void *pargs)
     meshx_bearer_rx_metadata_t rx_metadata;
     rx_metadata.bearer_type = MESHX_BEARER_TYPE_ADV;
     meshx_bearer_t adv_bearer = meshx_bearer_get(&rx_metadata);
-    meshx_network_if_t adv_net_if = meshx_network_if_get(adv_bearer);
+    meshx_net_iface_t adv_net_if = meshx_net_iface_get(adv_bearer);
 
     /*********************** send sample network data *********************/
     meshx_msg_ctx_t ctx;
@@ -446,12 +446,12 @@ static void *meshx_thread(void *pargs)
     ctx.seq = 1;
     ctx.pnet_key = meshx_net_key_get(0);
     uint8_t trans_pdu[] = {0x03, 0x4b, 0x50, 0x05, 0x7e, 0x40, 0x00, 0x00, 0x01, 0x00, 0x00};
-    meshx_network_send(adv_net_if, trans_pdu, sizeof(trans_pdu), &ctx);
+    meshx_net_send(adv_net_if, trans_pdu, sizeof(trans_pdu), &ctx);
 #endif
     /*******************************************************/
 
     /*********************** send sample lower transport data *********************/
-    //const meshx_application_key_t *papp_key = meshx_app_key_get(0);
+    //const meshx_app_key_t *papp_key = meshx_app_key_get(0);
     meshx_seq_set(0, 0x3129ab);
     ctx.ctl = 0x00;
     ctx.src = meshx_node_params_get().node_addr;

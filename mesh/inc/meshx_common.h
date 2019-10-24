@@ -46,7 +46,7 @@ typedef uint8_t meshx_dev_uuid_t[16];
 #define MESHX_NET_KEY_INDEX_MAX                       0xFFF
 #define MESHX_APP_KEY_INDEX_MAX                       0xFFF
 typedef uint8_t meshx_key_t[16];
-typedef uint8_t meshx_network_id_t[8];
+typedef uint8_t meshx_net_id_t[8];
 
 typedef struct
 {
@@ -57,16 +57,16 @@ typedef struct
     uint8_t nid; /* least significant 6 bits */
     meshx_key_t encryption_key;
     meshx_key_t privacy_key;
-    meshx_network_id_t network_id;
-} meshx_network_key_t;
+    meshx_net_id_t net_id;
+} meshx_net_key_t;
 
 typedef struct
 {
     uint16_t app_key_index;
-    meshx_network_key_t *pnet_key_bind;
+    meshx_net_key_t *pnet_key_bind;
     meshx_key_t app_key;
     uint8_t aid; /* least significant 6 bits */
-} meshx_application_key_t;
+} meshx_app_key_t;
 
 typedef struct
 {
@@ -87,7 +87,7 @@ typedef struct
     uint32_t seq_auth: 24;
     uint16_t seg : 1;
     uint16_t rsvd : 7;
-    const meshx_network_key_t *pnet_key;
+    const meshx_net_key_t *pnet_key;
 
     union
     {

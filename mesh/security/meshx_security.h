@@ -15,8 +15,8 @@ MESHX_BEGIN_DECLS
 
 #define MESHX_NONCE_SIZE                  13
 
-#define MESHX_NONCE_TYPE_NETWORK          0
-#define MESHX_NONCE_TYPE_APPLICAITON      1
+#define MESHX_NONCE_TYPE_NET              0
+#define MESHX_NONCE_TYPE_APP              1
 #define MESHX_NONCE_TYPE_DEVICE           2
 #define MESHX_NONCE_TYPE_PROXY            3
 
@@ -29,7 +29,7 @@ typedef struct
     uint16_t src;
     uint16_t pad;
     uint32_t iv_index;
-} __PACKED meshx_network_nonce_t;
+} __PACKED meshx_net_nonce_t;
 
 typedef struct
 {
@@ -40,7 +40,7 @@ typedef struct
     uint16_t src;
     uint16_t dst;
     uint32_t iv_index;
-} __PACKED meshx_application_nonce_t;
+} __PACKED meshx_app_nonce_t;
 
 typedef struct
 {

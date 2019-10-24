@@ -18,7 +18,7 @@
 #include "meshx_cmd.h"
 #include "meshx_gap.h"
 #include "meshx_bearer.h"
-#include "meshx_network.h"
+#include "meshx_net.h"
 #include "meshx_provision.h"
 #include "meshx_node.h"
 #include "meshx_beacon.h"

@@ -34,8 +34,8 @@ static void meshx_upper_transport_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
     uint8_t nonce[MESHX_NONCE_SIZE];
     if (pmsg_tx_ctx->akf)
     {
-        meshx_application_nonce_t *papp_nonce = (meshx_application_nonce_t *)nonce;
-        papp_nonce->nonce_type = MESHX_NONCE_TYPE_APPLICAITON;
+        meshx_app_nonce_t *papp_nonce = (meshx_app_nonce_t *)nonce;
+        papp_nonce->nonce_type = MESHX_NONCE_TYPE_APP;
         papp_nonce->pad = 0;
         papp_nonce->aszmic = pmsg_tx_ctx->szmic;
         papp_nonce->seq[0] = pmsg_tx_ctx->seq_auth >> 16;
@@ -45,7 +45,7 @@ static void meshx_upper_transport_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
         papp_nonce->dst = MESHX_HOST_TO_BE16(pmsg_tx_ctx->dst);
         papp_nonce->iv_index = MESHX_HOST_TO_BE32(pmsg_tx_ctx->iv_index);
         MESHX_DEBUG("application nonce:");
-        MESHX_DUMP_DEBUG(papp_nonce, sizeof(meshx_application_nonce_t));
+        MESHX_DUMP_DEBUG(papp_nonce, sizeof(meshx_app_nonce_t));
     }
     else
     {
@@ -86,8 +86,8 @@ static int32_t meshx_upper_transport_decrypt(uint8_t *paccess_pdu, uint8_t pdu_l
     uint8_t nonce[MESHX_NONCE_SIZE];
     if (pmsg_rx_ctx->akf)
     {
-        meshx_application_nonce_t *papp_nonce = (meshx_application_nonce_t *)nonce;
-        papp_nonce->nonce_type = MESHX_NONCE_TYPE_APPLICAITON;
+        meshx_app_nonce_t *papp_nonce = (meshx_app_nonce_t *)nonce;
+        papp_nonce->nonce_type = MESHX_NONCE_TYPE_APP;
         papp_nonce->pad = 0;
         /* TODO: only valid in segment access message, other message shall be 0 */
         papp_nonce->aszmic = pmsg_rx_ctx->szmic;
@@ -98,10 +98,10 @@ static int32_t meshx_upper_transport_decrypt(uint8_t *paccess_pdu, uint8_t pdu_l
         papp_nonce->dst = MESHX_HOST_TO_BE16(pmsg_rx_ctx->dst);
         papp_nonce->iv_index = MESHX_HOST_TO_BE32(pmsg_rx_ctx->iv_index);
         MESHX_DEBUG("application nonce:");
-        MESHX_DUMP_DEBUG(papp_nonce, sizeof(meshx_application_nonce_t));
+        MESHX_DUMP_DEBUG(papp_nonce, sizeof(meshx_app_nonce_t));
 
         /* get app key */
-        const meshx_application_key_t *papp_key = NULL;
+        const meshx_app_key_t *papp_key = NULL;
         meshx_app_key_traverse_start(&papp_key, pmsg_rx_ctx->aid);
         if (NULL == papp_key)
         {
@@ -169,11 +169,11 @@ static int32_t meshx_upper_transport_decrypt(uint8_t *paccess_pdu, uint8_t pdu_l
     return ret;
 }
 
-int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
+int32_t meshx_upper_transport_send(meshx_net_iface_t net_iface,
                                    const uint8_t *pdata, uint16_t len,
                                    meshx_msg_ctx_t *pmsg_tx_ctx)
 {
-    if (!meshx_network_if_is_connect(network_if))
+    if (!meshx_net_iface_is_connect(net_iface))
     {
         MESHX_ERROR("network interface is disconnected!");
         return -MESHX_ERR_CONNECT;
@@ -193,7 +193,7 @@ int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
                    pmsg_tx_ctx->iv_index, pmsg_tx_ctx->seg, pmsg_tx_ctx->opcode);
         MESHX_DUMP_INFO(pdata, len);
 
-        ret = meshx_lower_transport_send(network_if, pdata, len, pmsg_tx_ctx);
+        ret = meshx_lower_transport_send(net_iface, pdata, len, pmsg_tx_ctx);
     }
     else
     {
@@ -224,14 +224,14 @@ int32_t meshx_upper_transport_send(meshx_network_if_t network_if,
         /* encrypt and authenticate access pdu */
         meshx_upper_transport_encrypt(ppdu, len, ppdu + len, trans_mic_len, pmsg_tx_ctx);
 
-        ret = meshx_lower_transport_send(network_if, ppdu, len + trans_mic_len, pmsg_tx_ctx);
+        ret = meshx_lower_transport_send(net_iface, ppdu, len + trans_mic_len, pmsg_tx_ctx);
         meshx_free(ppdu);
     }
 
     return ret;
 }
 
-int32_t meshx_upper_transport_receive(meshx_network_if_t network_if,
+int32_t meshx_upper_transport_receive(meshx_net_iface_t net_iface,
                                       uint8_t *pdata,
                                       uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
@@ -258,7 +258,7 @@ int32_t meshx_upper_transport_receive(meshx_network_if_t network_if,
         if (MESHX_SUCCESS == ret)
         {
             /* notify access layer */
-            ret = meshx_access_receive(network_if, pdata, len - trans_mic_len, pmsg_rx_ctx);
+            ret = meshx_access_receive(net_iface, pdata, len - trans_mic_len, pmsg_rx_ctx);
         }
         else
         {
