@@ -22,7 +22,7 @@
 #include "meshx_nmc.h"
 #include "meshx_rpl.h"
 #include "meshx_key.h"
-#include "meshx_lower_transport.h"
+#include "meshx_lower_trans.h"
 
 #define MESHX_NET_TRANS_PDU_MAX_LEN         20
 #define MESHX_NET_ENCRYPT_OFFSET            7
@@ -253,7 +253,7 @@ int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata, uin
         msg_ctx.iv_index = iv_index;
         msg_ctx.seq = seq;
         msg_ctx.pnet_key = pnet_key;
-        ret = meshx_lower_transport_receive(net_iface, net_pdu.pdu, trans_pdu_len, &msg_ctx);
+        ret = meshx_lower_trans_receive(net_iface, net_pdu.pdu, trans_pdu_len, &msg_ctx);
     }
     else
     {

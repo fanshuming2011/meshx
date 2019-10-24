@@ -27,4 +27,4 @@ MESHX_EXTERN int32_t meshx_access_receive(meshx_net_iface_t net_iface,
 
 MESHX_END_DECLS
 
-#endif /* _MESHX_LOWER_TRANSPORT_H_ */
+#endif /* _MESHX_LOWER_TRANS_H_ */

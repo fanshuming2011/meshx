@@ -32,8 +32,8 @@
 #include "meshx_seq.h"
 #include "meshx_iv_index.h"
 #include "meshx_key.h"
-#include "meshx_lower_transport.h"
-#include "meshx_upper_transport.h"
+#include "meshx_lower_trans.h"
+#include "meshx_upper_trans.h"
 #include "meshx_access.h"
 
 

@@ -26,8 +26,8 @@ int32_t meshx_init(void)
         meshx_gap_init(meshx_node_params.config.gap_task_num);
     }
     meshx_net_init();
-    meshx_lower_transport_init();
-    meshx_upper_transport_init();
+    meshx_lower_trans_init();
+    meshx_upper_trans_init();
     meshx_access_init();
     meshx_provision_init();
 

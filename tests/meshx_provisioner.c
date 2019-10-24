@@ -465,7 +465,7 @@ static void *meshx_thread(void *pargs)
     ctx.szmic = 0;
     ctx.seg = 0;
     uint8_t access_pdu[] = {0x00, 0x56, 0x34, 0x12, 0x63, 0x96, 0x47, 0x71, 0x73, 0x4f, 0xbd, 0x76, 0xe3, 0xb4, 0x05, 0x19, 0xd1, 0xd9, 0x4a, 0x48};
-    meshx_upper_transport_send(adv_net_if, access_pdu, sizeof(access_pdu), &ctx);
+    meshx_upper_trans_send(adv_net_if, access_pdu, sizeof(access_pdu), &ctx);
     ctx.seg = 0;
     uint8_t access_pdu1[] = {0x00, 0x11, 0x22};
     meshx_access_send(adv_net_if, access_pdu1, sizeof(access_pdu1), &ctx);

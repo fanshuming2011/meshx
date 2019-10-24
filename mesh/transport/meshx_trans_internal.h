@@ -5,8 +5,8 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
-#ifndef _MESHX_TRANSPORT_INTERNAL_H_
-#define _MESHX_TRANSPORT_INTERNAL_H_
+#ifndef _MESHX_TRANS_INTERNAL_H_
+#define _MESHX_TRANS_INTERNAL_H_
 
 #include "meshx_async_internal.h"
 
@@ -19,4 +19,4 @@ MESHX_EXTERN void meshx_lower_trans_async_handle_rx_incomplete_timeout(meshx_asy
 MESHX_END_DECLS
 
 
-#endif /* _MESHX_TRANSPORT_INTERNAL_H_ */
+#endif /* _MESHX_TRANS_INTERNAL_H_ */

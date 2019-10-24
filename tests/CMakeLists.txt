@@ -59,8 +59,8 @@ set(COMMON_SRC_LIST
     ../mesh/network/meshx_net.c
     ../mesh/network/meshx_net_iface.c
     ../mesh/network/meshx_nmc.c
-    ../mesh/transport/meshx_lower_transport.c
-    ../mesh/transport/meshx_upper_transport.c
+    ../mesh/transport/meshx_lower_trans.c
+    ../mesh/transport/meshx_upper_trans.c
     ../mesh/access/meshx_access.c
     ../mesh/provision/meshx_pb_adv.c
     ../mesh/provision/meshx_provision.c

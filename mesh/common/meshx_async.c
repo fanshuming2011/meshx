@@ -14,7 +14,7 @@
 #include "meshx_list.h"
 #include "meshx_mem.h"
 #include "meshx_beacon_internal.h"
-#include "meshx_transport_internal.h"
+#include "meshx_trans_internal.h"
 
 static meshx_async_msg_notify_t meshx_async_msg_notify;
 

@@ -11,7 +11,7 @@
 #include "meshx_errno.h"
 #include "meshx_trace.h"
 #include "meshx_assert.h"
-#include "meshx_upper_transport.h"
+#include "meshx_upper_trans.h"
 #include "meshx_node_internal.h"
 
 #define MESHX_UNSEG_ACCESS_MAX_PDU_SIZE                11
@@ -123,7 +123,7 @@ int32_t meshx_access_send(meshx_net_iface_t net_iface,
         return -MESHX_ERR_LENGTH;
     }
 
-    return meshx_upper_transport_send(net_iface, pdata, len, pmsg_tx_ctx);
+    return meshx_upper_trans_send(net_iface, pdata, len, pmsg_tx_ctx);
 }
 
 int32_t meshx_access_receive(meshx_net_iface_t net_iface,

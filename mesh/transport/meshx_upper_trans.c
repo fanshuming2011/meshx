@@ -5,11 +5,11 @@
  *
  * See the COPYING file for the terms of usage and distribution.
  */
-#define MESHX_TRACE_MODULE "MESHX_UPPER_TRANSPORT"
+#define MESHX_TRACE_MODULE "MESHX_UPPER_TRANS"
 #include <string.h>
 #include "meshx_trace.h"
-#include "meshx_upper_transport.h"
-#include "meshx_lower_transport.h"
+#include "meshx_upper_trans.h"
+#include "meshx_lower_trans.h"
 #include "meshx_errno.h"
 #include "meshx_key.h"
 #include "meshx_security.h"
@@ -22,14 +22,14 @@
 #define MESHX_UNSEG_ACCESS_MAX_PDU_SIZE                    15
 #define MESHX_MAX_CTL_PDU_SIZE                             256
 
-int32_t meshx_upper_transport_init(void)
+int32_t meshx_upper_trans_init(void)
 {
     return MESHX_SUCCESS;
 }
 
-static void meshx_upper_transport_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
-                                          uint8_t *ptrans_mic, uint8_t trans_mic_len,
-                                          const meshx_msg_ctx_t *pmsg_tx_ctx)
+static void meshx_upper_trans_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
+                                      uint8_t *ptrans_mic, uint8_t trans_mic_len,
+                                      const meshx_msg_ctx_t *pmsg_tx_ctx)
 {
     uint8_t nonce[MESHX_NONCE_SIZE];
     if (pmsg_tx_ctx->akf)
@@ -78,9 +78,9 @@ static void meshx_upper_transport_encrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
     MESHX_DUMP_DEBUG(ptrans_mic, trans_mic_len);
 }
 
-static int32_t meshx_upper_transport_decrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
-                                             uint8_t *ptrans_mic, uint8_t trans_mic_len,
-                                             meshx_msg_ctx_t *pmsg_rx_ctx)
+static int32_t meshx_upper_trans_decrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
+                                         uint8_t *ptrans_mic, uint8_t trans_mic_len,
+                                         meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     int32_t ret = MESHX_SUCCESS;
     uint8_t nonce[MESHX_NONCE_SIZE];
@@ -169,9 +169,9 @@ static int32_t meshx_upper_transport_decrypt(uint8_t *paccess_pdu, uint8_t pdu_l
     return ret;
 }
 
-int32_t meshx_upper_transport_send(meshx_net_iface_t net_iface,
-                                   const uint8_t *pdata, uint16_t len,
-                                   meshx_msg_ctx_t *pmsg_tx_ctx)
+int32_t meshx_upper_trans_send(meshx_net_iface_t net_iface,
+                               const uint8_t *pdata, uint16_t len,
+                               meshx_msg_ctx_t *pmsg_tx_ctx)
 {
     if (!meshx_net_iface_is_connect(net_iface))
     {
@@ -193,7 +193,7 @@ int32_t meshx_upper_transport_send(meshx_net_iface_t net_iface,
                    pmsg_tx_ctx->iv_index, pmsg_tx_ctx->seg, pmsg_tx_ctx->opcode);
         MESHX_DUMP_INFO(pdata, len);
 
-        ret = meshx_lower_transport_send(net_iface, pdata, len, pmsg_tx_ctx);
+        ret = meshx_lower_trans_send(net_iface, pdata, len, pmsg_tx_ctx);
     }
     else
     {
@@ -222,18 +222,18 @@ int32_t meshx_upper_transport_send(meshx_net_iface_t net_iface,
         MESHX_DUMP_INFO(pdata, len);
 
         /* encrypt and authenticate access pdu */
-        meshx_upper_transport_encrypt(ppdu, len, ppdu + len, trans_mic_len, pmsg_tx_ctx);
+        meshx_upper_trans_encrypt(ppdu, len, ppdu + len, trans_mic_len, pmsg_tx_ctx);
 
-        ret = meshx_lower_transport_send(net_iface, ppdu, len + trans_mic_len, pmsg_tx_ctx);
+        ret = meshx_lower_trans_send(net_iface, ppdu, len + trans_mic_len, pmsg_tx_ctx);
         meshx_free(ppdu);
     }
 
     return ret;
 }
 
-int32_t meshx_upper_transport_receive(meshx_net_iface_t net_iface,
-                                      uint8_t *pdata,
-                                      uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
+int32_t meshx_upper_trans_receive(meshx_net_iface_t net_iface,
+                                  uint8_t *pdata,
+                                  uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     MESHX_DEBUG("receive upper transport pdu: type %d", pmsg_rx_ctx->ctl);
     MESHX_DUMP_DEBUG(pdata, len);
@@ -253,8 +253,8 @@ int32_t meshx_upper_transport_receive(meshx_net_iface_t net_iface,
             trans_mic_len = 8;
         }
 
-        ret = meshx_upper_transport_decrypt(pdata, len - trans_mic_len, pdata + len - trans_mic_len,
-                                            trans_mic_len, pmsg_rx_ctx);
+        ret = meshx_upper_trans_decrypt(pdata, len - trans_mic_len, pdata + len - trans_mic_len,
+                                        trans_mic_len, pmsg_rx_ctx);
         if (MESHX_SUCCESS == ret)
         {
             /* notify access layer */

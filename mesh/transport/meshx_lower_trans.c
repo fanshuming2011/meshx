@@ -6,8 +6,8 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #include <string.h>
-#define MESHX_TRACE_MODULE "MESHX_LOWER_TRANSPORT"
-#include "meshx_lower_transport.h"
+#define MESHX_TRACE_MODULE "MESHX_LOWER_TRANS"
+#include "meshx_lower_trans.h"
 #include "meshx_errno.h"
 #include "meshx_list.h"
 #include "meshx_node_internal.h"
@@ -21,7 +21,7 @@
 #include "meshx_endianness.h"
 #include "meshx_seq.h"
 #include "meshx_iv_index.h"
-#include "meshx_upper_transport.h"
+#include "meshx_upper_trans.h"
 
 /**
  *  NOTE: only one segment message can send to the same destination once a time,
@@ -180,7 +180,7 @@ typedef struct
 
 static int32_t meshx_lower_trans_tx_task_run(meshx_lower_trans_tx_task_t *ptx_task);
 
-int32_t meshx_lower_transport_init(void)
+int32_t meshx_lower_trans_init(void)
 {
     meshx_lower_trans_tx_task_t *ptx_tasks = meshx_malloc(meshx_node_params.config.trans_tx_task_num *
                                                           sizeof(
@@ -627,8 +627,8 @@ static int32_t meshx_lower_trans_process_seg_msg(meshx_net_iface_t net_iface,
     return meshx_lower_trans_tx_task_try(ptask);
 }
 
-int32_t meshx_lower_transport_send(meshx_net_iface_t net_iface, const uint8_t *pupper_trans_pdu,
-                                   uint16_t pdu_len, meshx_msg_ctx_t *pmsg_tx_ctx)
+int32_t meshx_lower_trans_send(meshx_net_iface_t net_iface, const uint8_t *pupper_trans_pdu,
+                               uint16_t pdu_len, meshx_msg_ctx_t *pmsg_tx_ctx)
 {
     if (0 == pdu_len)
     {
@@ -719,8 +719,8 @@ static int32_t meshx_lower_trans_seg_ack(meshx_net_iface_t net_iface, uint32_t b
     msg_tx_ctx.seq = meshx_seq_use(msg_tx_ctx.src - meshx_node_params.param.node_addr);
 
     MESHX_INFO("lower transport block ack: 0x%08x", block_ack);
-    return meshx_lower_transport_send(net_iface, (const uint8_t *)&seg_ack,
-                                      sizeof(seg_ack), &msg_tx_ctx);
+    return meshx_lower_trans_send(net_iface, (const uint8_t *)&seg_ack,
+                                  sizeof(seg_ack), &msg_tx_ctx);
 }
 
 static void meshx_lower_trans_rx_task_release(meshx_lower_trans_rx_task_t *ptask)
@@ -1109,7 +1109,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
 
         /* notify upper transport layer */
         pmsg_rx_ctx->seg = 1;
-        meshx_upper_transport_receive(net_iface, ptask->ppdu, ptask->pdu_len, pmsg_rx_ctx);
+        meshx_upper_trans_receive(net_iface, ptask->ppdu, ptask->pdu_len, pmsg_rx_ctx);
     }
     else
     {
@@ -1151,7 +1151,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
 
             /* notify upper transport layer */
             pmsg_rx_ctx->seg = 1;
-            meshx_upper_transport_receive(net_iface, ptask->ppdu, ptask->pdu_len, pmsg_rx_ctx);
+            meshx_upper_trans_receive(net_iface, ptask->ppdu, ptask->pdu_len, pmsg_rx_ctx);
         }
         else
         {
@@ -1168,8 +1168,8 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_lower_transport_receive(meshx_net_iface_t net_iface, uint8_t *pdata,
-                                      uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
+int32_t meshx_lower_trans_receive(meshx_net_iface_t net_iface, uint8_t *pdata,
+                                  uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     MESHX_DEBUG("receive lower transport data:");
     MESHX_DUMP_DEBUG(pdata, len);
@@ -1203,7 +1203,7 @@ int32_t meshx_lower_transport_receive(meshx_net_iface_t net_iface, uint8_t *pdat
                 pmsg_rx_ctx->seg = 0;
                 pmsg_rx_ctx->opcode = pmetadata->opcode;
                 pmsg_rx_ctx->seq_auth = pmsg_rx_ctx->seq;
-                meshx_upper_transport_receive(net_iface, ppdu->pdu, pdu_len, pmsg_rx_ctx);
+                meshx_upper_trans_receive(net_iface, ppdu->pdu, pdu_len, pmsg_rx_ctx);
             }
         }
     }
@@ -1228,7 +1228,7 @@ int32_t meshx_lower_transport_receive(meshx_net_iface_t net_iface, uint8_t *pdat
             pmsg_rx_ctx->seg = 0;
             pmsg_rx_ctx->szmic = 0;
             pmsg_rx_ctx->seq_auth = pmsg_rx_ctx->seq;
-            meshx_upper_transport_receive(net_iface, ppdu->pdu, pdu_len, pmsg_rx_ctx);
+            meshx_upper_trans_receive(net_iface, ppdu->pdu, pdu_len, pmsg_rx_ctx);
         }
     }
 
