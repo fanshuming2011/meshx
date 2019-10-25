@@ -19,7 +19,7 @@
 #include "meshx_gap.h"
 #include "meshx_bearer.h"
 #include "meshx_net.h"
-#include "meshx_provision.h"
+#include "meshx_prov.h"
 #include "meshx_node.h"
 #include "meshx_beacon.h"
 #include "meshx_notify.h"

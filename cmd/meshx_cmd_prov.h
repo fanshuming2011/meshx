@@ -9,12 +9,12 @@
 #define _MESHX_CMD_PROV_H_
 
 #include "meshx_cmd.h"
-#include "meshx_provision.h"
+#include "meshx_prov.h"
 
 MESHX_BEGIN_DECLS
 
-MESHX_EXTERN int32_t meshx_cmd_prov_add_device(meshx_provision_dev_t prov_dev);
-MESHX_EXTERN void meshx_cmd_prov_remove_device(meshx_provision_dev_t prov_dev);
+MESHX_EXTERN int32_t meshx_cmd_prov_add_device(meshx_prov_dev_t prov_dev);
+MESHX_EXTERN void meshx_cmd_prov_remove_device(meshx_prov_dev_t prov_dev);
 
 MESHX_EXTERN int32_t meshx_cmd_prov_scan(const meshx_cmd_parsed_data_t *pparsed_data);
 MESHX_EXTERN int32_t meshx_cmd_prov_conn(const meshx_cmd_parsed_data_t *pparsed_data);

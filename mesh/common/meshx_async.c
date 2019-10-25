@@ -9,7 +9,7 @@
 #include "meshx_trace.h"
 #include "meshx_async.h"
 #include "meshx_async_internal.h"
-#include "meshx_provision_internal.h"
+#include "meshx_prov_internal.h"
 #include "meshx_errno.h"
 #include "meshx_list.h"
 #include "meshx_mem.h"

@@ -16,7 +16,7 @@
 #include "meshx_list.h"
 #include "meshx_mem.h"
 #include "meshx_net.h"
-#include "meshx_provision_internal.h"
+#include "meshx_prov_internal.h"
 #include "meshx_beacon_internal.h"
 
 typedef union
@@ -81,11 +81,14 @@ int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
         return -MESHX_ERR_INVAL;
     }
 
+#if MESHX_REDUNDANCY_CHECK
     if (len > MESHX_GAP_ADV_DATA_MAX_LEN - 2)
     {
         MESHX_ERROR("invalid length: %d", len);
         return -MESHX_ERR_LENGTH;
     }
+#endif
+
     meshx_bearer_adv_pkt_t adv_data;
     adv_data.length = len + 1;
     adv_data.ad_type = pkt_type;
@@ -120,7 +123,7 @@ int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const 
         ret = meshx_net_receive(bearer->net_iface, pdata, len);
         break;
     case MESHX_GAP_ADTYPE_PB_ADV:
-        ret = meshx_provision_receive(bearer, pdata, len);
+        ret = meshx_prov_receive(bearer, pdata, len);
         break;
     case MESHX_GAP_ADTYPE_MESH_BEACON:
         ret = meshx_beacon_receive(bearer, pdata, len, padv_metadata);

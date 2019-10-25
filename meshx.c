@@ -29,7 +29,7 @@ int32_t meshx_init(void)
     meshx_lower_trans_init();
     meshx_upper_trans_init();
     meshx_access_init();
-    meshx_provision_init();
+    meshx_prov_init();
 
     meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV};
     meshx_bearer_t adv_bearer = meshx_bearer_create(adv_param);

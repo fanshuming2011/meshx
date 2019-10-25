@@ -21,6 +21,7 @@ static meshx_node_config_t node_default_config =
     .dev_uuid = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
     .adv_bearer_enable = TRUE,
     .gatt_bearer_enable = TRUE,
+    .loopback_bearer_enable = TRUE,
     .net_key_num = 2,
     .app_key_num = 2,
     .dev_key_num = 10,
@@ -175,7 +176,13 @@ int32_t meshx_node_param_get(meshx_node_param_type_t type, void *pdata)
 
 bool meshx_node_is_my_address(uint16_t addr)
 {
-    /* 0xffff, node address, subscribe address, all realy node.... */
-    return TRUE;
+    /* node address range */
+    return FALSE;
+}
+
+bool meshx_node_is_accept_address(uint16_t addr)
+{
+    /* 0xffff, subscribe address, all realy node.... */
+    return FALSE;
 }
 

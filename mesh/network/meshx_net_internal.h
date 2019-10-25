@@ -11,10 +11,22 @@
 #include "meshx_common.h"
 #include "meshx_net.h"
 #include "meshx_bearer.h"
+#include "meshx_list.h"
 
 MESHX_BEGIN_DECLS
 
 
+typedef struct
+{
+    uint8_t type;
+    meshx_bearer_t bearer;
+    meshx_net_iface_ifilter_t ifilter;
+    meshx_net_iface_ofilter_t ofilter;
+    meshx_net_iface_filter_info_t filter_info;
+    meshx_list_t node;
+} meshx_net_iface_info_t;
+
+extern meshx_list_t meshx_net_iface_list;
 
 MESHX_EXTERN int32_t meshx_net_iface_init(void);
 MESHX_EXTERN bool meshx_net_iface_ifilter(meshx_net_iface_t net_iface,

@@ -19,6 +19,7 @@ typedef struct
     meshx_dev_uuid_t dev_uuid;
     bool adv_bearer_enable;
     bool gatt_bearer_enable;
+    bool loopback_bearer_enable;
     uint16_t net_key_num;
     uint16_t app_key_num;
     uint16_t dev_key_num;
@@ -51,6 +52,7 @@ typedef enum
 
 
 MESHX_EXTERN bool meshx_node_is_my_address(uint16_t addr);
+MESHX_EXTERN bool meshx_node_is_accept_address(uint16_t addr);
 
 MESHX_EXTERN int32_t meshx_node_config_init(meshx_node_config_t *pconfig);
 MESHX_EXTERN int32_t meshx_node_config_set(const meshx_node_config_t *pconfig);

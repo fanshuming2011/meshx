@@ -19,7 +19,6 @@ MESHX_BEGIN_DECLS
 #define MESHX_NET_IFACE_TYPE_GATT              2
 #define MESHX_NET_IFACE_TYPE_LOOPBACK          3
 
-typedef void *meshx_net_iface_t;
 
 typedef struct
 {
@@ -59,13 +58,14 @@ MESHX_EXTERN int32_t meshx_net_iface_connect(meshx_net_iface_t net_iface, meshx_
 MESHX_EXTERN void meshx_net_iface_disconnect(meshx_net_iface_t net_iface);
 MESHX_EXTERN bool meshx_net_iface_is_connect(meshx_net_iface_t net_iface);
 MESHX_EXTERN meshx_net_iface_t meshx_net_iface_get(meshx_bearer_t bearer);
-MESHX_EXTERN uint8_t meshx_net_iface_type_get(meshx_net_iface_t net_iface);
+MESHX_EXTERN uint8_t meshx_net_iface_type(meshx_net_iface_t net_iface);
+MESHX_EXTERN void meshx_net_iface_traverse_start(meshx_net_iface_t *ptraverse_net_iface);
+MESHX_EXTERN void meshx_net_iface_traverse_continue(meshx_net_iface_t *ptraverse_net_iface);
 
 MESHX_EXTERN int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata,
                                        uint8_t len);
-MESHX_EXTERN int32_t meshx_net_send(meshx_net_iface_t net_iface,
-                                    const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
-                                    const meshx_msg_ctx_t *pmsg_ctx);
+MESHX_EXTERN int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
+                                    const meshx_msg_ctx_t *pmsg_tx_ctx);
 
 MESHX_EXTERN meshx_net_iface_filter_info_t meshx_net_iface_get_filter_info(
     meshx_net_iface_t net_iface);

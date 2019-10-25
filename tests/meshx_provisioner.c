@@ -86,13 +86,13 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
     case MESHX_PROV_NOTIFY_LINK_OPEN:
         {
             gettimeofday(&tv_prov_begin, NULL);
-            const meshx_provision_link_open_result_t *presult = pprov->pdata;
+            const meshx_prov_link_open_result_t *presult = pprov->pdata;
             meshx_tty_printf("link opened, result: %d\r\n", *presult);
-            if (*presult == MESHX_PROVISION_LINK_OPEN_SUCCESS)
+            if (*presult == MESHX_PROV_LINK_OPEN_SUCCESS)
             {
-                meshx_provision_invite_t invite = {0};
+                meshx_prov_invite_t invite = {0};
                 /* send invite */
-                meshx_provision_invite(pprov->metadata.prov_dev, invite);
+                meshx_prov_invite(pprov->metadata.prov_dev, invite);
             }
         }
         break;
@@ -104,73 +104,73 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_CAPABILITES:
         {
-            const meshx_provision_capabilites_t *pcap = pprov->pdata;
+            const meshx_prov_capabilites_t *pcap = pprov->pdata;
             meshx_tty_printf("capabilites:");
-            meshx_tty_dump((const uint8_t *)pcap, sizeof(meshx_provision_capabilites_t));
+            meshx_tty_dump((const uint8_t *)pcap, sizeof(meshx_prov_capabilites_t));
             meshx_tty_printf("\r\n");
             /* send start */
-            meshx_provision_start_t start;
-            memset(&start, 0, sizeof(meshx_provision_start_t));
-            start.algorithm = MESHX_PROVISION_ALGORITHM_P256_CURVE;
-            start.auth_method = MESHX_PROVISION_AUTH_METHOD_NO_OOB;
-            meshx_provision_start(pprov->metadata.prov_dev, &start);
+            meshx_prov_start_t start;
+            memset(&start, 0, sizeof(meshx_prov_start_t));
+            start.algorithm = MESHX_PROV_ALGORITHM_P256_CURVE;
+            start.auth_method = MESHX_PROV_AUTH_METHOD_NO_OOB;
+            meshx_prov_start(pprov->metadata.prov_dev, &start);
         }
         break;
     case MESHX_PROV_NOTIFY_PUBLIC_KEY:
         {
-            const meshx_provision_public_key_t *ppub_key = pprov->pdata;
+            const meshx_prov_public_key_t *ppub_key = pprov->pdata;
             meshx_tty_printf("public key:");
-            meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_provision_public_key_t));
+            meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_prov_public_key_t));
             meshx_tty_printf("\r\n");
 
             /* generate auth value */
-            meshx_provision_auth_value_t auth_value;
-            auth_value.auth_method = MESHX_PROVISION_AUTH_METHOD_NO_OOB;
-            meshx_provision_set_auth_value(pprov->metadata.prov_dev, &auth_value);
+            meshx_prov_auth_value_t auth_value;
+            auth_value.auth_method = MESHX_PROV_AUTH_METHOD_NO_OOB;
+            meshx_prov_set_auth_value(pprov->metadata.prov_dev, &auth_value);
             /* generate confirmation */
-            meshx_provision_random_t random;
-            meshx_provision_get_random(pprov->metadata.prov_dev, &random);
-            meshx_provision_generate_confirmation(pprov->metadata.prov_dev, &random);
+            meshx_prov_random_t random;
+            meshx_prov_get_random(pprov->metadata.prov_dev, &random);
+            meshx_prov_generate_confirmation(pprov->metadata.prov_dev, &random);
 
             /* send confirmation */
-            meshx_provision_confirmation_t cfm;
-            meshx_provision_get_confirmation(pprov->metadata.prov_dev, &cfm);
-            meshx_provision_confirmation(pprov->metadata.prov_dev, &cfm);
+            meshx_prov_confirmation_t cfm;
+            meshx_prov_get_confirmation(pprov->metadata.prov_dev, &cfm);
+            meshx_prov_confirmation(pprov->metadata.prov_dev, &cfm);
         }
         break;
     case MESHX_PROV_NOTIFY_CONFIRMATION:
         {
-            const meshx_provision_confirmation_t *pcfm = pprov->pdata;
+            const meshx_prov_confirmation_t *pcfm = pprov->pdata;
             meshx_tty_printf("confirmation:");
-            meshx_tty_dump((const uint8_t *)pcfm, sizeof(meshx_provision_confirmation_t));
+            meshx_tty_dump((const uint8_t *)pcfm, sizeof(meshx_prov_confirmation_t));
             meshx_tty_printf("\r\n");
         }
         break;
     case MESHX_PROV_NOTIFY_RANDOM:
         {
-            const meshx_provision_random_t *prandom = pprov->pdata;
+            const meshx_prov_random_t *prandom = pprov->pdata;
             meshx_tty_printf("random:");
-            meshx_tty_dump((const uint8_t *)prandom, sizeof(meshx_provision_random_t));
+            meshx_tty_dump((const uint8_t *)prandom, sizeof(meshx_prov_random_t));
             meshx_tty_printf("\r\n");
 
             /* send data */
-            meshx_provision_data_t data;
-            memset(&data, 0, sizeof(meshx_provision_data_t));
-            meshx_provision_data(pprov->metadata.prov_dev, &data);
+            meshx_prov_data_t data;
+            memset(&data, 0, sizeof(meshx_prov_data_t));
+            meshx_prov_data(pprov->metadata.prov_dev, &data);
         }
         break;
     case MESHX_PROV_NOTIFY_TRANS_ACK:
         {
-            const meshx_provision_state_t *pstate = pprov->pdata;
+            const meshx_prov_state_t *pstate = pprov->pdata;
             meshx_tty_printf("ack: %d\r\n", *pstate);
-            if (MESHX_PROVISION_STATE_START == *pstate)
+            if (MESHX_PROV_STATE_START == *pstate)
             {
                 meshx_tty_printf("send public key\r\n");
 
                 /* send public key */
-                meshx_provision_public_key_t pub_key;
-                meshx_provision_get_local_public_key(pprov->metadata.prov_dev, &pub_key);
-                meshx_provision_public_key(pprov->metadata.prov_dev, &pub_key);
+                meshx_prov_public_key_t pub_key;
+                meshx_prov_get_local_public_key(pprov->metadata.prov_dev, &pub_key);
+                meshx_prov_public_key(pprov->metadata.prov_dev, &pub_key);
             }
         }
         break;
@@ -209,7 +209,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 {
     const meshx_notify_prov_t *pprov = pdata;
-    uint8_t prov_id = meshx_provision_get_device_id(pprov->metadata.prov_dev);
+    uint8_t prov_id = meshx_prov_get_device_id(pprov->metadata.prov_dev);
 
     switch (pprov->metadata.notify_type)
     {
@@ -217,7 +217,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         {
             meshx_cmd_prov_add_device(pprov->metadata.prov_dev);
             gettimeofday(&tv_prov_begin, NULL);
-            const meshx_provision_link_open_result_t *presult = pprov->pdata;
+            const meshx_prov_link_open_result_t *presult = pprov->pdata;
             meshx_tty_printf("link opened: result %d, id %d\r\n", *presult, prov_id);
         }
         break;
@@ -230,7 +230,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_CAPABILITES:
         {
-            const meshx_provision_capabilites_t *pcap = pprov->pdata;
+            const meshx_prov_capabilites_t *pcap = pprov->pdata;
             meshx_tty_printf("capabilites: id %d, element_nums %d, algorithm %d, public key type %d, static oob type %d, output oob size %d, output oob action %d, input oob size %d, input oob action %d\r\n",
                              prov_id, pcap->element_nums, pcap->algorithms, pcap->public_key_type, pcap->static_oob_type,
                              pcap->output_oob_size, pcap->output_oob_action, pcap->input_oob_size, pcap->input_oob_action);
@@ -238,24 +238,24 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_PUBLIC_KEY:
         {
-            const meshx_provision_public_key_t *ppub_key = pprov->pdata;
+            const meshx_prov_public_key_t *ppub_key = pprov->pdata;
             meshx_tty_printf("public key:");
-            meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_provision_public_key_t));
+            meshx_tty_dump((const uint8_t *)ppub_key, sizeof(meshx_prov_public_key_t));
             meshx_tty_printf("\r\n");
 
-            if (MESHX_PROVISION_AUTH_METHOD_INPUT_OOB == meshx_provision_get_auth_method(
+            if (MESHX_PROV_AUTH_METHOD_INPUT_OOB == meshx_prov_get_auth_method(
                     pprov->metadata.prov_dev))
             {
-                switch (meshx_provision_get_auth_action(pprov->metadata.prov_dev))
+                switch (meshx_prov_get_auth_action(pprov->metadata.prov_dev))
                 {
-                case MESHX_PROVISION_AUTH_ACTION_PUSH:
-                case MESHX_PROVISION_AUTH_ACTION_TWIST:
+                case MESHX_PROV_AUTH_ACTION_PUSH:
+                case MESHX_PROV_AUTH_ACTION_TWIST:
                     meshx_tty_printf("auth value numeric: 5\r\n");
                     break;
-                case MESHX_PROVISION_AUTH_ACTION_INPUT_NUMERIC:
+                case MESHX_PROV_AUTH_ACTION_INPUT_NUMERIC:
                     meshx_tty_printf("auth value numeric: 019655\r\n");
                     break;
-                case MESHX_PROVISION_AUTH_ACTION_INPUT_ALPHA:
+                case MESHX_PROV_AUTH_ACTION_INPUT_ALPHA:
                     meshx_tty_printf("auth value alpha: 123ABC\r\n");
                     break;
                 default:
@@ -269,28 +269,28 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
         break;
     case MESHX_PROV_NOTIFY_CONFIRMATION:
         {
-            const meshx_provision_confirmation_t *pcfm = pprov->pdata;
+            const meshx_prov_confirmation_t *pcfm = pprov->pdata;
             meshx_tty_printf("confirmation:");
-            meshx_tty_dump((const uint8_t *)pcfm, sizeof(meshx_provision_confirmation_t));
+            meshx_tty_dump((const uint8_t *)pcfm, sizeof(meshx_prov_confirmation_t));
             meshx_tty_printf("\r\n");
         }
         break;
     case MESHX_PROV_NOTIFY_RANDOM:
         {
-            const meshx_provision_random_t *prandom = pprov->pdata;
+            const meshx_prov_random_t *prandom = pprov->pdata;
             meshx_tty_printf("random:");
-            meshx_tty_dump((const uint8_t *)prandom, sizeof(meshx_provision_random_t));
+            meshx_tty_dump((const uint8_t *)prandom, sizeof(meshx_prov_random_t));
             meshx_tty_printf("\r\n");
 
             /* send data */
-            meshx_provision_data_t data;
-            memset(&data, 0, sizeof(meshx_provision_data_t));
-            meshx_provision_data(pprov->metadata.prov_dev, &data);
+            meshx_prov_data_t data;
+            memset(&data, 0, sizeof(meshx_prov_data_t));
+            meshx_prov_data(pprov->metadata.prov_dev, &data);
         }
         break;
     case MESHX_PROV_NOTIFY_TRANS_ACK:
         {
-            const meshx_provision_state_t *pstate = pprov->pdata;
+            const meshx_prov_state_t *pstate = pprov->pdata;
             meshx_tty_printf("ack: %d\r\n", *pstate);
         }
         break;
@@ -400,7 +400,7 @@ static void meshx_prov_cfg(void)
     meshx_iv_index_set(0x12345678);
 }
 
-static void meshx_prov_init(void)
+static void meshx_provisioner_init(void)
 {
     /* add keys */
     meshx_net_key_add(0, sample_net_key);
@@ -424,7 +424,7 @@ static void *meshx_thread(void *pargs)
     /* init stack */
     meshx_init();
 
-    meshx_prov_init();
+    meshx_provisioner_init();
 
     /* run stack */
     meshx_run();

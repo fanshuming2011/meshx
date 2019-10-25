@@ -8,7 +8,7 @@
 #ifndef _MESHX_NOTIFY_H_
 #define _MESHX_NOTIFY_H_
 
-#include "meshx_provision.h"
+#include "meshx_prov.h"
 #include "meshx_beacon.h"
 
 MESHX_BEGIN_DECLS
@@ -16,24 +16,24 @@ MESHX_BEGIN_DECLS
 
 typedef enum
 {
-    MESHX_PROV_NOTIFY_LINK_OPEN, /* @ref meshx_provision_link_open_t */
-    MESHX_PROV_NOTIFY_LINK_CLOSE, /* @ref meshx_provision_link_close_t */
-    MESHX_PROV_NOTIFY_TRANS_ACK, /* @ref meshx_provision_state_t */
-    MESHX_PROV_NOTIFY_INVITE, /* @ref meshx_provision_invite_t */
-    MESHX_PROV_NOTIFY_CAPABILITES, /* @ref meshx_provision_capabilites_t */
-    MESHX_PROV_NOTIFY_START, /* @ref meshx_provision_start_t */
-    MESHX_PROV_NOTIFY_PUBLIC_KEY, /* @ref meshx_provision_public_key_t */
+    MESHX_PROV_NOTIFY_LINK_OPEN, /* @ref meshx_prov_link_open_t */
+    MESHX_PROV_NOTIFY_LINK_CLOSE, /* @ref meshx_prov_link_close_t */
+    MESHX_PROV_NOTIFY_TRANS_ACK, /* @ref meshx_prov_state_t */
+    MESHX_PROV_NOTIFY_INVITE, /* @ref meshx_prov_invite_t */
+    MESHX_PROV_NOTIFY_CAPABILITES, /* @ref meshx_prov_capabilites_t */
+    MESHX_PROV_NOTIFY_START, /* @ref meshx_prov_start_t */
+    MESHX_PROV_NOTIFY_PUBLIC_KEY, /* @ref meshx_prov_public_key_t */
     MESHX_PROV_NOTIFY_INPUT_COMPLETE, /* @ref NULL */
-    MESHX_PROV_NOTIFY_CONFIRMATION, /* @ref meshx_provision_confirmation_t */
-    MESHX_PROV_NOTIFY_RANDOM, /* @ref meshx_provision_random_t */
-    MESHX_PROV_NOTIFY_DATA, /* @ref meshx_provision_data_t */
+    MESHX_PROV_NOTIFY_CONFIRMATION, /* @ref meshx_prov_confirmation_t */
+    MESHX_PROV_NOTIFY_RANDOM, /* @ref meshx_prov_random_t */
+    MESHX_PROV_NOTIFY_DATA, /* @ref meshx_prov_data_t */
     MESHX_PROV_NOTIFY_COMPLETE, /* @ref NULL */
     MESHX_PROV_NOTIFY_FAILED, /* @ref meshx provisison failed error code macros */
 } meshx_prov_notify_type_t;
 
 typedef struct
 {
-    meshx_provision_dev_t prov_dev;
+    meshx_prov_dev_t prov_dev;
     /* TODO: why can not enum? */
     //meshx_prov_notify_type_t notify_type;
     uint8_t notify_type;

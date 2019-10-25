@@ -6,7 +6,7 @@
  * See the COPYING file for the terms of usage and distribution.
  */
 #include "meshx_sample_data.h"
-#include "meshx_provision.h"
+#include "meshx_prov.h"
 #include "meshx_config.h"
 
 #define SAMPLE_NET_KEY {0x7d, 0xd7, 0x36, 0x4c, 0xd8, 0x42, 0xad, 0x18, 0xc1, 0x7c, 0x2b, 0x82, 0x0c, 0x84, 0xc3, 0xd6}
@@ -71,7 +71,7 @@ const uint8_t sample_device_random[16] =
     0xf6, 0xf3, 0x46, 0xbd, 0x0a, 0x0c, 0x1a, 0x3a
 };
 
-const meshx_provision_capabilites_t sample_prov_capabilites =
+const meshx_prov_capabilites_t sample_prov_capabilites =
 {
     .element_nums = 1,
     .algorithms = 1,
@@ -83,7 +83,7 @@ const meshx_provision_capabilites_t sample_prov_capabilites =
     .input_oob_action = 0,
 };
 
-const meshx_provision_start_t sample_prov_start =
+const meshx_prov_start_t sample_prov_start =
 {
     .algorithm = 0,
     .public_key = 0,
@@ -92,7 +92,7 @@ const meshx_provision_start_t sample_prov_start =
     .auth_size = 0,
 };
 
-const meshx_provision_data_t sample_prov_data =
+const meshx_prov_data_t sample_prov_data =
 {
     .net_key = SAMPLE_NET_KEY1,
     .key_index = 0x0567,

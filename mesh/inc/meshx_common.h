@@ -75,6 +75,8 @@ typedef struct
     meshx_key_t dev_key;
 } meshx_device_key_t;
 
+typedef void *meshx_net_iface_t;
+
 typedef struct
 {
     /* common parameters */
@@ -88,6 +90,10 @@ typedef struct
     uint16_t seg : 1;
     uint16_t rsvd : 7;
     const meshx_net_key_t *pnet_key;
+    /* NULL: dst equal to node addr - loopback network interface
+             others - all network interfaces except loopback
+       not NULL: specified network interface */
+    meshx_net_iface_t net_iface;
 
     union
     {
@@ -117,6 +123,7 @@ typedef struct
 #define MESHX_BEARER_TYPE_INVALID           0
 #define MESHX_BEARER_TYPE_ADV               1
 #define MESHX_BEARER_TYPE_GATT              2
+#define MESHX_BEARER_TYPE_LOOPBACK          3
 
 typedef struct
 {
@@ -134,7 +141,7 @@ typedef struct
 
 typedef struct
 {
-    uint16_t bearer_type;
+    uint8_t bearer_type;
     union
     {
         meshx_bearer_rx_metadata_adv_t adv_metadata;

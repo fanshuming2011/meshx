@@ -15,17 +15,7 @@
 #include "meshx_bearer_internal.h"
 #include "meshx_list.h"
 
-typedef struct
-{
-    uint8_t type;
-    meshx_bearer_t bearer;
-    meshx_net_iface_ifilter_t ifilter;
-    meshx_net_iface_ofilter_t ofilter;
-    meshx_net_iface_filter_info_t filter_info;
-    meshx_list_t node;
-} meshx_net_iface_info_t;
-
-static meshx_list_t net_iface_list;
+meshx_list_t meshx_net_iface_list;
 
 static bool meshx_net_default_ifilter(meshx_net_iface_t net_iface,
                                       const meshx_net_iface_ifilter_data_t *pdata)
@@ -43,7 +33,7 @@ static bool meshx_net_default_ofilter(meshx_net_iface_t net_iface,
 
 static meshx_net_iface_info_t *meshx_request_net_iface(void)
 {
-    if (meshx_list_length(&net_iface_list) >= MESHX_NET_IFACE_MAX_NUM)
+    if (meshx_list_length(&meshx_net_iface_list) >= MESHX_NET_IFACE_MAX_NUM)
     {
         MESHX_ERROR("net interface reached maximum number: %d", MESHX_NET_IFACE_MAX_NUM);
         return NULL;
@@ -75,14 +65,14 @@ static int32_t meshx_net_iface_create_loopback(void)
     piface->type = MESHX_NET_IFACE_TYPE_LOOPBACK;
     piface->ifilter = meshx_net_default_ifilter;
     piface->ofilter = meshx_net_default_ofilter;
-    meshx_list_append(&net_iface_list, &piface->node);
+    meshx_list_append(&meshx_net_iface_list, &piface->node);
     MESHX_INFO("create net loopback interface(0x%08x) success", piface);
     return MESHX_SUCCESS;
 }
 
 int32_t meshx_net_iface_init(void)
 {
-    meshx_list_init_head(&net_iface_list);
+    meshx_list_init_head(&meshx_net_iface_list);
     /* create loopback interface */
     return meshx_net_iface_create_loopback();
 }
@@ -97,7 +87,7 @@ meshx_net_iface_t meshx_net_iface_create(void)
         return NULL;
     }
     memset(piface, 0, sizeof(meshx_net_iface_t));
-    meshx_list_append(&net_iface_list, &piface->node);
+    meshx_list_append(&meshx_net_iface_list, &piface->node);
 
     MESHX_INFO("create net interface(0x%08x) success", piface);
     return piface;
@@ -269,7 +259,7 @@ meshx_net_iface_t meshx_net_iface_get(meshx_bearer_t bearer)
     return bearer->net_iface;
 }
 
-uint8_t meshx_net_iface_type_get(meshx_net_iface_t net_iface)
+uint8_t meshx_net_iface_type(meshx_net_iface_t net_iface)
 {
     if (NULL == net_iface)
     {
@@ -288,4 +278,30 @@ meshx_bearer_t meshx_net_iface_get_bearer(meshx_net_iface_t net_iface)
     }
 
     return ((meshx_net_iface_info_t *)net_iface)->bearer;
+}
+
+void meshx_net_iface_traverse_start(meshx_net_iface_t *ptraverse_net_iface)
+{
+    *ptraverse_net_iface = NULL;
+    meshx_list_t *pnode = NULL;
+    meshx_net_iface_info_t *piface;
+    meshx_list_foreach(pnode, &meshx_net_iface_list)
+    {
+        piface = MESHX_CONTAINER_OF(pnode, meshx_net_iface_info_t, node);
+        *ptraverse_net_iface = piface;
+        break;
+    }
+}
+
+void meshx_net_iface_traverse_continue(meshx_net_iface_t *ptraverse_net_iface)
+{
+    const meshx_net_iface_info_t *piface = (const meshx_net_iface_info_t *)(*ptraverse_net_iface);
+    *ptraverse_net_iface = NULL;
+    meshx_list_t *pnode;
+    for (pnode = piface->node.pnext; pnode != &meshx_net_iface_list; pnode = pnode->pnext)
+    {
+        piface = MESHX_CONTAINER_OF(pnode, meshx_net_iface_info_t, node);
+        *ptraverse_net_iface = piface;
+        break;
+    }
 }

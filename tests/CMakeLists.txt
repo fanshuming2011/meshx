@@ -63,7 +63,7 @@ set(COMMON_SRC_LIST
     ../mesh/transport/meshx_upper_trans.c
     ../mesh/access/meshx_access.c
     ../mesh/provision/meshx_pb_adv.c
-    ../mesh/provision/meshx_provision.c
+    ../mesh/provision/meshx_prov.c
     ../mesh/beacon/meshx_beacon.c)
 
 set(DEV_SRC_LIST
