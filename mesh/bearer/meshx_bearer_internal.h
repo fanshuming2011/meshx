@@ -44,16 +44,6 @@ MESHX_EXTERN int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, const uint
 MESHX_EXTERN meshx_bearer_t meshx_bearer_gatt_get(const meshx_bearer_rx_metadata_gatt_t
                                                   *prx_metadata);
 
-MESHX_EXTERN int32_t meshx_bearer_loopback_init(void);
-MESHX_EXTERN meshx_bearer_t meshx_bearer_loopback_create(void);
-MESHX_EXTERN void meshx_loopback_bearer_delete(meshx_bearer_t bearer);
-MESHX_EXTERN int32_t meshx_bearer_loopback_send(meshx_bearer_t bearer, uint8_t pkt_type,
-                                                const uint8_t *pdata, uint8_t len);
-MESHX_EXTERN int32_t meshx_bearer_loopback_receive(meshx_bearer_t bearer, const uint8_t *pdata,
-                                                   uint8_t len);
-MESHX_EXTERN meshx_bearer_t meshx_bearer_loopback_get(void);
-
-
 
 
 MESHX_END_DECLS

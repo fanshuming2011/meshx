@@ -36,15 +36,6 @@ int32_t meshx_bearer_init(void)
         MESHX_WARN("gatt bearer is diabled!");
     }
 
-    if (meshx_node_params.config.loopback_bearer_enable)
-    {
-        meshx_bearer_loopback_init();
-    }
-    else
-    {
-        MESHX_WARN("loopback bearer is diabled!");
-    }
-
     return MESHX_SUCCESS;
 }
 
@@ -73,16 +64,6 @@ meshx_bearer_t meshx_bearer_create(meshx_bearer_param_t bearer_param)
             MESHX_WARN("create failed: gatt bearer is disabled!");
         }
         break;
-    case MESHX_BEARER_TYPE_LOOPBACK:
-        if (meshx_node_params.config.loopback_bearer_enable)
-        {
-            bearer = meshx_bearer_loopback_create();
-        }
-        else
-        {
-            MESHX_WARN("create failed: loopback bearer is disabled!");
-        }
-        break;
     default:
         MESHX_ERROR("create failed: invalid bearer type %d", bearer_param.bearer_type);
         break;
@@ -108,9 +89,6 @@ void meshx_bearer_delete(meshx_bearer_t bearer)
         case MESHX_BEARER_TYPE_GATT:
             meshx_bearer_gatt_delete(bearer);
             break;
-        case MESHX_BEARER_TYPE_LOOPBACK:
-            meshx_bearer_loopback_delete(bearer);
-            break;
         default:
             MESHX_WARN("invalid bearer type: %d", bearer->type);
             break;
@@ -135,9 +113,6 @@ int32_t meshx_bearer_send(meshx_bearer_t bearer, uint8_t pkt_type,
         break;
     case MESHX_BEARER_TYPE_GATT:
         ret = meshx_bearer_gatt_send(bearer, pkt_type, pdata, len);
-        break;
-    case MESHX_BEARER_TYPE_LOOPBACK:
-        ret = meshx_bearer_loopback_send(bearer, pkt_type, pdata, len);
         break;
     default:
         MESHX_ERROR("invalid bearer type: %d", bearer->type);
@@ -165,9 +140,6 @@ meshx_bearer_t meshx_bearer_get(const meshx_bearer_rx_metadata_t *prx_metadata)
     case MESHX_BEARER_TYPE_GATT:
         bearer = meshx_bearer_gatt_get(&prx_metadata->gatt_metadata);
         break;
-    case MESHX_BEARER_TYPE_LOOPBACK:
-        bearer = meshx_bearer_loopback_get();
-        break
     default:
         MESHX_WARN("can't handle receive type(%d)", prx_metadata->bearer_type);
         break;
@@ -201,9 +173,6 @@ int32_t meshx_bearer_receive(const uint8_t *pdata, uint8_t len,
         break;
     case MESHX_BEARER_TYPE_GATT:
         ret = meshx_bearer_gatt_receive(bearer, pdata, len);
-        break;
-    case MESHX_BEARER_TYPE_GATT:
-        ret = meshx_bearer_loopback_receive(bearer, pdata, len);
         break;
     default:
         ret = -MESHX_ERR_INVAL;

@@ -253,7 +253,9 @@ meshx_net_iface_t meshx_net_iface_get(meshx_bearer_t bearer)
 {
     if (NULL == bearer)
     {
-        return NULL;
+        /* loopback interface */
+        meshx_list_t *pnode = meshx_net_iface_list.pnext;
+        return MESHX_CONTAINER_OF(pnode, meshx_net_iface_info_t, node);
     }
 
     return bearer->net_iface;

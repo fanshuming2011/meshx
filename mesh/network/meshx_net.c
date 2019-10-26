@@ -264,6 +264,58 @@ int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata, uin
     return ret;
 }
 
+static int32_t meshx_net_loopback(const uint8_t *pdata, uint8_t len,
+                                  const meshx_msg_ctx_t *pmsg_tx_ctx)
+{
+    /* send on loopback interface */
+    meshx_net_iface_t loopback_iface = meshx_net_iface_get(NULL);
+    if (NULL == loopback_iface)
+    {
+        MESHX_ERROR("no loopback interface exist!");
+    }
+    /* filter data */
+    meshx_net_iface_ofilter_data_t filter_data = {.src_addr = pmsg_tx_ctx->src, .dst_addr = pmsg_tx_ctx->dst};
+    if (!meshx_net_iface_ofilter(loopback_iface, &filter_data))
+    {
+        MESHX_INFO("network data has been filtered");
+        return -MESHX_ERR_FILTER;
+    }
+
+    return meshx_net_receive(loopback_iface, pdata, len);
+}
+
+static int32_t meshx_net_send_to_bearer(const uint8_t *pdata, uint8_t len,
+                                        const meshx_msg_ctx_t *pmsg_tx_ctx, meshx_net_iface_info_t *piface)
+{
+    /* filter data */
+    meshx_net_iface_ofilter_data_t filter_data = {.src_addr = pmsg_tx_ctx->src, .dst_addr = pmsg_tx_ctx->dst};
+    if (!meshx_net_iface_ofilter(piface, &filter_data))
+    {
+        MESHX_INFO("network data has been filtered");
+        continue;
+    }
+
+    meshx_bearer_t bearer = piface->bearer;
+    if (NULL == bearer)
+    {
+        MESHX_WARN("net interface(0x%08x) hasn't been connected to any bearer", piface);
+        continue;
+    }
+
+    /* send data out */
+    uint8_t pkt_type = 0;
+    if (MESHX_BEARER_TYPE_ADV == bearer->type)
+    {
+        pkt_type = MESHX_BEARER_ADV_PKT_TYPE_MESH_MSG;
+    }
+    else
+    {
+        pkt_type = MESHX_BEARER_GATT_PKT_TYPE_NET;
+    }
+
+    meshx_bearer_send(bearer, pkt_type, pdata, len);
+}
+
 int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
                        const meshx_msg_ctx_t *pmsg_tx_ctx)
 {
@@ -272,27 +324,7 @@ int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
     {
         return -MESHX_ERR_LENGTH;
     }
-#endif
 
-#if 0
-    uint8_t net_iface_type = meshx_net_iface_type_get(net_iface);
-    meshx_bearer_t bearer = meshx_net_iface_get_bearer(net_iface);
-    if ((NULL == bearer) && (MESHX_NET_IFACE_TYPE_LOOPBACK != net_iface_type))
-    {
-        MESHX_ERROR("net interface(0x%08x) hasn't connected to any bearer", net_iface);
-        return -MESHX_ERR_CONNECT;
-    }
-
-    /* filter data */
-    meshx_net_iface_ofilter_data_t filter_data = {.src_addr = pmsg_ctx->src, .dst_addr = pmsg_ctx->dst};
-    if (!meshx_net_iface_ofilter(net_iface, &filter_data))
-    {
-        MESHX_INFO("network data has been filtered!");
-        return -MESHX_ERR_FILTER;
-    }
-#endif
-
-#if MESHX_REDUNDANCY_CHECK
     if (pmsg_tx_ctx->ctl)
     {
         if (trans_pdu_len > MESHX_NET_TRANS_PDU_MAX_LEN - 8)
@@ -337,19 +369,13 @@ int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
     MESHX_DEBUG("encrypt and obsfucation net pdu:");
     MESHX_DUMP_DEBUG(&net_pdu, net_pdu_len);
 
+    int32_t ret = MESHX_SUCCESS;
     if (NULL == pmsg_tx_ctx->net_iface)
     {
         /* TODO: check wheter is lpn addr? */
         if (meshx_node_is_my_address(pmsg_tx_ctx->dst))
         {
-            /* send on loopback interface */
-            /* filter data */
-            meshx_net_iface_ofilter_data_t filter_data = {.src_addr = pmsg_tx_ctx->src, .dst_addr = pmsg_tx_ctx->dst};
-            if (!meshx_net_iface_ofilter(pmsg_tx_ctx->net_iface, &filter_data))
-            {
-                MESHX_INFO("network data has been filtered");
-                return -MESHX_ERR_FILTER;
-            }
+            ret = meshx_net_loopback(pmsg_tx_ctx, (const uint8_t *)&net_pdu, net_pdu_len);
         }
         else
         {
@@ -359,75 +385,27 @@ int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
             meshx_list_foreach(pnode, &meshx_net_iface_list)
             {
                 piface = MESHX_CONTAINER_OF(pnode, meshx_net_iface_info_t, node);
-                /* filter data */
-                meshx_net_iface_ofilter_data_t filter_data = {.src_addr = pmsg_tx_ctx->src, .dst_addr = pmsg_tx_ctx->dst};
-                if (!meshx_net_iface_ofilter(pmsg_tx_ctx->net_iface, &filter_data))
+                if (MESHX_NET_IFACE_TYPE_LOOPBACK == piface->type)
                 {
-                    MESHX_INFO("network data has been filtered");
                     continue;
                 }
+                meshx_net_send_to_bearer((const uint8_t *)&net_pdu, net_pdu_len, pmsg_tx_ctx, piface);
             }
         }
     }
     else
     {
         /* send on specified network interface */
-        /* filter data */
-        meshx_net_iface_ofilter_data_t filter_data = {.src_addr = pmsg_tx_ctx->src, .dst_addr = pmsg_tx_ctx->dst};
-        if (!meshx_net_iface_ofilter(pmsg_tx_ctx->net_iface, &filter_data))
+        meshx_net_iface_info_t *piface = (meshx_net_iface_info_t *)pmsg_tx_ctx->net_iface;
+        if (MESHX_NET_IFACE_TYPE_LOOPBACK == piface->type)
         {
-            MESHX_INFO("network data has been filtered");
-            return -MESHX_ERR_FILTER;
-        }
-
-        uint8_t net_iface_type = meshx_net_iface_type_get(pmsg_tx_ctx->net_iface);
-        meshx_bearer_t bearer = meshx_net_iface_get_bearer(pmsg_tx_ctx->net_iface);
-        if ((NULL == bearer) && (MESHX_NET_IFACE_TYPE_LOOPBACK != net_iface_type))
-        {
-            MESHX_ERROR("net interface(0x%08x) hasn't been connected to any bearer", pmsg_tx_ctx->net_iface);
-            return -MESHX_ERR_CONNECT;
-        }
-
-        uint8_t pkt_type;
-        if (MESHX_BEARER_TYPE_ADV == bearer->type)
-        {
-            pkt_type = MESHX_BEARER_ADV_PKT_TYPE_MESH_MSG;
+            ret = meshx_net_loopback(pmsg_tx_ctx, (const uint8_t *)&net_pdu, net_pdu_len);
         }
         else
         {
-            pkt_type = MESHX_BEARER_GATT_PKT_TYPE_NET;
+            ret = meshx_net_send_to_bearer((const uint8_t *)&net_pdu, net_pdu_len, pmsg_tx_ctx, piface);
         }
-
-        return meshx_bearer_send(bearer, pkt_type, (const uint8_t *)&net_pdu, net_pdu_len);
-    }
-#if 0
-    uint8_t net_iface_type = meshx_net_iface_type_get(net_iface);
-    meshx_bearer_t bearer = meshx_net_iface_get_bearer(net_iface);
-    if ((NULL == bearer) && (MESHX_NET_IFACE_TYPE_LOOPBACK != net_iface_type))
-    {
-        MESHX_ERROR("net interface(0x%08x) hasn't connected to any bearer", net_iface);
-        return -MESHX_ERR_CONNECT;
     }
 
-    /* filter data */
-    meshx_net_iface_ofilter_data_t filter_data = {.src_addr = pmsg_ctx->src, .dst_addr = pmsg_ctx->dst};
-    if (!meshx_net_iface_ofilter(net_iface, &filter_data))
-    {
-        MESHX_INFO("network data has been filtered!");
-        return -MESHX_ERR_FILTER;
-    }
-#endif
-
-    /* send data to bearer */
-    uint8_t pkt_type;
-    if (MESHX_BEARER_TYPE_ADV == bearer->type)
-    {
-        pkt_type = MESHX_BEARER_ADV_PKT_TYPE_MESH_MSG;
-    }
-    else
-    {
-        pkt_type = MESHX_BEARER_GATT_PKT_TYPE_NET;
-    }
-
-    return meshx_bearer_send(bearer, pkt_type, (const uint8_t *)&net_pdu, net_pdu_len);
+    return ret;
 }

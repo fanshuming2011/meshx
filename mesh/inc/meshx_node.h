@@ -19,7 +19,6 @@ typedef struct
     meshx_dev_uuid_t dev_uuid;
     bool adv_bearer_enable;
     bool gatt_bearer_enable;
-    bool loopback_bearer_enable;
     uint16_t net_key_num;
     uint16_t app_key_num;
     uint16_t dev_key_num;

@@ -123,7 +123,6 @@ typedef struct
 #define MESHX_BEARER_TYPE_INVALID           0
 #define MESHX_BEARER_TYPE_ADV               1
 #define MESHX_BEARER_TYPE_GATT              2
-#define MESHX_BEARER_TYPE_LOOPBACK          3
 
 typedef struct
 {
