@@ -56,7 +56,6 @@
 /* lower transport tx task */
 typedef struct
 {
-    meshx_net_iface_t net_iface;
     meshx_msg_ctx_t msg_tx_ctx;
     uint8_t *ppdu;
     uint16_t pdu_len;
@@ -75,7 +74,6 @@ static meshx_list_t meshx_lower_trans_tx_task_pending;
 /* lower transport rx task */
 typedef struct
 {
-    meshx_net_iface_t net_iface;
     meshx_msg_ctx_t msg_rx_ctx;
     uint8_t *ppdu;
     uint16_t pdu_len;
@@ -244,8 +242,7 @@ static void meshx_lower_trans_tx_timeout_handler(void *pargs)
     meshx_async_msg_send(&msg);
 }
 
-static int32_t meshx_lower_trans_send_seg_msg(meshx_net_iface_t net_iface,
-                                              const uint8_t *ppdu,
+static int32_t meshx_lower_trans_send_seg_msg(const uint8_t *ppdu,
                                               uint16_t pdu_len, uint32_t block_ack, meshx_msg_ctx_t *pmsg_ctx)
 {
     uint8_t seg_num;
@@ -350,7 +347,7 @@ static int32_t meshx_lower_trans_send_seg_msg(meshx_net_iface_t net_iface,
         }
         MESHX_INFO("send segment pdu: %d-%d", i, seg_num);
         MESHX_DUMP_DEBUG(pdu, seg_len);
-        meshx_net_send(net_iface, pdu, seg_len, pmsg_ctx);
+        meshx_net_send(pdu, seg_len, pmsg_ctx);
     }
 
     return MESHX_SUCCESS;
@@ -456,8 +453,7 @@ static void meshx_lower_trans_handle_tx_timeout(meshx_lower_trans_tx_task_t *pta
     else
     {
         /* send segment message */
-        meshx_lower_trans_send_seg_msg(ptask->net_iface, ptask->ppdu, ptask->pdu_len,
-                                       ptask->block_ack,
+        meshx_lower_trans_send_seg_msg(ptask->ppdu, ptask->pdu_len, ptask->block_ack,
                                        &ptask->msg_tx_ctx);
 
         if (!MESHX_LOWER_TRANS_IS_SEQ_AUTH_VALID(ptask->msg_tx_ctx.seq, ptask->msg_tx_ctx.seq_auth))
@@ -497,8 +493,7 @@ static int32_t meshx_lower_trans_tx_task_run(meshx_lower_trans_tx_task_t *ptx_ta
 
     /* send segment message for the first time */
     int32_t ret;
-    ret = meshx_lower_trans_send_seg_msg(ptx_task->net_iface, ptx_task->ppdu, ptx_task->pdu_len,
-                                         ptx_task->block_ack,
+    ret = meshx_lower_trans_send_seg_msg(ptx_task->ppdu, ptx_task->pdu_len, ptx_task->block_ack,
                                          &ptx_task->msg_tx_ctx);
     if (MESHX_SUCCESS != ret)
     {
@@ -587,8 +582,7 @@ static bool meshx_lower_trans_is_tx_task_exist(const meshx_msg_ctx_t *pmsg_ctx)
     return FALSE;
 }
 
-static int32_t meshx_lower_trans_process_seg_msg(meshx_net_iface_t net_iface,
-                                                 const uint8_t *pupper_trans_pdu,
+static int32_t meshx_lower_trans_process_seg_msg(const uint8_t *pupper_trans_pdu,
                                                  uint16_t pdu_len, uint8_t max_seg_size, const meshx_msg_ctx_t *pmsg_tx_ctx)
 {
     /* segment message */
@@ -615,7 +609,6 @@ static int32_t meshx_lower_trans_process_seg_msg(meshx_net_iface_t net_iface,
         MESHX_ERROR("lower transport is busy now, try again later!");
         return -MESHX_ERR_BUSY;
     }
-    ptask->net_iface = net_iface;
     ptask->msg_tx_ctx = *pmsg_tx_ctx;
     memcpy(ptask->ppdu, pupper_trans_pdu, pdu_len);
     ptask->pdu_len = pdu_len;
@@ -627,9 +620,10 @@ static int32_t meshx_lower_trans_process_seg_msg(meshx_net_iface_t net_iface,
     return meshx_lower_trans_tx_task_try(ptask);
 }
 
-int32_t meshx_lower_trans_send(meshx_net_iface_t net_iface, const uint8_t *pupper_trans_pdu,
+int32_t meshx_lower_trans_send(const uint8_t *pupper_trans_pdu,
                                uint16_t pdu_len, meshx_msg_ctx_t *pmsg_tx_ctx)
 {
+#if MESHX_REDUNDANCY_CHECK
     if (0 == pdu_len)
     {
         MESHX_ERROR("no valid message!");
@@ -641,6 +635,7 @@ int32_t meshx_lower_trans_send(meshx_net_iface_t net_iface, const uint8_t *puppe
         MESHX_ERROR("invlaid destination address: 0x%4x", pmsg_tx_ctx->dst);
         return -MESHX_ERR_INVAL;
     }
+#endif
 
     int32_t ret = MESHX_SUCCESS;
     if (pmsg_tx_ctx->ctl)
@@ -650,7 +645,7 @@ int32_t meshx_lower_trans_send(meshx_net_iface_t net_iface, const uint8_t *puppe
         {
             pmsg_tx_ctx->seg = 1;
             /* segment message */
-            ret = meshx_lower_trans_process_seg_msg(net_iface, pupper_trans_pdu, pdu_len,
+            ret = meshx_lower_trans_process_seg_msg(pupper_trans_pdu, pdu_len,
                                                     MESHX_LOWER_TRANS_SEG_CTL_MAX_PDU_SIZE, pmsg_tx_ctx);
         }
         else
@@ -659,8 +654,8 @@ int32_t meshx_lower_trans_send(meshx_net_iface_t net_iface, const uint8_t *puppe
             pdu.metadata.opcode = pmsg_tx_ctx->opcode;
             pdu.metadata.seg = 0;
             memcpy(pdu.pdu, pupper_trans_pdu, pdu_len);
-            ret = meshx_net_send(net_iface, (const uint8_t *)&pdu,
-                                 sizeof(meshx_lower_trans_ctl_pdu_metadata_t) + pdu_len, pmsg_tx_ctx);
+            ret = meshx_net_send((const uint8_t *)&pdu, sizeof(meshx_lower_trans_ctl_pdu_metadata_t) + pdu_len,
+                                 pmsg_tx_ctx);
         }
     }
     else
@@ -670,7 +665,7 @@ int32_t meshx_lower_trans_send(meshx_net_iface_t net_iface, const uint8_t *puppe
         {
             pmsg_tx_ctx->seg = 1;
             /* segment message */
-            ret = meshx_lower_trans_process_seg_msg(net_iface, pupper_trans_pdu, pdu_len,
+            ret = meshx_lower_trans_process_seg_msg(pupper_trans_pdu, pdu_len,
                                                     MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE, pmsg_tx_ctx);
         }
         else
@@ -688,7 +683,7 @@ int32_t meshx_lower_trans_send(meshx_net_iface_t net_iface, const uint8_t *puppe
             pdu.metadata.akf = pmsg_tx_ctx->akf;
             pdu.metadata.seg = 0;
             memcpy(pdu.pdu, pupper_trans_pdu, pdu_len);
-            ret = meshx_net_send(net_iface, (const uint8_t *)&pdu,
+            ret = meshx_net_send((const uint8_t *)&pdu,
                                  sizeof(meshx_lower_trans_access_pdu_metadata_t) + pdu_len, pmsg_tx_ctx);
         }
     }
@@ -696,8 +691,7 @@ int32_t meshx_lower_trans_send(meshx_net_iface_t net_iface, const uint8_t *puppe
     return ret;
 }
 
-static int32_t meshx_lower_trans_seg_ack(meshx_net_iface_t net_iface, uint32_t block_ack,
-                                         const meshx_msg_ctx_t *pmsg_rx_ctx)
+static int32_t meshx_lower_trans_seg_ack(uint32_t block_ack, const meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     meshx_lower_trans_seg_ack_pdu_t seg_ack;
     seg_ack.rfu = 0;
@@ -719,7 +713,7 @@ static int32_t meshx_lower_trans_seg_ack(meshx_net_iface_t net_iface, uint32_t b
     msg_tx_ctx.seq = meshx_seq_use(msg_tx_ctx.src - meshx_node_params.param.node_addr);
 
     MESHX_INFO("lower transport block ack: 0x%08x", block_ack);
-    return meshx_lower_trans_send(net_iface, (const uint8_t *)&seg_ack,
+    return meshx_lower_trans_send((const uint8_t *)&seg_ack,
                                   sizeof(seg_ack), &msg_tx_ctx);
 }
 
@@ -770,7 +764,7 @@ static void meshx_lower_trans_rx_incomplete_timeout_handler(void *pargs)
 void meshx_lower_trans_async_handle_rx_ack_timeout(meshx_async_msg_t msg)
 {
     meshx_lower_trans_rx_task_t *ptask = msg.pdata;
-    meshx_lower_trans_seg_ack(ptask->net_iface, ptask->block_ack, &ptask->msg_rx_ctx);
+    meshx_lower_trans_seg_ack(ptask->block_ack, &ptask->msg_rx_ctx);
 }
 
 void meshx_lower_trans_async_handle_rx_incomplete_timeout(meshx_async_msg_t msg)
@@ -788,8 +782,7 @@ void meshx_lower_trans_async_handle_rx_incomplete_timeout(meshx_async_msg_t msg)
     meshx_lower_trans_rx_task_release(ptask);
 }
 
-static meshx_lower_trans_rx_task_t *meshx_lower_trans_rx_task_request(meshx_net_iface_t net_iface,
-                                                                      uint16_t max_pdu_len,
+static meshx_lower_trans_rx_task_t *meshx_lower_trans_rx_task_request(uint16_t max_pdu_len,
                                                                       const meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     MESHX_ASSERT(NULL != pmsg_rx_ctx);
@@ -874,7 +867,6 @@ NEW_SEG_MSG:
     prx_task->max_pdu_len = max_pdu_len;
 
     prx_task->msg_rx_ctx = *pmsg_rx_ctx;
-    prx_task->net_iface = net_iface;
     /* initialize segment flag */
     uint8_t seg_num = 0;
     if (pmsg_rx_ctx->ctl)
@@ -952,8 +944,7 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
                 else
                 {
                     pcur_task->block_ack = seg_ack.block_ack;
-                    meshx_lower_trans_send_seg_msg(pcur_task->net_iface, pcur_task->ppdu, pcur_task->pdu_len,
-                                                   pcur_task->block_ack,
+                    meshx_lower_trans_send_seg_msg(pcur_task->ppdu, pcur_task->pdu_len, pcur_task->block_ack,
                                                    &pcur_task->msg_tx_ctx);
                     if (!MESHX_LOWER_TRANS_IS_SEQ_AUTH_VALID(pcur_task->msg_tx_ctx.seq,
                                                              pcur_task->msg_tx_ctx.seq_auth))
@@ -976,8 +967,7 @@ static void meshx_lower_trans_recv_block_ack(const meshx_lower_trans_seg_ack_pdu
     }
 }
 
-static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
-                                                 const uint8_t *pdata,
+static int32_t meshx_lower_trans_receive_seg_msg(const uint8_t *pdata,
                                                  uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     /* segmented access message */
@@ -1014,12 +1004,12 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
         max_pdu_len = (seg_misc.segn + 1) * MESHX_LOWER_TRANS_SEG_ACCESS_MAX_PDU_SIZE;
     }
 
-    meshx_lower_trans_rx_task_t *ptask = meshx_lower_trans_rx_task_request(net_iface, max_pdu_len,
-                                                                           pmsg_rx_ctx);
+    meshx_lower_trans_rx_task_t *ptask = meshx_lower_trans_rx_task_request(max_pdu_len, pmsg_rx_ctx);
 
     if (NULL == ptask)
     {
-        meshx_lower_trans_seg_ack(net_iface, 0, pmsg_rx_ctx);
+        MESHX_ERROR("lower trans rx task run out!");
+        meshx_lower_trans_seg_ack(0, pmsg_rx_ctx);
         return -MESHX_ERR_BUSY;
     }
 
@@ -1031,7 +1021,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
             MESHX_ERROR("received opcode(%d) mismatch with previous(%d)", pmsg_rx_ctx->opcode,
                         ptask->msg_rx_ctx.opcode);
             /* ack can't receive */
-            meshx_lower_trans_seg_ack(net_iface, 0, pmsg_rx_ctx);
+            meshx_lower_trans_seg_ack(0, pmsg_rx_ctx);
             /* release rx task */
             meshx_lower_trans_rx_task_release(ptask);
             return -MESHX_ERR_INVAL;
@@ -1047,7 +1037,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
                         pmsg_rx_ctx->aid, pmsg_rx_ctx->szmic, ptask->msg_rx_ctx.akf, ptask->msg_rx_ctx.aid,
                         ptask->msg_rx_ctx.szmic);
             /* ack can't receive */
-            meshx_lower_trans_seg_ack(net_iface, 0, pmsg_rx_ctx);
+            meshx_lower_trans_seg_ack(0, pmsg_rx_ctx);
             /* release rx task */
             meshx_lower_trans_rx_task_release(ptask);
             return -MESHX_ERR_INVAL;
@@ -1059,7 +1049,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
         MESHX_ERROR("receive segment length dismatch with previous: %d-%d", max_pdu_len,
                     ptask->max_pdu_len);
         /* ack can't receive */
-        meshx_lower_trans_seg_ack(net_iface, 0, pmsg_rx_ctx);
+        meshx_lower_trans_seg_ack(0, pmsg_rx_ctx);
         /* release rx task */
         meshx_lower_trans_rx_task_release(ptask);
         return -MESHX_ERR_LENGTH;
@@ -1069,7 +1059,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
     {
         MESHX_INFO("already received all segments");
         /* ack immedietely */
-        meshx_lower_trans_seg_ack(net_iface, ptask->block_ack, pmsg_rx_ctx);
+        meshx_lower_trans_seg_ack(ptask->block_ack, pmsg_rx_ctx);
         return -MESHX_ERR_ALREADY;
     }
 
@@ -1100,7 +1090,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
                                  meshx_lower_trans_seg_access_misc_t);
             memcpy(ptask->ppdu, pseg_access_msg->pdu, ptask->pdu_len);
         }
-        meshx_lower_trans_seg_ack(net_iface, ptask->block_ack, pmsg_rx_ctx);
+        meshx_lower_trans_seg_ack(ptask->block_ack, pmsg_rx_ctx);
 
         /* stop timer */
         meshx_timer_delete(ptask->ack_timer);
@@ -1109,7 +1099,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
 
         /* notify upper transport layer */
         pmsg_rx_ctx->seg = 1;
-        meshx_upper_trans_receive(net_iface, ptask->ppdu, ptask->pdu_len, pmsg_rx_ctx);
+        meshx_upper_trans_receive(ptask->ppdu, ptask->pdu_len, pmsg_rx_ctx);
     }
     else
     {
@@ -1143,7 +1133,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
         if (0 == ptask->not_received_seg)
         {
             /* receive all segments */
-            meshx_lower_trans_seg_ack(net_iface, ptask->block_ack, pmsg_rx_ctx);
+            meshx_lower_trans_seg_ack(ptask->block_ack, pmsg_rx_ctx);
 
             meshx_timer_delete(ptask->ack_timer);
             ptask->ack_timer = NULL;
@@ -1151,7 +1141,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
 
             /* notify upper transport layer */
             pmsg_rx_ctx->seg = 1;
-            meshx_upper_trans_receive(net_iface, ptask->ppdu, ptask->pdu_len, pmsg_rx_ctx);
+            meshx_upper_trans_receive(ptask->ppdu, ptask->pdu_len, pmsg_rx_ctx);
         }
         else
         {
@@ -1168,8 +1158,7 @@ static int32_t meshx_lower_trans_receive_seg_msg(meshx_net_iface_t net_iface,
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_lower_trans_receive(meshx_net_iface_t net_iface, uint8_t *pdata,
-                                  uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
+int32_t meshx_lower_trans_receive(uint8_t *pdata, uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     MESHX_DEBUG("receive lower transport data:");
     MESHX_DUMP_DEBUG(pdata, len);
@@ -1191,7 +1180,7 @@ int32_t meshx_lower_trans_receive(meshx_net_iface_t net_iface, uint8_t *pdata,
             /* actual control message */
             if (pmetadata->seg)
             {
-                ret = meshx_lower_trans_receive_seg_msg(net_iface, pdata, len, pmsg_rx_ctx);
+                ret = meshx_lower_trans_receive_seg_msg(pdata, len, pmsg_rx_ctx);
             }
             else
             {
@@ -1203,7 +1192,7 @@ int32_t meshx_lower_trans_receive(meshx_net_iface_t net_iface, uint8_t *pdata,
                 pmsg_rx_ctx->seg = 0;
                 pmsg_rx_ctx->opcode = pmetadata->opcode;
                 pmsg_rx_ctx->seq_auth = pmsg_rx_ctx->seq;
-                meshx_upper_trans_receive(net_iface, ppdu->pdu, pdu_len, pmsg_rx_ctx);
+                meshx_upper_trans_receive(ppdu->pdu, pdu_len, pmsg_rx_ctx);
             }
         }
     }
@@ -1214,7 +1203,7 @@ int32_t meshx_lower_trans_receive(meshx_net_iface_t net_iface, uint8_t *pdata,
                                                              pdata;
         if (pmetadata->seg)
         {
-            ret = meshx_lower_trans_receive_seg_msg(net_iface, pdata, len, pmsg_rx_ctx);
+            ret = meshx_lower_trans_receive_seg_msg(pdata, len, pmsg_rx_ctx);
         }
         else
         {
@@ -1228,7 +1217,7 @@ int32_t meshx_lower_trans_receive(meshx_net_iface_t net_iface, uint8_t *pdata,
             pmsg_rx_ctx->seg = 0;
             pmsg_rx_ctx->szmic = 0;
             pmsg_rx_ctx->seq_auth = pmsg_rx_ctx->seq;
-            meshx_upper_trans_receive(net_iface, ppdu->pdu, pdu_len, pmsg_rx_ctx);
+            meshx_upper_trans_receive(ppdu->pdu, pdu_len, pmsg_rx_ctx);
         }
     }
 

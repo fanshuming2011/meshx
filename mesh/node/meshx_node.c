@@ -175,7 +175,11 @@ int32_t meshx_node_param_get(meshx_node_param_type_t type, void *pdata)
 
 bool meshx_node_is_my_address(uint16_t addr)
 {
-    /* node address range */
+    /* TODO: node address range */
+    if (addr == meshx_node_params.param.node_addr)
+    {
+        return TRUE;
+    }
     return FALSE;
 }
 

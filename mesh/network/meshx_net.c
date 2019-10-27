@@ -236,8 +236,10 @@ int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata, uin
 
     meshx_nmc_add(nmc);
 
-    MESHX_DEBUG("decrypt net pdu:");
-    MESHX_DUMP_DEBUG(&net_pdu, len - net_mic_len);
+    MESHX_INFO("receive network pdu: ctl %d, ttl %d, src x0%04x, dst 0x%04x, seq 0x%06x, iv_index 0x%08x",
+               net_pdu.net_metadata.ctl,
+               net_pdu.net_metadata.ttl, src, dst, seq, iv_index);
+    MESHX_DUMP_INFO(net_pdu.pdu, trans_pdu_len);
 
 
     if (meshx_node_is_my_address(dst))
@@ -253,10 +255,12 @@ int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata, uin
         msg_ctx.iv_index = iv_index;
         msg_ctx.seq = seq;
         msg_ctx.pnet_key = pnet_key;
-        ret = meshx_lower_trans_receive(net_iface, net_pdu.pdu, trans_pdu_len, &msg_ctx);
+        msg_ctx.net_iface = net_iface;
+        ret = meshx_lower_trans_receive(net_pdu.pdu, trans_pdu_len, &msg_ctx);
     }
     else
     {
+        MESHX_INFO("message need to relay");
         /* message need to relay */
         /* TODO: check ttl and relay*/
     }
@@ -292,14 +296,14 @@ static int32_t meshx_net_send_to_bearer(const uint8_t *pdata, uint8_t len,
     if (!meshx_net_iface_ofilter(piface, &filter_data))
     {
         MESHX_INFO("network data has been filtered");
-        continue;
+        return -MESHX_ERR_FILTER;
     }
 
     meshx_bearer_t bearer = piface->bearer;
     if (NULL == bearer)
     {
         MESHX_WARN("net interface(0x%08x) hasn't been connected to any bearer", piface);
-        continue;
+        return -MESHX_ERR_CONNECT;
     }
 
     /* send data out */
@@ -313,7 +317,7 @@ static int32_t meshx_net_send_to_bearer(const uint8_t *pdata, uint8_t len,
         pkt_type = MESHX_BEARER_GATT_PKT_TYPE_NET;
     }
 
-    meshx_bearer_send(bearer, pkt_type, pdata, len);
+    return meshx_bearer_send(bearer, pkt_type, pdata, len);
 }
 
 int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
@@ -375,7 +379,7 @@ int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
         /* TODO: check wheter is lpn addr? */
         if (meshx_node_is_my_address(pmsg_tx_ctx->dst))
         {
-            ret = meshx_net_loopback(pmsg_tx_ctx, (const uint8_t *)&net_pdu, net_pdu_len);
+            ret = meshx_net_loopback((const uint8_t *)&net_pdu, net_pdu_len, pmsg_tx_ctx);
         }
         else
         {
@@ -399,7 +403,7 @@ int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
         meshx_net_iface_info_t *piface = (meshx_net_iface_info_t *)pmsg_tx_ctx->net_iface;
         if (MESHX_NET_IFACE_TYPE_LOOPBACK == piface->type)
         {
-            ret = meshx_net_loopback(pmsg_tx_ctx, (const uint8_t *)&net_pdu, net_pdu_len);
+            ret = meshx_net_loopback((const uint8_t *)&net_pdu, net_pdu_len, pmsg_tx_ctx);
         }
         else
         {

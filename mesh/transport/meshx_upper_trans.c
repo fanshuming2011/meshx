@@ -156,7 +156,13 @@ static int32_t meshx_upper_trans_decrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
         uint8_t add_len = 0;
 
         /* decrypt data */
-        pmsg_rx_ctx->pdev_key = &meshx_dev_key_get(meshx_node_params.param.node_addr)->dev_key;
+        const meshx_device_key_t *pdev_key = meshx_dev_key_get(meshx_node_params.param.node_addr);
+        if (NULL == pmsg_rx_ctx->pdev_key)
+        {
+            MESHX_ERROR("device key is invalid!");
+            return -MESHX_ERR_KEY;
+        }
+        pmsg_rx_ctx->pdev_key = &pdev_key->dev_key;
         ret = meshx_aes_ccm_decrypt(*pmsg_rx_ctx->pdev_key, nonce, MESHX_NONCE_SIZE,
                                     padd, add_len, paccess_pdu, pdu_len, paccess_pdu, ptrans_mic, trans_mic_len);
         if (MESHX_SUCCESS == ret)
@@ -169,14 +175,16 @@ static int32_t meshx_upper_trans_decrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
     return ret;
 }
 
-int32_t meshx_upper_trans_send(meshx_net_iface_t net_iface,
-                               const uint8_t *pdata, uint16_t len,
+int32_t meshx_upper_trans_send(const uint8_t *pdata, uint16_t len,
                                meshx_msg_ctx_t *pmsg_tx_ctx)
 {
-    if (!meshx_net_iface_is_connect(net_iface))
+    if (NULL != pmsg_tx_ctx->net_iface)
     {
-        MESHX_ERROR("network interface is disconnected!");
-        return -MESHX_ERR_CONNECT;
+        if (!meshx_net_iface_is_connect(pmsg_tx_ctx->net_iface))
+        {
+            MESHX_ERROR("network interface is disconnected!");
+            return -MESHX_ERR_CONNECT;
+        }
     }
 
     int32_t ret = MESHX_SUCCESS;
@@ -193,7 +201,7 @@ int32_t meshx_upper_trans_send(meshx_net_iface_t net_iface,
                    pmsg_tx_ctx->iv_index, pmsg_tx_ctx->seg, pmsg_tx_ctx->opcode);
         MESHX_DUMP_INFO(pdata, len);
 
-        ret = meshx_lower_trans_send(net_iface, pdata, len, pmsg_tx_ctx);
+        ret = meshx_lower_trans_send(pdata, len, pmsg_tx_ctx);
     }
     else
     {
@@ -224,15 +232,14 @@ int32_t meshx_upper_trans_send(meshx_net_iface_t net_iface,
         /* encrypt and authenticate access pdu */
         meshx_upper_trans_encrypt(ppdu, len, ppdu + len, trans_mic_len, pmsg_tx_ctx);
 
-        ret = meshx_lower_trans_send(net_iface, ppdu, len + trans_mic_len, pmsg_tx_ctx);
+        ret = meshx_lower_trans_send(ppdu, len + trans_mic_len, pmsg_tx_ctx);
         meshx_free(ppdu);
     }
 
     return ret;
 }
 
-int32_t meshx_upper_trans_receive(meshx_net_iface_t net_iface,
-                                  uint8_t *pdata,
+int32_t meshx_upper_trans_receive(uint8_t *pdata,
                                   uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     MESHX_DEBUG("receive upper transport pdu: type %d", pmsg_rx_ctx->ctl);
@@ -258,7 +265,7 @@ int32_t meshx_upper_trans_receive(meshx_net_iface_t net_iface,
         if (MESHX_SUCCESS == ret)
         {
             /* notify access layer */
-            ret = meshx_access_receive(net_iface, pdata, len - trans_mic_len, pmsg_rx_ctx);
+            ret = meshx_access_receive(pdata, len - trans_mic_len, pmsg_rx_ctx);
         }
         else
         {

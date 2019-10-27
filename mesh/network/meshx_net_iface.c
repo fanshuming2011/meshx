@@ -297,7 +297,7 @@ void meshx_net_iface_traverse_start(meshx_net_iface_t *ptraverse_net_iface)
 
 void meshx_net_iface_traverse_continue(meshx_net_iface_t *ptraverse_net_iface)
 {
-    const meshx_net_iface_info_t *piface = (const meshx_net_iface_info_t *)(*ptraverse_net_iface);
+    meshx_net_iface_info_t *piface = (meshx_net_iface_info_t *)(*ptraverse_net_iface);
     *ptraverse_net_iface = NULL;
     meshx_list_t *pnode;
     for (pnode = piface->node.pnext; pnode != &meshx_net_iface_list; pnode = pnode->pnext)

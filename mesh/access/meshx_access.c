@@ -78,8 +78,7 @@ uint32_t meshx_access_buf_to_opcode(const uint8_t *pdata)
     return opcode;
 }
 
-int32_t meshx_access_send(meshx_net_iface_t net_iface,
-                          const uint8_t *pdata, uint16_t len, meshx_msg_ctx_t *pmsg_tx_ctx)
+int32_t meshx_access_send(const uint8_t *pdata, uint16_t len, meshx_msg_ctx_t *pmsg_tx_ctx)
 {
     /* check address */
     if (!MESHX_ADDRESS_IS_VALID(pmsg_tx_ctx->src) || !MESHX_ADDRESS_IS_VALID(pmsg_tx_ctx->dst))
@@ -123,11 +122,10 @@ int32_t meshx_access_send(meshx_net_iface_t net_iface,
         return -MESHX_ERR_LENGTH;
     }
 
-    return meshx_upper_trans_send(net_iface, pdata, len, pmsg_tx_ctx);
+    return meshx_upper_trans_send(pdata, len, pmsg_tx_ctx);
 }
 
-int32_t meshx_access_receive(meshx_net_iface_t net_iface,
-                             const uint8_t *pdata,
+int32_t meshx_access_receive(const uint8_t *pdata,
                              uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     MESHX_INFO("access message: src 0x%04x, dst 0x%04x, ttl %d, seq-seq auth 0x%06x-0x%06x, iv index 0x%08x, seg %d, akf %d, nid %d, aid %d",

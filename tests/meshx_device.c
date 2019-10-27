@@ -341,7 +341,7 @@ static void meshx_dev_cfg(void)
 
     meshx_node_param_t param;
     meshx_node_params_init(&param);
-    param.node_addr = 0x1234;
+    param.node_addr = 0x1201;
     meshx_node_params_set(&param);
     meshx_iv_index_set(0x12345678);
 }
@@ -351,7 +351,7 @@ static void meshx_dev_init(void)
     /* add keys */
     meshx_net_key_add(0, sample_net_key);
     meshx_app_key_add(0, 0, sample_app_key);
-    meshx_dev_key_add(0x1234, 1, sample_dev_key);
+    meshx_dev_key_add(0x1201, 1, sample_dev_key);
 }
 
 static void *meshx_thread(void *pargs)

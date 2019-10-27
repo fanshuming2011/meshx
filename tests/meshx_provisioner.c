@@ -432,8 +432,6 @@ static void *meshx_thread(void *pargs)
     /*************** initialize sample data ****************/
     meshx_bearer_rx_metadata_t rx_metadata;
     rx_metadata.bearer_type = MESHX_BEARER_TYPE_ADV;
-    meshx_bearer_t adv_bearer = meshx_bearer_get(&rx_metadata);
-    meshx_net_iface_t adv_net_if = meshx_net_iface_get(adv_bearer);
 
     /*********************** send sample network data *********************/
     meshx_msg_ctx_t ctx;
@@ -464,11 +462,12 @@ static void *meshx_thread(void *pargs)
     ctx.akf = 0;
     ctx.szmic = 0;
     ctx.seg = 0;
+    ctx.net_iface = NULL;
     uint8_t access_pdu[] = {0x00, 0x56, 0x34, 0x12, 0x63, 0x96, 0x47, 0x71, 0x73, 0x4f, 0xbd, 0x76, 0xe3, 0xb4, 0x05, 0x19, 0xd1, 0xd9, 0x4a, 0x48};
-    meshx_upper_trans_send(adv_net_if, access_pdu, sizeof(access_pdu), &ctx);
-    ctx.seg = 0;
-    uint8_t access_pdu1[] = {0x00, 0x11, 0x22};
-    meshx_access_send(adv_net_if, access_pdu1, sizeof(access_pdu1), &ctx);
+    meshx_upper_trans_send(access_pdu, sizeof(access_pdu), &ctx);
+    //ctx.seg = 0;
+    //uint8_t access_pdu1[] = {0x00, 0x11, 0x22};
+    //meshx_access_send(access_pdu1, sizeof(access_pdu1), &ctx);
     /*******************************************************/
 
     //meshx_bearer_rx_metadata_t rx_metadata;
