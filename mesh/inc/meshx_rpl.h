@@ -16,13 +16,15 @@ typedef struct
 {
     uint16_t src;
     uint32_t seq;
+    uint32_t iv_index;
 } meshx_rpl_t;
 
 MESHX_EXTERN int32_t meshx_rpl_init(void);
 MESHX_EXTERN void meshx_rpl_deinit(void);
 MESHX_EXTERN int32_t meshx_rpl_update(meshx_rpl_t rpl);
 MESHX_EXTERN void meshx_rpl_clear(void);
-MESHX_EXTERN bool meshx_rpl_exists(meshx_rpl_t rpl);
+MESHX_EXTERN bool meshx_rpl_check(meshx_rpl_t rpl);
+MESHX_EXTERN bool meshx_rpl_is_full(void);
 
 MESHX_END_DECLS
 

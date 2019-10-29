@@ -22,7 +22,7 @@ MESHX_EXTERN int32_t meshx_nmc_init(void);
 MESHX_EXTERN void meshx_nmc_deinit(void);
 MESHX_EXTERN int32_t meshx_nmc_add(meshx_nmc_t nmc);
 MESHX_EXTERN void meshx_nmc_clear(void);
-MESHX_EXTERN bool meshx_nmc_exists(meshx_nmc_t nmc);
+MESHX_EXTERN bool meshx_nmc_check(meshx_nmc_t nmc);
 
 MESHX_END_DECLS
 

@@ -22,6 +22,7 @@
 #include "meshx_seq.h"
 #include "meshx_iv_index.h"
 #include "meshx_upper_trans.h"
+#include "meshx_rpl.h"
 
 /**
  *  NOTE: only one segment message can send to the same destination once a time,
@@ -231,6 +232,15 @@ static uint8_t meshx_lower_trans_random(void)
     }
 
     return random;
+}
+
+static bool meshx_lower_trans_rpl_check(meshx_rpl_t rpl)
+{
+    if (!meshx_rpl_check(rpl))
+    {
+        return FALSE;
+    }
+    return (MESHX_SUCCESS == meshx_rpl_update(rpl));
 }
 
 static void meshx_lower_trans_tx_timeout_handler(void *pargs)
@@ -1058,6 +1068,9 @@ static int32_t meshx_lower_trans_receive_seg_msg(const uint8_t *pdata,
     if (0 == ptask->not_received_seg)
     {
         MESHX_INFO("already received all segments");
+        /* update rpl */
+        meshx_rpl_t rpl = {pmsg_rx_ctx->src, pmsg_rx_ctx->seq, pmsg_rx_ctx->iv_index};
+        meshx_rpl_update(rpl);
         /* ack immedietely */
         meshx_lower_trans_seg_ack(ptask->block_ack, pmsg_rx_ctx);
         return -MESHX_ERR_ALREADY;
@@ -1072,6 +1085,16 @@ static int32_t meshx_lower_trans_receive_seg_msg(const uint8_t *pdata,
     if (0 == segn)
     {
         /* only one segment */
+        meshx_rpl_t rpl = {pmsg_rx_ctx->src, pmsg_rx_ctx->seq, pmsg_rx_ctx->iv_index};
+        if (!meshx_lower_trans_rpl_check(rpl))
+        {
+            /* ack can't receive */
+            meshx_lower_trans_seg_ack(0, pmsg_rx_ctx);
+            /* release rx task */
+            meshx_lower_trans_rx_task_release(ptask);
+            return -MESHX_ERR_FAIL;
+        }
+
         ptask->not_received_seg = 0;
         ptask->block_ack = 0x01;
         if (pmsg_rx_ctx->ctl)
@@ -1132,6 +1155,16 @@ static int32_t meshx_lower_trans_receive_seg_msg(const uint8_t *pdata,
         ptask->pdu_len += seg_len;
         if (0 == ptask->not_received_seg)
         {
+            meshx_rpl_t rpl = {pmsg_rx_ctx->src, pmsg_rx_ctx->seq, pmsg_rx_ctx->iv_index};
+            if (!meshx_lower_trans_rpl_check(rpl))
+            {
+                /* ack can't receive */
+                meshx_lower_trans_seg_ack(0, pmsg_rx_ctx);
+                /* release rx task */
+                meshx_lower_trans_rx_task_release(ptask);
+                return -MESHX_ERR_FAIL;
+            }
+
             /* receive all segments */
             meshx_lower_trans_seg_ack(ptask->block_ack, pmsg_rx_ctx);
 
@@ -1163,6 +1196,8 @@ int32_t meshx_lower_trans_receive(uint8_t *pdata, uint8_t len, meshx_msg_ctx_t *
     MESHX_DEBUG("receive lower transport data:");
     MESHX_DUMP_DEBUG(pdata, len);
     int32_t ret = MESHX_SUCCESS;
+    meshx_rpl_t rpl = {pmsg_rx_ctx->src, pmsg_rx_ctx->seq, pmsg_rx_ctx->iv_index};
+
     if (pmsg_rx_ctx->ctl)
     {
         /* control message */
@@ -1170,6 +1205,11 @@ int32_t meshx_lower_trans_receive(uint8_t *pdata, uint8_t len, meshx_msg_ctx_t *
 
         if (0 == pmetadata->opcode)
         {
+            if (!meshx_lower_trans_rpl_check(rpl))
+            {
+                return -MESHX_ERR_FAIL;
+            }
+
             /* segment ack */
             meshx_lower_trans_seg_ack_pdu_t *pseg_ack = (meshx_lower_trans_seg_ack_pdu_t *)(((
                     meshx_lower_trans_unseg_ctl_pdu_t *)pdata)->pdu);
@@ -1184,6 +1224,11 @@ int32_t meshx_lower_trans_receive(uint8_t *pdata, uint8_t len, meshx_msg_ctx_t *
             }
             else
             {
+                if (!meshx_lower_trans_rpl_check(rpl))
+                {
+                    return -MESHX_ERR_FAIL;
+                }
+
                 /* unseg control message */
                 meshx_lower_trans_unseg_ctl_pdu_t *ppdu = (meshx_lower_trans_unseg_ctl_pdu_t *)pdata;
                 uint8_t pdu_len = len - sizeof(meshx_lower_trans_ctl_pdu_metadata_t);
@@ -1207,6 +1252,11 @@ int32_t meshx_lower_trans_receive(uint8_t *pdata, uint8_t len, meshx_msg_ctx_t *
         }
         else
         {
+            if (!meshx_lower_trans_rpl_check(rpl))
+            {
+                return -MESHX_ERR_FAIL;
+            }
+
             /* unsegment access message */
             meshx_lower_trans_unseg_access_pdu_t *ppdu = (meshx_lower_trans_unseg_access_pdu_t *)pdata;
             uint8_t pdu_len = len - sizeof(meshx_lower_trans_access_pdu_metadata_t);

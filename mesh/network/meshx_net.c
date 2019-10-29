@@ -227,16 +227,15 @@ int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata, uin
 
     /* check nmc */
     meshx_nmc_t nmc = {.src = src, .seq = seq};
-    if (meshx_nmc_exists(nmc))
+    if (!meshx_nmc_check(nmc))
     {
         /* message already cached, ignore */
-        MESHX_INFO("message already cached, ignore!");
-        return -MESHX_ERR_ALREADY;
+        return -MESHX_ERR_FAIL;
     }
 
     meshx_nmc_add(nmc);
 
-    MESHX_INFO("receive network pdu: ctl %d, ttl %d, src x0%04x, dst 0x%04x, seq 0x%06x, iv_index 0x%08x",
+    MESHX_INFO("receive network pdu: ctl %d, ttl %d, src 0x%04x, dst 0x%04x, seq 0x%06x, iv_index 0x%08x",
                net_pdu.net_metadata.ctl,
                net_pdu.net_metadata.ttl, src, dst, seq, iv_index);
     MESHX_DUMP_INFO(net_pdu.pdu, trans_pdu_len);

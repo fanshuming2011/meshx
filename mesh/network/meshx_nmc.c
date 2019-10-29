@@ -37,6 +37,7 @@ int32_t meshx_nmc_init(void)
     nmc_index = 0;
     nmc_circle = false;
     nmc_size = meshx_node_params.config.nmc_size;
+    MESHX_INFO("initialize nmc module success: size %d", meshx_node_params.config.nmc_size);
     return MESHX_SUCCESS;
 }
 
@@ -51,6 +52,7 @@ void meshx_nmc_deinit(void)
     nmc_index = 0;
     nmc_circle = false;
     nmc_size = 0;
+    MESHX_INFO("deinitialize nmc module");
 }
 
 int32_t meshx_nmc_add(meshx_nmc_t nmc)
@@ -68,6 +70,7 @@ int32_t meshx_nmc_add(meshx_nmc_t nmc)
     }
 
     nmc_array[nmc_index] = nmc;
+    MESHX_DEBUG("add nmc: src 0x%04x, seq 0x%06x", nmc.src, nmc.seq);
 
     nmc_index ++;
 
@@ -82,13 +85,14 @@ void meshx_nmc_clear(void)
     }
     nmc_index = 0;
     nmc_circle = FALSE;
+    MESHX_INFO("clear nmc");
 }
 
-bool meshx_nmc_exists(meshx_nmc_t nmc)
+bool meshx_nmc_check(meshx_nmc_t nmc)
 {
     if (NULL == nmc_array)
     {
-        MESHX_WARN("need initialize nmc module");
+        MESHX_ERROR("initialize nmc module first!");
         return FALSE;
     }
 
@@ -98,13 +102,19 @@ bool meshx_nmc_exists(meshx_nmc_t nmc)
         check_length = nmc_size;
     }
 
+    bool ret = TRUE;
     for (uint32_t i = 0; i < check_length; ++i)
     {
         if (0 == memcmp(&nmc_array[i], &nmc, sizeof(meshx_nmc_t)))
         {
-            return TRUE;
+            MESHX_WARN("nmc check failed: %d, src 0x%04x, seq 0x%06x-0x%06x", nmc.src, nmc.seq,
+                       nmc_array[i].seq);
+            ret = FALSE;
         }
+        break;
     }
 
-    return FALSE;
+    MESHX_DEBUG("nmc check passed");
+
+    return ret;
 }

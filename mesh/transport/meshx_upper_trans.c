@@ -157,7 +157,7 @@ static int32_t meshx_upper_trans_decrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
 
         /* decrypt data */
         const meshx_device_key_t *pdev_key = meshx_dev_key_get(meshx_node_params.param.node_addr);
-        if (NULL == pmsg_rx_ctx->pdev_key)
+        if (NULL == pdev_key)
         {
             MESHX_ERROR("device key is invalid!");
             return -MESHX_ERR_KEY;

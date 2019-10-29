@@ -35,6 +35,8 @@ int32_t meshx_rpl_init(void)
 
     rpl_index = 0;
     rpl_size = meshx_node_params.config.rpl_size;
+    MESHX_INFO("initialize rpl module success: size %d", meshx_node_params.config.rpl_size);
+
     return MESHX_SUCCESS;
 }
 
@@ -48,6 +50,7 @@ void meshx_rpl_deinit(void)
 
     rpl_index = 0;
     rpl_size = 0;
+    MESHX_INFO("deinitialize rpl module");
 }
 
 int32_t meshx_rpl_update(meshx_rpl_t rpl)
@@ -64,6 +67,9 @@ int32_t meshx_rpl_update(meshx_rpl_t rpl)
         {
             /* found exists rpl */
             rpl_array[rpl_index].seq = rpl.seq;
+            rpl_array[rpl_index].iv_index = rpl.iv_index;
+            MESHX_DEBUG("update rpl: src 0x%04x, seq 0x%06x, iv index 0x%08x", rpl_array[rpl_index].src,
+                        rpl_array[rpl_index].seq, rpl_array[rpl_index].iv_index);
             return MESHX_SUCCESS;
         }
     }
@@ -76,6 +82,8 @@ int32_t meshx_rpl_update(meshx_rpl_t rpl)
     }
 
     rpl_array[rpl_index] = rpl;
+    MESHX_DEBUG("update rpl: src 0x%04x, seq 0x%06x, iv index 0x%08x", rpl_array[rpl_index].src,
+                rpl_array[rpl_index].seq, rpl_array[rpl_index].iv_index);
 
     rpl_index ++;
 
@@ -89,23 +97,43 @@ void meshx_rpl_clear(void)
         memset(rpl_array, 0, sizeof(meshx_rpl_t) * rpl_size);
     }
     rpl_index = 0;
+    MESHX_INFO("clear rpl list");
 }
 
-bool meshx_rpl_exists(meshx_rpl_t rpl)
+bool meshx_rpl_check(meshx_rpl_t rpl)
 {
     if (NULL == rpl_array)
     {
-        MESHX_WARN("need initialize rpl module");
+        MESHX_ERROR("initialize rpl module first!");
         return FALSE;
     }
 
+    bool ret = TRUE;
     for (uint32_t i = 0; i < rpl_index; ++i)
     {
-        if ((rpl_array[i].src == rpl.src) && (rpl.seq <= rpl_array[i].seq))
+        if (rpl_array[i].src == rpl.src)
         {
-            return TRUE;
+            if ((rpl.seq <= rpl_array[i].seq) || (rpl.iv_index < rpl_array[i].iv_index))
+            {
+                MESHX_WARN("rpl check failed: src 0x%04x, seq 0x%06x-0x%06x, iv index 0x%08x-0x%08x", rpl.src,
+                           rpl_array[i].seq, rpl.seq, rpl_array[i].iv_index, rpl.iv_index);
+                ret = FALSE;
+            }
+            break;
         }
     }
 
-    return FALSE;
+    MESHX_DEBUG("rpl check passed");
+    return ret;
+}
+
+bool meshx_rpl_is_full(void)
+{
+    if (NULL != rpl_array)
+    {
+        MESHX_ERROR("initialize rpl module first!");
+        return TRUE;
+    }
+
+    return (rpl_index >= rpl_size);
 }
