@@ -11,8 +11,10 @@
 #include "meshx_trace.h"
 #include "meshx_errno.h"
 #include "meshx_mem.h"
+#include "meshx_assert.h"
 
 static uint32_t *seq_array;
+static uint8_t meshx_element_num;
 
 int32_t meshx_seq_init(uint8_t element_num)
 {
@@ -29,6 +31,7 @@ int32_t meshx_seq_init(uint8_t element_num)
         return -MESHX_ERR_MEM;
     }
     memset(seq_array, 0, element_num * sizeof(uint32_t));
+    meshx_element_num = element_num;
 
     return MESHX_SUCCESS;
 }
@@ -40,26 +43,35 @@ void meshx_seq_deinit(void)
         meshx_free(seq_array);
         seq_array = NULL;
     }
+    meshx_element_num = 0;
 }
 
 uint32_t meshx_seq_get(uint8_t element_index)
 {
-    if (NULL == seq_array)
+    MESHX_ASSERT(NULL != seq_array);
+
+#if MESHX_REDUNDANCY_CHECK
+    if (element_index >= meshx_element_num)
     {
-        MESHX_ERROR("initialize sequence module first!");
+        MESHX_ERROR("element index(%d) exceeded maximum element num(%d)", element_index, meshx_element_num);
         return MESHX_SEQ_INVALID;
     }
+#endif
 
     return seq_array[element_index];
 }
 
 uint32_t meshx_seq_set(uint8_t element_index, uint32_t seq)
 {
-    if (NULL == seq_array)
+    MESHX_ASSERT(NULL != seq_array);
+
+#if MESHX_REDUNDANCY_CHECK
+    if (element_index >= meshx_element_num)
     {
-        MESHX_ERROR("initialize sequence module first!");
+        MESHX_ERROR("element index(%d) exceeded maximum element num(%d)", element_index, meshx_element_num);
         return MESHX_SEQ_INVALID;
     }
+#endif
 
     if (seq > MESHX_SEQ_MAX)
     {
@@ -73,11 +85,15 @@ uint32_t meshx_seq_set(uint8_t element_index, uint32_t seq)
 
 uint32_t meshx_seq_use(uint8_t element_index)
 {
-    if (NULL == seq_array)
+    MESHX_ASSERT(NULL != seq_array);
+
+#if MESHX_REDUNDANCY_CHECK
+    if (element_index >= meshx_element_num)
     {
-        MESHX_ERROR("initialize sequence module first!");
+        MESHX_ERROR("element index(%d) exceeded maximum element num(%d)", element_index, meshx_element_num);
         return MESHX_SEQ_INVALID;
     }
+#endif
 
     uint32_t seq = seq_array[element_index];
     if (MESHX_SEQ_MAX == seq)
@@ -90,4 +106,14 @@ uint32_t meshx_seq_use(uint8_t element_index)
     }
 
     return seq;
+}
+
+void meshx_seq_clear(void)
+{
+    MESHX_ASSERT(NULL != seq_array);
+
+    for (uint8_t i = 0; i < meshx_element_num; ++i)
+    {
+        seq_array[i] = 0;
+    }
 }

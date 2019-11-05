@@ -23,6 +23,8 @@
 #include "meshx_iv_index.h"
 #include "meshx_upper_trans.h"
 #include "meshx_rpl.h"
+#include "meshx_iv_index_internal.h"
+#include "meshx_iv_index.h"
 
 /**
  *  NOTE: only one segment message can send to the same destination once a time,
@@ -384,6 +386,12 @@ static void meshx_lower_trans_tx_task_release(meshx_lower_trans_tx_task_t *ptask
 static void meshx_lower_trans_tx_task_finish(meshx_lower_trans_tx_task_t *ptx_task)
 {
     meshx_lower_trans_tx_task_release(ptx_task);
+
+    /* check iv index transit state */
+    if (meshx_is_iv_update_state_transit_pending())
+    {
+        meshx_iv_update_state_transit(MESHX_IV_UPDATE_STATE_NORMAL);
+    }
 
     meshx_list_t *ppending_node;
     meshx_lower_trans_tx_task_t *ppending_task = NULL;
@@ -1274,3 +1282,7 @@ int32_t meshx_lower_trans_receive(uint8_t *pdata, uint8_t len, meshx_msg_ctx_t *
     return ret;
 }
 
+bool meshx_is_lower_trans_busy(void)
+{
+    return (meshx_lower_trans_tx_task_active.pnext != &meshx_lower_trans_tx_task_active);
+}

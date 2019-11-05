@@ -12,6 +12,7 @@
 #include "meshx_errno.h"
 #include "meshx_mem.h"
 #include "meshx_node_internal.h"
+#include "meshx_assert.h"
 
 static meshx_rpl_t *rpl_array;
 static uint32_t rpl_index;
@@ -19,6 +20,7 @@ static uint32_t rpl_size;
 
 int32_t meshx_rpl_init(void)
 {
+    MESHX_INFO("initialize rpl module: size %d...", meshx_node_params.config.rpl_size);
     if (NULL != rpl_array)
     {
         MESHX_ERROR("rpl already initialized");
@@ -35,13 +37,13 @@ int32_t meshx_rpl_init(void)
 
     rpl_index = 0;
     rpl_size = meshx_node_params.config.rpl_size;
-    MESHX_INFO("initialize rpl module success: size %d", meshx_node_params.config.rpl_size);
 
     return MESHX_SUCCESS;
 }
 
 void meshx_rpl_deinit(void)
 {
+    MESHX_INFO("deinitialize rpl module...");
     if (NULL != rpl_array)
     {
         meshx_free(rpl_array);
@@ -50,16 +52,11 @@ void meshx_rpl_deinit(void)
 
     rpl_index = 0;
     rpl_size = 0;
-    MESHX_INFO("deinitialize rpl module");
 }
 
 int32_t meshx_rpl_update(meshx_rpl_t rpl)
 {
-    if (NULL == rpl_array)
-    {
-        MESHX_ERROR("initialize rpl module first!");
-        return -MESHX_ERR_INVAL;
-    }
+    MESHX_ASSERT(NULL != rpl_array);
 
     for (uint8_t i = 0; i < rpl_index; ++i)
     {
@@ -102,11 +99,7 @@ void meshx_rpl_clear(void)
 
 bool meshx_rpl_check(meshx_rpl_t rpl)
 {
-    if (NULL == rpl_array)
-    {
-        MESHX_ERROR("initialize rpl module first!");
-        return FALSE;
-    }
+    MESHX_ASSERT(NULL != rpl_array);
 
     bool ret = TRUE;
     for (uint32_t i = 0; i < rpl_index; ++i)
@@ -129,11 +122,7 @@ bool meshx_rpl_check(meshx_rpl_t rpl)
 
 bool meshx_rpl_is_full(void)
 {
-    if (NULL != rpl_array)
-    {
-        MESHX_ERROR("initialize rpl module first!");
-        return TRUE;
-    }
+    MESHX_ASSERT(NULL != rpl_array);
 
     return (rpl_index >= rpl_size);
 }

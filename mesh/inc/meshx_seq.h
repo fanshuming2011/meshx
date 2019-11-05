@@ -20,6 +20,7 @@ MESHX_EXTERN void meshx_seq_deinit(void);
 MESHX_EXTERN uint32_t meshx_seq_get(uint8_t element_index);
 MESHX_EXTERN uint32_t meshx_seq_set(uint8_t element_index, uint32_t seq);
 MESHX_EXTERN uint32_t meshx_seq_use(uint8_t element_index);
+MESHX_EXTERN void meshx_seq_clear(void);
 
 MESHX_END_DECLS
 

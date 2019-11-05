@@ -15,6 +15,7 @@
 #include "meshx_mem.h"
 #include "meshx_beacon_internal.h"
 #include "meshx_trans_internal.h"
+#include "meshx_iv_index_internal.h"
 
 static meshx_async_msg_notify_t meshx_async_msg_notify;
 
@@ -121,6 +122,9 @@ void meshx_async_msg_process(void)
         break;
     case MESHX_ASYNC_MSG_TYPE_TIMEOUT_LOWER_TRANS_RX_INCOMPLETE:
         meshx_lower_trans_async_handle_rx_incomplete_timeout(pmsg->msg);
+        break;
+    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_IV_INDEX:
+        meshx_iv_index_async_handle_timeout(pmsg->msg);
         break;
     default:
         MESHX_ERROR("unkonwn message type: %d", pmsg->msg.type);
