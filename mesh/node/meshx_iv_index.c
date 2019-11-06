@@ -31,6 +31,9 @@ static bool meshx_iv_update_state_transit_pending;
 static meshx_timer_t meshx_iv_operate_tick_timer;
 static uint32_t meshx_iv_operate_tick_time;
 
+#define MESHX_IV_INDEX_MAX_DIFF                42
+
+
 static void meshx_iv_operate_tick_timeout(void *pargs)
 {
     meshx_async_msg_t msg;
@@ -73,7 +76,11 @@ void meshx_iv_index_deinit(void)
 
 void meshx_iv_index_async_handle_timeout(meshx_async_msg_t msg)
 {
-    meshx_iv_operate_tick_time ++;
+    if (meshx_iv_operate_tick_time < MESHX_IV_OPERATE_48W)
+    {
+        meshx_iv_operate_tick_time ++;
+    }
+
     if ((meshx_iv_operate_tick_time >= MESHX_IV_OPERATE_144H) &&
         (MESHX_IV_UPDATE_STATE_IN_PROGRESS == meshx_iv_update_state))
     {
@@ -81,7 +88,7 @@ void meshx_iv_index_async_handle_timeout(meshx_async_msg_t msg)
         if (meshx_is_lower_trans_busy())
         {
             meshx_iv_update_state_transit_pending = TRUE;
-            MESHX_INFO("iv update state transit to normal is pending");
+            MESHX_INFO("iv update state transit to normal is pending: iv index 0x%08x", meshx_iv_index);
         }
         else
         {
@@ -90,7 +97,7 @@ void meshx_iv_index_async_handle_timeout(meshx_async_msg_t msg)
             meshx_iv_operate_tick_time = 0;
             meshx_seq_clear();
             meshx_rpl_clear();
-            MESHX_INFO("iv update state transit to normal");
+            MESHX_INFO("iv update state transit to normal: iv index 0x%08x", meshx_iv_index);
         }
     }
 }
@@ -113,47 +120,74 @@ void meshx_iv_index_set(uint32_t iv_index)
 
 int32_t meshx_iv_index_update(uint32_t iv_index, meshx_iv_update_state_t state)
 {
-    if (meshx_iv_index >= iv_index)
+    if (meshx_iv_index > iv_index)
     {
-        MESHX_ERROR("iv index(0x%08x) is less than or equal to current(0x%08x)", iv_index, meshx_iv_index);
+        MESHX_ERROR("received iv index(0x%08x) is less than current(0x%08x)", iv_index, meshx_iv_index);
         return -MESHX_ERR_INVAL;
     }
 
-    //uint32_t distance = iv_index - meshx_iv_index;
+    int32_t distance = iv_index - meshx_iv_index;
+    if (distance > MESHX_IV_INDEX_MAX_DIFF)
+    {
+        MESHX_WARN("node has been left the network over 48 weeks, need reprovisioned!");
+        return -MESHX_ERR_MAX;
+    }
 
-    return -MESHX_SUCCESS;
+    distance = (distance << 1) + !state - !meshx_iv_update_state;
+    if (distance <= 0)
+    {
+        return MESHX_SUCCESS;
+    }
+
+    if (meshx_iv_operate_tick_time < (distance * MESHX_IV_OPERATE_96H))
+    {
+        MESHX_ERROR("operate time(%d) is not enough to change state", meshx_iv_operate_tick_time);
+        return -MESHX_ERR_TIMING;
+    }
+
+    meshx_iv_index = iv_index;
+    if (1 == distance)
+    {
+        /* normal iv update procedure */
+        if (MESHX_IV_UPDATE_STATE_NORMAL == state)
+        {
+            /* check whether send segment message */
+            if (meshx_is_lower_trans_busy())
+            {
+                meshx_iv_update_state_transit_pending = TRUE;
+                MESHX_INFO("iv update state transit to normal is pending: iv index 0x%08x", meshx_iv_index);
+            }
+            else
+            {
+                /* return to normal state */
+                meshx_iv_update_state = state;
+                meshx_iv_operate_tick_time = 0;
+                meshx_seq_clear();
+                meshx_rpl_clear();
+                MESHX_INFO("iv update state transit to normal: iv index 0x%08x", meshx_iv_index);
+            }
+        }
+        else
+        {
+            meshx_iv_update_state = state;
+        }
+    }
+    else
+    {
+        /* iv recovery procudure */
+        meshx_iv_update_state = state;
+        meshx_iv_operate_tick_time = MESHX_IV_OPERATE_96H;
+        meshx_seq_clear();
+        meshx_rpl_clear();
+        MESHX_INFO("iv index recovery: iv index 0x%08x, state %d", meshx_iv_index, state);
+    }
+
+    return MESHX_SUCCESS;
 }
 
 int32_t meshx_iv_update_state_transit(meshx_iv_update_state_t state)
 {
-    if (meshx_iv_update_state != state)
-    {
-        if (meshx_iv_operate_tick_time < MESHX_IV_OPERATE_96H)
-        {
-            MESHX_ERROR("iv update state transit from %d-%d failed, operate time is less than 96h",
-                        meshx_iv_update_state, state);
-            return -MESHX_ERR_TIMING;
-        }
-
-        if (MESHX_IV_UPDATE_STATE_IN_PROGRESS == meshx_iv_update_state)
-        {
-            /* transit from in progress to normal */
-            meshx_seq_clear();
-            meshx_rpl_clear();
-            meshx_iv_update_state_transit_pending = FALSE;
-        }
-        else
-        {
-            /* transit from normal to in progress */
-            meshx_iv_index ++;
-        }
-
-        MESHX_INFO("iv update state transit from %d-%d", meshx_iv_update_state, state);
-        meshx_iv_update_state = state;
-        meshx_iv_operate_tick_time = 0;
-    }
-
-    return MESHX_SUCCESS;
+    return meshx_iv_index_update(meshx_iv_index, state);
 }
 
 meshx_iv_update_state_t meshx_iv_update_state_get(void)
