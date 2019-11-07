@@ -39,52 +39,105 @@ static void meshx_beacon_timer_timeout(void *pargs)
     meshx_async_msg_send(&async_msg);
 }
 
+static void meshx_beacon_send_udb(meshx_bearer_t bearer)
+{
+    /* send udb */
+    meshx_udb_t udb;
+    uint8_t len = sizeof(meshx_udb_t);
+    udb.type = MESHX_BEACON_TYPE_UDB;
+    memcpy(udb.dev_uuid, meshx_node_params.config.dev_uuid, sizeof(meshx_dev_uuid_t));
+    udb.oob_info = meshx_oob_info;
+    if (meshx_uri_hash_exists)
+    {
+        udb.uri_hash = meshx_uri_hash;
+        len = sizeof(meshx_udb_t);
+    }
+    else
+    {
+        len = MESHX_OFFSET_OF(meshx_udb_t, uri_hash);
+    }
+    MESHX_INFO("udb send:");
+    MESHX_DUMP_INFO(&udb, len);
+    meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&udb, len);
+}
+
+static void meshx_beacon_send_snb(meshx_bearer_t bearer)
+{
+    meshx_snb_t snb;
+    snb.type = MESHX_BEACON_TYPE_SNB;
+    snb.flag.key_refresh = 0;
+    snb.flag.iv_update = meshx_iv_update_state_get();
+    snb.flag.rsvd = 0;
+    snb.iv_index = meshx_iv_index_get();
+
+    uint8_t snb_auth[16];
+    const meshx_net_key_t *pnet_key = NULL;
+    meshx_net_key_traverse_start(&pnet_key);
+    while (NULL != pnet_key)
+    {
+        memcpy(snb.net_id, pnet_key->net_id, sizeof(meshx_net_id_t));
+        meshx_aes_cmac(pnet_key->beacon_key, ((uint8_t *)&snb) + 1, sizeof(meshx_snb_t) - 9, snb_auth);
+        memcpy(snb.auth_value, snb_auth, 8);
+
+        /* send snb */
+        MESHX_INFO("snb send:");
+        MESHX_DUMP_INFO(&snb, sizeof(meshx_snb_t));
+        meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&snb,
+                          sizeof(meshx_snb_t));
+
+        meshx_net_key_traverse_continue(&pnet_key);
+    }
+}
+
 void meshx_beacon_async_handle_timeout(meshx_async_msg_t msg)
 {
     if (MESHX_ADDRESS_UNASSIGNED == meshx_node_params.param.node_addr)
     {
-        /* send udb */
-        meshx_udb_t udb;
-        uint8_t len = sizeof(meshx_udb_t);
-        udb.type = MESHX_BEACON_TYPE_UDB;
-        memcpy(udb.dev_uuid, meshx_node_params.config.dev_uuid, sizeof(meshx_dev_uuid_t));
-        udb.oob_info = meshx_oob_info;
-        if (meshx_uri_hash_exists)
-        {
-            udb.uri_hash = meshx_uri_hash;
-            len = sizeof(meshx_udb_t);
-        }
-        else
-        {
-            len = MESHX_OFFSET_OF(meshx_udb_t, uri_hash);
-        }
-        meshx_bearer_send(msg.pdata, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&udb, len);
+        meshx_beacon_send_udb(msg.pdata);
     }
     else
     {
-        meshx_snb_t snb;
-        snb.type = MESHX_BEACON_TYPE_SNB;
-        snb.flag.key_refresh = 0;
-        snb.flag.iv_update = meshx_iv_update_state_get();
-        snb.flag.rsvd = 0;
-        snb.iv_index = meshx_iv_index_get();
-
-        uint8_t snb_auth[16];
-        const meshx_net_key_t *pnet_key = NULL;
-        meshx_net_key_traverse_start(&pnet_key);
-        while (NULL != pnet_key)
-        {
-            memcpy(snb.net_id, pnet_key->net_id, sizeof(meshx_net_id_t));
-            meshx_aes_cmac(pnet_key->beacon_key, ((uint8_t *)&snb) + 1, sizeof(meshx_snb_t) - 9, snb_auth);
-            memcpy(snb.auth_value, snb_auth, 8);
-
-            /* send snb */
-            meshx_bearer_send(msg.pdata, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&snb,
-                              sizeof(meshx_snb_t));
-
-            meshx_net_key_traverse_continue(&pnet_key);
-        }
+        meshx_beacon_send_snb(msg.pdata);
     }
+}
+
+int32_t meshx_beacon_send(meshx_bearer_t bearer, uint8_t beacon_type)
+{
+    if (MESHX_BEARER_TYPE_ADV != bearer->type)
+    {
+        MESHX_ERROR("beacon can only send on advertising bearer!");
+        return -MESHX_ERR_INVAL;
+    }
+    int32_t ret = MESHX_SUCCESS;
+    switch (beacon_type)
+    {
+    case MESHX_BEACON_TYPE_UDB:
+        if (MESHX_ADDRESS_UNASSIGNED != meshx_node_params.param.node_addr)
+        {
+            ret = -MESHX_ERR_STATE;
+        }
+        else
+        {
+            meshx_beacon_send_udb(bearer);
+        }
+        break;
+    case MESHX_BEACON_TYPE_SNB:
+        if (MESHX_ADDRESS_UNASSIGNED == meshx_node_params.param.node_addr)
+        {
+            ret = -MESHX_ERR_STATE;
+        }
+        else
+        {
+            meshx_beacon_send_snb(bearer);
+        }
+        break;
+    default:
+        MESHX_ERROR("invalid beacon type: %d", beacon_type);
+        ret = -MESHX_ERR_INVAL;
+        break;
+    }
+
+    return ret;
 }
 
 int32_t meshx_beacon_start(meshx_bearer_t bearer, uint8_t beacon_type, uint32_t interval)
