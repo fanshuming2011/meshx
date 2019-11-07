@@ -101,30 +101,25 @@ static int32_t meshx_upper_trans_decrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
         MESHX_DUMP_DEBUG(papp_nonce, sizeof(meshx_app_nonce_t));
 
         /* get app key */
-        const meshx_app_key_t *papp_key = NULL;
-        meshx_app_key_traverse_start(&papp_key, pmsg_rx_ctx->aid);
-        if (NULL == papp_key)
-        {
-            MESHX_ERROR("no key's aid is 0x%x", pmsg_rx_ctx->aid);
-            return -MESHX_ERR_KEY;
-        }
-
         int32_t ret = MESHX_SUCCESS;
         /* TODO: label uuid */
         uint8_t *padd = NULL;
         uint8_t add_len = 0;
+        const meshx_app_key_t *papp_key = NULL;
+        meshx_app_key_traverse_start(&papp_key);
         while (NULL != papp_key)
         {
-            ret = meshx_aes_ccm_decrypt(papp_key->app_key, nonce, MESHX_NONCE_SIZE,
-                                        padd, add_len, paccess_pdu, pdu_len, paccess_pdu, ptrans_mic, trans_mic_len);
-            if (MESHX_SUCCESS == ret)
+            if (papp_key->aid == pmsg_rx_ctx->aid)
             {
-                break;
+                ret = meshx_aes_ccm_decrypt(papp_key->app_key, nonce, MESHX_NONCE_SIZE,
+                                            padd, add_len, paccess_pdu, pdu_len, paccess_pdu, ptrans_mic, trans_mic_len);
+                if (MESHX_SUCCESS == ret)
+                {
+                    break;
+                }
             }
-            else
-            {
-                meshx_app_key_traverse_continue(&papp_key, pmsg_rx_ctx->aid);
-            }
+
+            meshx_app_key_traverse_continue(&papp_key);
         }
 
         if (NULL == papp_key)

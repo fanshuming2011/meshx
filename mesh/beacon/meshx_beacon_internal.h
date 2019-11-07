@@ -27,7 +27,7 @@ typedef struct
     meshx_snb_flag_t flag;
     uint8_t net_id[8];
     uint32_t iv_index;
-    uint8_t auth_valud[8];
+    uint8_t auth_value[8];
 } __PACKED meshx_snb_t;;
 
 

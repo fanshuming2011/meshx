@@ -139,7 +139,7 @@ int32_t meshx_iv_index_update(uint32_t iv_index, meshx_iv_update_state_t state)
         return MESHX_SUCCESS;
     }
 
-    if (meshx_iv_operate_tick_time < (distance * MESHX_IV_OPERATE_96H))
+    if (!meshx_iv_test_mode_enabled && (meshx_iv_operate_tick_time < (distance * MESHX_IV_OPERATE_96H)))
     {
         MESHX_ERROR("operate time(%d) is not enough to change state", meshx_iv_operate_tick_time);
         return -MESHX_ERR_TIMING;

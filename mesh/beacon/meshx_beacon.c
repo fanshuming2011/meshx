@@ -19,6 +19,10 @@
 #include "meshx_notify.h"
 #include "meshx_notify_internal.h"
 #include "meshx_node_internal.h"
+#include "meshx_iv_index_internal.h"
+#include "meshx_iv_index.h"
+#include "meshx_security.h"
+#include "meshx_key.h"
 
 static meshx_timer_t beacon_timer;
 static uint16_t meshx_oob_info;
@@ -58,8 +62,28 @@ void meshx_beacon_async_handle_timeout(meshx_async_msg_t msg)
     }
     else
     {
-        /* send snb */
-        //meshx_bearer_send(msg.pdata, MESHX_BEARER_ADV_PKT_TYPE_BEACON, );
+        meshx_snb_t snb;
+        snb.type = MESHX_BEACON_TYPE_SNB;
+        snb.flag.key_refresh = 0;
+        snb.flag.iv_update = meshx_iv_update_state_get();
+        snb.flag.rsvd = 0;
+        snb.iv_index = meshx_iv_index_get();
+
+        uint8_t snb_auth[16];
+        const meshx_net_key_t *pnet_key = NULL;
+        meshx_net_key_traverse_start(&pnet_key);
+        while (NULL != pnet_key)
+        {
+            memcpy(snb.net_id, pnet_key->net_id, sizeof(meshx_net_id_t));
+            meshx_aes_cmac(pnet_key->beacon_key, ((uint8_t *)&snb) + 1, sizeof(meshx_snb_t) - 9, snb_auth);
+            memcpy(snb.auth_value, snb_auth, 8);
+
+            /* send snb */
+            meshx_bearer_send(msg.pdata, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&snb,
+                              sizeof(meshx_snb_t));
+
+            meshx_net_key_traverse_continue(&pnet_key);
+        }
     }
 }
 

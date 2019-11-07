@@ -16,6 +16,7 @@ int32_t meshx_init(void)
     meshx_seq_init(1);
     meshx_rpl_init();
     meshx_nmc_init();
+    meshx_iv_index_init();
     meshx_app_key_init();
     meshx_net_key_init();
     meshx_dev_key_init();
