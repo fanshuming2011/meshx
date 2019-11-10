@@ -390,7 +390,7 @@ static void meshx_lower_trans_tx_task_finish(meshx_lower_trans_tx_task_t *ptx_ta
     /* check iv index transit state */
     if (meshx_is_iv_update_state_transit_pending())
     {
-        meshx_iv_update_state_transit(MESHX_IV_UPDATE_STATE_NORMAL);
+        meshx_iv_update_state_set(MESHX_IV_UPDATE_STATE_NORMAL);
     }
 
     meshx_list_t *ppending_node;
@@ -725,7 +725,7 @@ static int32_t meshx_lower_trans_seg_ack(uint32_t block_ack, const meshx_msg_ctx
     msg_tx_ctx.seg = 0;
     msg_tx_ctx.ttl = meshx_node_params.param.default_ttl;
     msg_tx_ctx.ctl = 1;
-    msg_tx_ctx.iv_index = meshx_iv_index_get();
+    msg_tx_ctx.iv_index = meshx_iv_index_tx_get();
     msg_tx_ctx.pnet_key = pmsg_rx_ctx->pnet_key;
     msg_tx_ctx.opcode = 0;
     msg_tx_ctx.seq = meshx_seq_use(msg_tx_ctx.src - meshx_node_params.param.node_addr);

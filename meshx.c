@@ -17,6 +17,7 @@ int32_t meshx_init(void)
     meshx_rpl_init();
     meshx_nmc_init();
     meshx_iv_index_init();
+    meshx_iv_update_operate_time_set(MESHX_IV_OPERATE_48W);
     meshx_app_key_init();
     meshx_net_key_init();
     meshx_dev_key_init();

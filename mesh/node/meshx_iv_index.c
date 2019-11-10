@@ -24,10 +24,10 @@ static bool meshx_iv_update_state_transit_pending;
 
 /* iv operate time parameters */
 #define MESHX_IV_OPERATE_TICK_PERIOD           1200 /* unit is second */
-#define MESHX_IV_OPERATE_96H                   (96 * 3600 / MESHX_IV_OPERATE_TICK_PERIOD)
-#define MESHX_IV_OPERATE_144H                  (144 * 3600 / MESHX_IV_OPERATE_TICK_PERIOD)
-#define MESHX_IV_OPERATE_192H                  (2 * MESHX_IV_OPERATE_96H)
-#define MESHX_IV_OPERATE_48W                   (42 * MESHX_IV_OPERATE_192H)
+#define MESHX_IV_OPERATE_TICK_96H                   (96 * 3600 / MESHX_IV_OPERATE_TICK_PERIOD)
+#define MESHX_IV_OPERATE_TICK_144H                  (144 * 3600 / MESHX_IV_OPERATE_TICK_PERIOD)
+#define MESHX_IV_OPERATE_TICK_192H                  (2 * MESHX_IV_OPERATE_TICK_96H)
+#define MESHX_IV_OPERATE_TICK_48W                   (42 * MESHX_IV_OPERATE_TICK_192H)
 static meshx_timer_t meshx_iv_operate_tick_timer;
 static uint32_t meshx_iv_operate_tick_time;
 
@@ -76,12 +76,12 @@ void meshx_iv_index_deinit(void)
 
 void meshx_iv_index_async_handle_timeout(meshx_async_msg_t msg)
 {
-    if (meshx_iv_operate_tick_time < MESHX_IV_OPERATE_48W)
+    if (meshx_iv_operate_tick_time < MESHX_IV_OPERATE_TICK_48W)
     {
         meshx_iv_operate_tick_time ++;
     }
 
-    if ((meshx_iv_operate_tick_time >= MESHX_IV_OPERATE_144H) &&
+    if ((meshx_iv_operate_tick_time >= MESHX_IV_OPERATE_TICK_144H) &&
         (MESHX_IV_UPDATE_STATE_IN_PROGRESS == meshx_iv_update_state))
     {
         /* check whether send segment message */
@@ -107,7 +107,7 @@ uint32_t meshx_iv_index_get(void)
     return meshx_iv_index;
 }
 
-uint32_t meshx_tx_iv_index_get(void)
+uint32_t meshx_iv_index_tx_get(void)
 {
     return (MESHX_IV_UPDATE_STATE_IN_PROGRESS == meshx_iv_update_state) ? (meshx_iv_index - 1) :
            meshx_iv_index;
@@ -139,9 +139,10 @@ int32_t meshx_iv_index_update(uint32_t iv_index, meshx_iv_update_state_t state)
         return MESHX_SUCCESS;
     }
 
-    if (!meshx_iv_test_mode_enabled && (meshx_iv_operate_tick_time < (distance * MESHX_IV_OPERATE_96H)))
+    if (!meshx_iv_test_mode_enabled &&
+        (meshx_iv_operate_tick_time < (distance * MESHX_IV_OPERATE_TICK_96H)))
     {
-        MESHX_ERROR("operate time(%d) is not enough to change state", meshx_iv_operate_tick_time);
+        MESHX_ERROR("operate time(%d) is not enough to change state: %d", meshx_iv_operate_tick_time);
         return -MESHX_ERR_TIMING;
     }
 
@@ -170,13 +171,14 @@ int32_t meshx_iv_index_update(uint32_t iv_index, meshx_iv_update_state_t state)
         else
         {
             meshx_iv_update_state = state;
+            MESHX_INFO("iv update state transit to in progress: iv index 0x%08x", meshx_iv_index);
         }
     }
     else
     {
         /* iv recovery procudure */
         meshx_iv_update_state = state;
-        meshx_iv_operate_tick_time = MESHX_IV_OPERATE_96H;
+        meshx_iv_operate_tick_time = MESHX_IV_OPERATE_TICK_96H;
         meshx_seq_clear();
         meshx_rpl_clear();
         MESHX_INFO("iv index recovery: iv index 0x%08x, state %d", meshx_iv_index, state);
@@ -185,9 +187,9 @@ int32_t meshx_iv_index_update(uint32_t iv_index, meshx_iv_update_state_t state)
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_iv_update_state_transit(meshx_iv_update_state_t state)
+void meshx_iv_update_state_set(meshx_iv_update_state_t state)
 {
-    return meshx_iv_index_update(meshx_iv_index, state);
+    meshx_iv_update_state = state;
 }
 
 meshx_iv_update_state_t meshx_iv_update_state_get(void)

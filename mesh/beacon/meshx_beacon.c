@@ -216,6 +216,7 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
                              const meshx_bearer_rx_metadata_adv_t *padv_metadata)
 {
     MESHX_ASSERT(NULL != pdata);
+    int32_t ret = MESHX_SUCCESS;
     uint8_t beacon_type = pdata[0];
     switch (beacon_type)
     {
@@ -239,9 +240,48 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
         }
         break;
     case MESHX_BEACON_TYPE_SNB:
+        {
+            /* find netkey first */
+            const meshx_snb_t *psnb = (const meshx_snb_t *)pdata;
+            const meshx_net_key_t *pnet_key = NULL;
+            meshx_net_key_traverse_start(&pnet_key);
+            while (NULL != pnet_key)
+            {
+                if (0 == memcmp(pnet_key->net_id, psnb->net_id, sizeof(meshx_net_id_t)))
+                {
+                    uint8_t snb_auth[16];
+                    meshx_aes_cmac(pnet_key->beacon_key, ((uint8_t *)psnb) + 1, sizeof(meshx_snb_t) - 9, snb_auth);
+                    if (0 == memcmp(psnb->auth_value, snb_auth, 8));
+                    {
+                        if (psnb->flag.key_refresh)
+                        {
+                            /* key refresh */
+                        }
+
+                        meshx_iv_update_state_t iv_update_state = MESHX_IV_UPDATE_STATE_NORMAL;
+                        if (psnb->flag.iv_update)
+                        {
+                            iv_update_state = MESHX_IV_UPDATE_STATE_IN_PROGRESS;
+                        }
+                        /* iv update */
+                        meshx_iv_index_update(psnb->iv_index, iv_update_state);
+                        break;
+                    }
+                }
+
+                meshx_net_key_traverse_continue(&pnet_key);
+            }
+
+            if (NULL == pnet_key)
+            {
+                MESHX_DEBUG("received snb is not in this network");
+                ret = -MESHX_ERR_KEY;
+            }
+        }
         break;
     default:
         break;
     }
-    return MESHX_SUCCESS;
+
+    return ret;
 }
