@@ -18,6 +18,7 @@ static uint8_t meshx_element_num;
 
 int32_t meshx_seq_init(uint8_t element_num)
 {
+    MESHX_INFO("initialize sequence module: element num %d", element_num);
     if (NULL != seq_array)
     {
         MESHX_ERROR("sequence module has already been initialized!");
@@ -38,6 +39,7 @@ int32_t meshx_seq_init(uint8_t element_num)
 
 void meshx_seq_deinit(void)
 {
+    MESHX_INFO("deinitialize sequence module");
     if (NULL != seq_array)
     {
         meshx_free(seq_array);
@@ -116,4 +118,6 @@ void meshx_seq_clear(void)
     {
         seq_array[i] = 0;
     }
+
+    MESHX_INFO("clear sequence");
 }

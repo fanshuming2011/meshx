@@ -20,7 +20,7 @@ static uint32_t rpl_size;
 
 int32_t meshx_rpl_init(void)
 {
-    MESHX_INFO("initialize rpl module: size %d...", meshx_node_params.config.rpl_size);
+    MESHX_INFO("initialize rpl module: size %d", meshx_node_params.config.rpl_size);
     if (NULL != rpl_array)
     {
         MESHX_ERROR("rpl already initialized");
@@ -43,7 +43,7 @@ int32_t meshx_rpl_init(void)
 
 void meshx_rpl_deinit(void)
 {
-    MESHX_INFO("deinitialize rpl module...");
+    MESHX_INFO("deinitialize rpl module");
     if (NULL != rpl_array)
     {
         meshx_free(rpl_array);
