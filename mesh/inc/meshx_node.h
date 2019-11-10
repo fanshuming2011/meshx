@@ -31,6 +31,7 @@ typedef struct
 } meshx_node_config_t;
 
 /* parameters can be changed in runtime */
+#define MESHX_BEACON_INTERVAL_UNIT        100 /* 100ms */
 typedef struct
 {
     uint16_t node_addr;

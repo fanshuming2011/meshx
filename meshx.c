@@ -32,11 +32,14 @@ int32_t meshx_init(void)
     meshx_access_init();
     meshx_prov_init();
 
-    meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV};
-    meshx_bearer_t adv_bearer = meshx_bearer_create(adv_param);
+    if (meshx_node_params.config.adv_bearer_enable)
+    {
+        meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV};
+        meshx_bearer_t adv_bearer = meshx_bearer_create(adv_param);
 
-    meshx_net_iface_t adv_net_iface = meshx_net_iface_create();
-    meshx_net_iface_connect(adv_net_iface, adv_bearer, NULL, NULL);
+        meshx_net_iface_t adv_net_iface = meshx_net_iface_create();
+        meshx_net_iface_connect(adv_net_iface, adv_bearer, NULL, NULL);
+    }
 
 
     return MESHX_SUCCESS;
@@ -51,8 +54,16 @@ int32_t meshx_run(void)
 
     if (meshx_node_params.config.role & MESHX_ROLE_DEVICE)
     {
-        meshx_beacon_start(meshx_bearer_adv_get(), MESHX_BEACON_TYPE_UDB,
-                           meshx_node_params.param.udb_interval);
+        if (MESHX_ADDRESS_UNASSIGNED == meshx_node_params.param.node_addr)
+        {
+            meshx_beacon_start(meshx_bearer_adv_get(), MESHX_BEACON_TYPE_UDB,
+                               meshx_node_params.param.udb_interval * MESHX_BEACON_INTERVAL_UNIT);
+        }
+        else
+        {
+            meshx_beacon_start(meshx_bearer_adv_get(), MESHX_BEACON_TYPE_SNB,
+                               meshx_node_params.param.snb_interval * MESHX_BEACON_INTERVAL_UNIT);
+        }
     }
     return MESHX_SUCCESS;
 }

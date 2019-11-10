@@ -327,29 +327,22 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 }
 #endif
 
-static int32_t meshx_notify_beacon_cb(const void *pdata, uint8_t len)
+static int32_t meshx_notify_udb_cb(const void *pdata, uint8_t len)
 {
-    const meshx_notify_beacon_t *pbeacon = pdata;
-    switch (pbeacon->type)
+    const meshx_notify_udb_t *pudb = pdata;
+    meshx_tty_printf("bt addr: ");
+    meshx_tty_dump(pudb->padv_metadata->peer_addr, sizeof(meshx_mac_addr_t));
+    meshx_tty_send("  ", 2);
+    meshx_tty_printf("udb: ");
+    meshx_tty_dump(pudb->dev_uuid, sizeof(meshx_dev_uuid_t));
+    meshx_tty_send("  ", 2);
+    meshx_tty_printf("oob: %d", pudb->oob_info);
+    if (len == sizeof(meshx_notify_udb_t))
     {
-    case MESHX_NOTIFY_BEACON_TYPE_UDB:
-        meshx_tty_printf("bt addr: ");
-        meshx_tty_dump(pbeacon->padv_metadata->peer_addr, sizeof(meshx_mac_addr_t));
         meshx_tty_send("  ", 2);
-        meshx_tty_printf("udb: ");
-        meshx_tty_dump(pbeacon->udb.dev_uuid, sizeof(meshx_dev_uuid_t));
-        meshx_tty_send("\r\n", 2);
-        break;
-    case MESHX_NOTIFY_BEACON_TYPE_PB_GATT:
-        break;
-    case MESHX_NOTIFY_BEACON_TYPE_PROXY:
-        break;
-    default:
-        break;
+        meshx_tty_printf("uri: 0x%08x", pudb->uri_hash);
     }
-    if (len == sizeof(meshx_notify_beacon_t))
-    {
-    }
+    meshx_tty_send("\r\n", 2);
 
     return MESHX_SUCCESS;
 }
@@ -362,10 +355,10 @@ static int32_t meshx_notify_cb(meshx_bearer_t bearer, uint8_t notify_type, const
     case MESHX_NOTIFY_TYPE_PROV:
         meshx_notify_prov_cb(pdata, len);
         break;
-    case MESHX_NOTIFY_TYPE_BEACON:
+    case MESHX_NOTIFY_TYPE_UDB:
         if (meshx_show_beacon)
         {
-            meshx_notify_beacon_cb(pdata, len);
+            meshx_notify_udb_cb(pdata, len);
         }
         break;
     default:

@@ -300,7 +300,7 @@ static int32_t meshx_notify_prov_cb(const void *pdata, uint8_t len)
 }
 #endif
 
-static int32_t meshx_notify_beacon_cb(const void *pdata, uint8_t len)
+static int32_t meshx_notify_udb_cb(const void *pdata, uint8_t len)
 {
     return MESHX_SUCCESS;
 }
@@ -313,8 +313,8 @@ static int32_t meshx_notify_cb(meshx_bearer_t bearer, uint8_t notify_type, const
     case MESHX_NOTIFY_TYPE_PROV:
         meshx_notify_prov_cb(pdata, len);
         break;
-    case MESHX_NOTIFY_TYPE_BEACON:
-        meshx_notify_beacon_cb(pdata, len);
+    case MESHX_NOTIFY_TYPE_UDB:
+        meshx_notify_udb_cb(pdata, len);
         break;
     default:
         MESHX_ERROR("unknown notify type: %d", notify_type);

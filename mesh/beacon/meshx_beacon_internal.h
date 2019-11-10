@@ -15,11 +15,18 @@ MESHX_BEGIN_DECLS
 
 typedef struct
 {
+    uint8_t type;
+    meshx_dev_uuid_t dev_uuid;
+    uint16_t oob_info;
+    uint32_t uri_hash; /* optional */
+} __PACKED meshx_udb_t;
+
+typedef struct
+{
     uint8_t key_refresh: 1;
     uint8_t iv_update: 1;
     uint8_t rsvd: 6;
 } __PACKED meshx_snb_flag_t;;
-
 
 typedef struct
 {

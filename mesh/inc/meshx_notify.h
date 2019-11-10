@@ -54,17 +54,15 @@ typedef enum
 
 typedef struct
 {
-    meshx_notify_beacon_type_t type;
-    union
-    {
-        meshx_udb_t udb;
-    };
     const meshx_bearer_rx_metadata_adv_t *padv_metadata;
-} meshx_notify_beacon_t;
+    meshx_dev_uuid_t dev_uuid;
+    uint16_t oob_info;
+    uint32_t uri_hash; /* optional */
+} __PACKED meshx_notify_udb_t;
 
 
 #define MESHX_NOTIFY_TYPE_PROV                0 /* @ref meshx_notify_prov_t */
-#define MESHX_NOTIFY_TYPE_BEACON              1 /* @ref meshx_notify_beacon_t */
+#define MESHX_NOTIFY_TYPE_UDB                 1 /* @ref meshx_notify_udb_t */
 
 
 typedef int32_t (*meshx_notify_t)(meshx_bearer_t bearer, uint8_t notify_type, const void *pdata,

@@ -378,6 +378,7 @@ int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
         else
         {
             /* code */
+            bool valid_iface = FALSE;
             meshx_list_t *pnode = NULL;
             meshx_net_iface_info_t *piface;
             meshx_list_foreach(pnode, &meshx_net_iface_list)
@@ -388,6 +389,13 @@ int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,
                     continue;
                 }
                 meshx_net_send_to_bearer((const uint8_t *)&net_pdu, net_pdu_len, pmsg_tx_ctx, piface);
+                valid_iface = TRUE;
+            }
+
+            if (!valid_iface)
+            {
+                MESHX_ERROR("no invalid network interface!");
+                return -MESHX_ERR_INVAL_NET_IFACE;
             }
         }
     }

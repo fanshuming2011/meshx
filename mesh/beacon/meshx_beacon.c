@@ -23,6 +23,7 @@
 #include "meshx_iv_index.h"
 #include "meshx_security.h"
 #include "meshx_key.h"
+#include "meshx_assert.h"
 
 static meshx_timer_t beacon_timer;
 static uint16_t meshx_oob_info;
@@ -142,9 +143,9 @@ int32_t meshx_beacon_send(meshx_bearer_t bearer, uint8_t beacon_type)
 
 int32_t meshx_beacon_start(meshx_bearer_t bearer, uint8_t beacon_type, uint32_t interval)
 {
-    if (MESHX_BEARER_TYPE_ADV != bearer->type)
+    if ((NULL == bearer) || (MESHX_BEARER_TYPE_ADV != bearer->type))
     {
-        MESHX_ERROR("beacon can only send on advertising bearer!");
+        MESHX_ERROR("can't start beacon, invlaid bearer");
         return -MESHX_ERR_INVAL;
     }
     int32_t ret = MESHX_SUCCESS;
@@ -153,12 +154,14 @@ int32_t meshx_beacon_start(meshx_bearer_t bearer, uint8_t beacon_type, uint32_t 
     case MESHX_BEACON_TYPE_UDB:
         if (MESHX_ADDRESS_UNASSIGNED != meshx_node_params.param.node_addr)
         {
+            MESHX_ERROR("node is provisioned, can't send udb!");
             ret = -MESHX_ERR_STATE;
         }
         break;
     case MESHX_BEACON_TYPE_SNB:
         if (MESHX_ADDRESS_UNASSIGNED == meshx_node_params.param.node_addr)
         {
+            MESHX_ERROR("node is unprovisioned, can't send snb!");
             ret = -MESHX_ERR_STATE;
         }
         break;
@@ -212,10 +215,33 @@ void meshx_beacon_set_uri_hash(uint32_t uri_hash)
 int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len,
                              const meshx_bearer_rx_metadata_adv_t *padv_metadata)
 {
-    meshx_notify_beacon_t beacon;
-    beacon.type = MESHX_NOTIFY_BEACON_TYPE_UDB;
-    memcpy(&beacon.udb, pdata, len);
-    beacon.padv_metadata = padv_metadata;
-    meshx_notify(bearer, MESHX_NOTIFY_TYPE_BEACON, &beacon, len);
+    MESHX_ASSERT(NULL != pdata);
+    uint8_t beacon_type = pdata[0];
+    switch (beacon_type)
+    {
+    case MESHX_BEACON_TYPE_UDB:
+        {
+            const meshx_udb_t *pudb = (const meshx_udb_t *)pdata;
+            meshx_notify_udb_t udb;
+            uint8_t notify_len = sizeof(meshx_notify_udb_t);
+            udb.padv_metadata = padv_metadata;
+            memcpy(udb.dev_uuid, pudb->dev_uuid, sizeof(meshx_dev_uuid_t));
+            udb.oob_info = pudb->oob_info;
+            if (len == sizeof(meshx_udb_t))
+            {
+                udb.uri_hash = pudb->uri_hash;
+            }
+            else
+            {
+                notify_len -=  sizeof(uint32_t);
+            }
+            meshx_notify(bearer, MESHX_NOTIFY_TYPE_UDB, &udb, notify_len);
+        }
+        break;
+    case MESHX_BEACON_TYPE_SNB:
+        break;
+    default:
+        break;
+    }
     return MESHX_SUCCESS;
 }

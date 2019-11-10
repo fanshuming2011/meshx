@@ -28,14 +28,6 @@ MESHX_BEGIN_DECLS
 #define MESHX_UDB_OOB_INSIDE_MANUAL             (1 << 14)
 #define MESHX_UDB_OOB_ON_DEVICE                 (1 << 15)
 
-typedef struct
-{
-    uint8_t type;
-    meshx_dev_uuid_t dev_uuid;
-    uint16_t oob_info;
-    uint32_t uri_hash; /* optional */
-} __PACKED meshx_udb_t;
-
 
 MESHX_EXTERN int32_t meshx_beacon_send(meshx_bearer_t bearer, uint8_t beacon_type);
 MESHX_EXTERN int32_t meshx_beacon_start(meshx_bearer_t bearer, uint8_t beacon_type,
