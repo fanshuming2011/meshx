@@ -251,7 +251,7 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
                 {
                     uint8_t snb_auth[16];
                     meshx_aes_cmac(pnet_key->beacon_key, ((uint8_t *)psnb) + 1, sizeof(meshx_snb_t) - 9, snb_auth);
-                    if (0 == memcmp(psnb->auth_value, snb_auth, 8));
+                    if (0 == memcmp(psnb->auth_value, snb_auth, 8))
                     {
                         if (psnb->flag.key_refresh)
                         {
