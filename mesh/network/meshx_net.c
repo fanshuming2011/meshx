@@ -54,7 +54,7 @@ int32_t meshx_net_init(void)
 }
 
 static void meshx_net_encrypt(meshx_net_pdu_t *pnet_pdu, uint8_t trans_pdu_len,
-                              uint32_t iv_index, const meshx_net_key_t *pnet_key)
+                              uint32_t iv_index, const meshx_net_key_value_t *pnet_key)
 {
     meshx_net_nonce_t net_nonce;
     net_nonce.nonce_type = MESHX_NONCE_TYPE_NET;
@@ -82,7 +82,7 @@ static void meshx_net_encrypt(meshx_net_pdu_t *pnet_pdu, uint8_t trans_pdu_len,
 }
 
 static void meshx_net_obfuscation(meshx_net_pdu_t *pnet_pdu, uint32_t iv_index,
-                                  const meshx_net_key_t *pnet_key)
+                                  const meshx_net_key_value_t *pnet_key)
 {
     iv_index = MESHX_HOST_TO_BE32(iv_index);
     uint8_t privacy_plaintext[16];
@@ -106,7 +106,7 @@ static void meshx_net_obfuscation(meshx_net_pdu_t *pnet_pdu, uint32_t iv_index,
 }
 
 static int32_t meshx_net_decrypt(meshx_net_pdu_t *pnet_pdu, uint8_t trans_pdu_len,
-                                 uint32_t iv_index, const meshx_net_key_t *pnet_key)
+                                 uint32_t iv_index, const meshx_net_key_value_t *pnet_key)
 {
     meshx_net_nonce_t net_nonce;
     net_nonce.nonce_type = MESHX_NONCE_TYPE_NET;
@@ -178,27 +178,40 @@ int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata, uin
     int32_t ret = MESHX_SUCCESS;
     uint8_t net_mic_len, trans_pdu_len;
     const meshx_net_key_t *pnet_key = NULL;
+    const meshx_net_key_value_t *pkey_value = NULL;
     meshx_net_key_traverse_start(&pnet_key);
     while (NULL != pnet_key)
     {
-        if (pnet_key->nid == net_pdu.net_metadata.nid)
+        uint8_t loop = 1;
+        if ((MESHX_KEY_STATE_PHASE1 == pnet_key->key_state) ||
+            (MESHX_KEY_STATE_PHASE2 == pnet_key->key_state))
         {
-            /* restore header */
-            meshx_net_obfuscation(&net_pdu, iv_index, pnet_key);
+            loop = 2;
+        }
 
-            /* decrypt transport layer data */
-            net_mic_len = net_pdu.net_metadata.ctl ? 8 : 4;
-            trans_pdu_len = len - sizeof(meshx_net_metadata_t) - net_mic_len;
-            ret = meshx_net_decrypt(&net_pdu, trans_pdu_len, iv_index, pnet_key);
-            if (MESHX_SUCCESS == ret)
+        for (uint8_t i = 0; i < loop; ++i)
+        {
+            if (pnet_key->key_value[loop].nid == net_pdu.net_metadata.nid)
             {
-                break;
+                /* restore header */
+                meshx_net_obfuscation(&net_pdu, iv_index, &pnet_key->key_value[loop]);
+
+                /* decrypt transport layer data */
+                net_mic_len = net_pdu.net_metadata.ctl ? 8 : 4;
+                trans_pdu_len = len - sizeof(meshx_net_metadata_t) - net_mic_len;
+                ret = meshx_net_decrypt(&net_pdu, trans_pdu_len, iv_index, &pnet_key->key_value[loop]);
+                if (MESHX_SUCCESS == ret)
+                {
+                    pkey_value = &pnet_key->key_value[loop];
+                    goto FINISH;
+                }
             }
         }
 
         meshx_net_key_traverse_continue(&pnet_key);
     }
 
+FINISH:
     if (NULL == pnet_key)
     {
         MESHX_ERROR("can't decrypt pdu with net key that nid is 0x%x", net_pdu.net_metadata.nid);
@@ -248,7 +261,7 @@ int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata, uin
         msg_ctx.dst = dst;
         msg_ctx.iv_index = iv_index;
         msg_ctx.seq = seq;
-        msg_ctx.pnet_key = pnet_key;
+        msg_ctx.pnet_key = pkey_value;
         msg_ctx.net_iface = net_iface;
         ret = meshx_lower_trans_receive(net_pdu.pdu, trans_pdu_len, &msg_ctx);
     }

@@ -449,7 +449,7 @@ static void *meshx_thread(void *pargs)
     ctx.dst = 0x1201;
     ctx.ttl = 4;
     ctx.iv_index = meshx_iv_index_get();
-    ctx.pnet_key = meshx_net_key_get(0);
+    ctx.pnet_key = &meshx_net_key_get(0)->key_value[0];
     ctx.pdev_key = &meshx_dev_key_get(0x1201)->dev_key;
     ctx.aid = 0;//papp_key->aid;
     ctx.akf = 0;

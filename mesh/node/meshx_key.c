@@ -18,13 +18,13 @@
 
 typedef struct
 {
-    meshx_net_key_t net_key;
+    meshx_net_key_t net_key; /* index 0: new key, index 1: old key*/
     meshx_list_t node;
 } meshx_net_key_info_t;
 
 typedef struct
 {
-    meshx_app_key_t app_key;
+    meshx_app_key_t app_key; /* index 0: new key, index 1: old key */
     meshx_list_t node;
 } meshx_app_key_info_t;
 
@@ -47,7 +47,7 @@ meshx_net_key_info_t *meshx_find_net_key(uint16_t net_key_index)
     meshx_list_foreach(pnode, &meshx_net_keys)
     {
         pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
-        if (pnet_key->net_key.net_key_index == net_key_index)
+        if (pnet_key->net_key.key_index == net_key_index)
         {
             break;
         }
@@ -69,7 +69,7 @@ const meshx_app_key_t *meshx_app_key_get(uint16_t app_key_index)
     meshx_list_foreach(pnode, &meshx_app_keys)
     {
         papp_key = MESHX_CONTAINER_OF(pnode, meshx_app_key_info_t, node);
-        if (papp_key->app_key.app_key_index == app_key_index)
+        if (papp_key->app_key.key_index == app_key_index)
         {
             return &papp_key->app_key;
         }
@@ -99,7 +99,7 @@ void meshx_app_key_traverse_continue(const meshx_app_key_t **ptraverse_key)
     }
 }
 
-static void meshx_app_key_derive(meshx_app_key_t *papp_key)
+static void meshx_app_key_derive(meshx_app_key_value_t *papp_key)
 {
     meshx_k4(papp_key->app_key, &papp_key->aid);
     MESHX_INFO("aid: 0x%x", papp_key->aid);
@@ -113,7 +113,7 @@ int32_t meshx_app_key_add(uint16_t net_key_index, uint16_t app_key_index,
     meshx_list_foreach(pnode, &meshx_app_keys)
     {
         papp_key = MESHX_CONTAINER_OF(pnode, meshx_app_key_info_t, node);
-        if (papp_key->app_key.app_key_index == app_key_index)
+        if (papp_key->app_key.key_index == app_key_index)
         {
             MESHX_ERROR("app key index alreay used: %d", app_key_index);
             return -MESHX_ERR_ALREADY;
@@ -140,12 +140,12 @@ int32_t meshx_app_key_add(uint16_t net_key_index, uint16_t app_key_index,
         return -MESHX_ERR_MEM;
     }
 
-    papp_key->app_key.app_key_index = app_key_index;
-    memcpy(papp_key->app_key.app_key, app_key, sizeof(meshx_key_t));
-    papp_key->app_key.pnet_key_bind = &pnet_key->net_key;
+    papp_key->app_key.key_index = app_key_index;
+    memcpy(&papp_key->app_key.key_value[0], app_key, sizeof(meshx_key_t));
+    papp_key->app_key.key_value[0].pnet_key_bind = &pnet_key->net_key;
     MESHX_INFO("application key add: index %d-%d", app_key_index, net_key_index);
-    MESHX_DUMP_INFO(papp_key->app_key.app_key, sizeof(meshx_key_t));
-    meshx_app_key_derive(&papp_key->app_key);
+    MESHX_DUMP_INFO(&papp_key->app_key.key_value[0], sizeof(meshx_key_t));
+    meshx_app_key_derive(&papp_key->app_key.key_value[0]);
     meshx_list_append(&meshx_app_keys, &papp_key->node);
 
     return MESHX_SUCCESS;
@@ -181,7 +181,7 @@ const meshx_net_key_t *meshx_net_key_get(uint16_t net_key_index)
     meshx_list_foreach(pnode, &meshx_net_keys)
     {
         pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
-        if (pnet_key->net_key.net_key_index == net_key_index)
+        if (pnet_key->net_key.key_index == net_key_index)
         {
             return &pnet_key->net_key;
         }
@@ -211,7 +211,7 @@ void meshx_net_key_traverse_continue(const meshx_net_key_t **ptraverse_key)
     }
 }
 
-static void meshx_net_key_derive(meshx_net_key_t *pnet_key)
+static void meshx_net_key_derive(meshx_net_key_value_t *pnet_key)
 {
     /* identity key */
     uint8_t salt_M[] = {'n', 'k', 'i', 'k'};
@@ -251,7 +251,7 @@ int32_t meshx_net_key_add(uint16_t net_key_index, meshx_key_t net_key)
     meshx_list_foreach(pnode, &meshx_net_keys)
     {
         pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
-        if (pnet_key->net_key.net_key_index == net_key_index)
+        if (pnet_key->net_key.key_index == net_key_index)
         {
             MESHX_ERROR("net key index alreay used: %d", net_key_index);
             return -MESHX_ERR_ALREADY;
@@ -271,11 +271,11 @@ int32_t meshx_net_key_add(uint16_t net_key_index, meshx_key_t net_key)
         return -MESHX_ERR_MEM;
     }
 
-    pnet_key->net_key.net_key_index = net_key_index;
-    memcpy(pnet_key->net_key.net_key, net_key, sizeof(meshx_key_t));
+    pnet_key->net_key.key_index = net_key_index;
+    memcpy(&pnet_key->net_key.key_value[0], net_key, sizeof(meshx_key_t));
     MESHX_INFO("network key add: index %d", net_key_index);
-    MESHX_DUMP_INFO(pnet_key->net_key.net_key, sizeof(meshx_key_t));
-    meshx_net_key_derive(&pnet_key->net_key);
+    MESHX_DUMP_INFO(&pnet_key->net_key.key_value[0], sizeof(meshx_key_t));
+    meshx_net_key_derive(&pnet_key->net_key.key_value[0]);
     meshx_list_append(&meshx_net_keys, &pnet_key->node);
 
     return MESHX_SUCCESS;
@@ -288,10 +288,11 @@ int32_t meshx_net_key_update(uint16_t net_key_index, meshx_key_t net_key)
     meshx_list_foreach(pnode, &meshx_net_keys)
     {
         pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
-        if (pnet_key->net_key.net_key_index == net_key_index)
+        if (pnet_key->net_key.key_index == net_key_index)
         {
             /* TODO:need compare or process app key? */
-            memcpy(pnet_key->net_key.net_key, net_key, sizeof(meshx_key_t));
+            memcpy(&pnet_key->net_key.key_value[1], net_key, sizeof(meshx_key_t));
+            meshx_net_key_derive(&pnet_key->net_key.key_value[1]);
             return MESHX_SUCCESS;
         }
     }
@@ -306,7 +307,7 @@ int32_t meshx_net_key_delete(uint16_t net_key_index)
     meshx_list_foreach(pnode, &meshx_net_keys)
     {
         pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
-        if (pnet_key->net_key.net_key_index == net_key_index)
+        if (pnet_key->net_key.key_index == net_key_index)
         {
             meshx_list_remove(pnode);
             /* TODO: update all bind app keys? */

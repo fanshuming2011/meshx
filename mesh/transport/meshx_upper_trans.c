@@ -109,19 +109,31 @@ static int32_t meshx_upper_trans_decrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
         meshx_app_key_traverse_start(&papp_key);
         while (NULL != papp_key)
         {
-            if (papp_key->aid == pmsg_rx_ctx->aid)
+            uint8_t loop = 1;
+            if ((MESHX_KEY_STATE_PHASE1 == papp_key->key_state) ||
+                (MESHX_KEY_STATE_PHASE2 == papp_key->key_state))
             {
-                ret = meshx_aes_ccm_decrypt(papp_key->app_key, nonce, MESHX_NONCE_SIZE,
-                                            padd, add_len, paccess_pdu, pdu_len, paccess_pdu, ptrans_mic, trans_mic_len);
-                if (MESHX_SUCCESS == ret)
+                loop = 2;
+            }
+
+            for (uint8_t i = 0; i < loop; ++i)
+            {
+                if (papp_key->key_value[loop].aid == pmsg_rx_ctx->aid)
                 {
-                    break;
+                    ret = meshx_aes_ccm_decrypt(papp_key->key_value[loop].app_key, nonce, MESHX_NONCE_SIZE,
+                                                padd, add_len, paccess_pdu, pdu_len, paccess_pdu, ptrans_mic, trans_mic_len);
+                    if (MESHX_SUCCESS == ret)
+                    {
+                        pmsg_rx_ctx->papp_key = &papp_key->key_value[loop].app_key;
+                        goto FINISH;
+                    }
                 }
             }
 
             meshx_app_key_traverse_continue(&papp_key);
         }
 
+FINISH:
         if (NULL == papp_key)
         {
             MESHX_WARN("can't decrypt pdu by application key that aid is 0x%x", pmsg_rx_ctx->aid);

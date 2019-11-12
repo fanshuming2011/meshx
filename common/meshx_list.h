@@ -20,6 +20,12 @@ typedef struct meshx_list
     struct meshx_list *pnext;
 } meshx_list_t;
 
+typedef struct meshx_list_head
+{
+    meshx_list_t list;
+    uint32_t count;
+} meshx_list_head_t;
+
 /* return true if want to stop */
 typedef bool (*meshx_list_node_cmp_t)(const meshx_list_t *pnode_insert,
                                       const meshx_list_t *pnode_list);

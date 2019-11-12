@@ -73,11 +73,18 @@ static void meshx_beacon_send_snb(meshx_bearer_t bearer)
 
     uint8_t snb_auth[16];
     const meshx_net_key_t *pnet_key = NULL;
+    const meshx_net_key_value_t *pnet_key_value = NULL;
     meshx_net_key_traverse_start(&pnet_key);
     while (NULL != pnet_key)
     {
-        memcpy(snb.net_id, pnet_key->net_id, sizeof(meshx_net_id_t));
-        meshx_aes_cmac(pnet_key->beacon_key, ((uint8_t *)&snb) + 1, sizeof(meshx_snb_t) - 9, snb_auth);
+        pnet_key_value = &pnet_key->key_value[0];
+        if (MESHX_KEY_STATE_PHASE2 == pnet_key->key_state)
+        {
+            pnet_key_value = &pnet_key->key_value[1];
+        }
+        memcpy(snb.net_id, pnet_key_value->net_id, sizeof(meshx_net_id_t));
+        meshx_aes_cmac(pnet_key_value->beacon_key, ((uint8_t *)&snb) + 1, sizeof(meshx_snb_t) - 9,
+                       snb_auth);
         memcpy(snb.auth_value, snb_auth, 8);
 
         /* send snb */
@@ -247,25 +254,36 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
             meshx_net_key_traverse_start(&pnet_key);
             while (NULL != pnet_key)
             {
-                if (0 == memcmp(pnet_key->net_id, psnb->net_id, sizeof(meshx_net_id_t)))
+                uint8_t loop = 1;
+                if ((MESHX_KEY_STATE_PHASE1 == pnet_key->key_state) ||
+                    (MESHX_KEY_STATE_PHASE2 == pnet_key->key_state))
                 {
-                    uint8_t snb_auth[16];
-                    meshx_aes_cmac(pnet_key->beacon_key, ((uint8_t *)psnb) + 1, sizeof(meshx_snb_t) - 9, snb_auth);
-                    if (0 == memcmp(psnb->auth_value, snb_auth, 8))
-                    {
-                        if (psnb->flag.key_refresh)
-                        {
-                            /* key refresh */
-                        }
+                    loop = 2;
+                }
 
-                        meshx_iv_update_state_t iv_update_state = MESHX_IV_UPDATE_STATE_NORMAL;
-                        if (psnb->flag.iv_update)
+                for (uint8_t i = 0; i < loop; ++i)
+                {
+                    if (0 == memcmp(pnet_key->key_value[0].net_id, psnb->net_id, sizeof(meshx_net_id_t)))
+                    {
+                        uint8_t snb_auth[16];
+                        meshx_aes_cmac(pnet_key->key_value[0].beacon_key, ((uint8_t *)psnb) + 1, sizeof(meshx_snb_t) - 9,
+                                       snb_auth);
+                        if (0 == memcmp(psnb->auth_value, snb_auth, 8))
                         {
-                            iv_update_state = MESHX_IV_UPDATE_STATE_IN_PROGRESS;
+                            if (psnb->flag.key_refresh)
+                            {
+                                /* key refresh */
+                            }
+
+                            meshx_iv_update_state_t iv_update_state = MESHX_IV_UPDATE_STATE_NORMAL;
+                            if (psnb->flag.iv_update)
+                            {
+                                iv_update_state = MESHX_IV_UPDATE_STATE_IN_PROGRESS;
+                            }
+                            /* iv update */
+                            meshx_iv_index_update(psnb->iv_index, iv_update_state);
+                            break;
                         }
-                        /* iv update */
-                        meshx_iv_index_update(psnb->iv_index, iv_update_state);
-                        break;
                     }
                 }
 
