@@ -282,7 +282,7 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
                             }
                             /* iv update */
                             meshx_iv_index_update(psnb->iv_index, iv_update_state);
-                            break;
+                            goto FINISH;
                         }
                     }
                 }
@@ -290,6 +290,7 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
                 meshx_net_key_traverse_continue(&pnet_key);
             }
 
+FINISH:
             if (NULL == pnet_key)
             {
                 MESHX_DEBUG("received snb is not in this network");
