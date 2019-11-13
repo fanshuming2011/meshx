@@ -78,24 +78,43 @@ const meshx_app_key_t *meshx_app_key_get(uint16_t app_key_index)
     return NULL;
 }
 
-void meshx_app_key_traverse_start(const meshx_app_key_t **ptraverse_key)
+const meshx_app_key_value_t *meshx_app_key_tx_get(uint16_t app_key_index)
+{
+    const meshx_app_key_t *papp_key = meshx_app_key_get(app_key_index);
+    const meshx_app_key_value_t *pkey_value = NULL;
+    if (NULL != papp_key)
+    {
+        if (MESHX_KEY_STATE_PHASE2 == papp_key->key_state)
+        {
+            pkey_value = &papp_key->key_value[1];
+        }
+        else
+        {
+            pkey_value = &papp_key->key_value[0];
+        }
+    }
+
+    return pkey_value;
+}
+
+void meshx_app_key_traverse_start(meshx_app_key_t **ptraverse_key)
 {
     *ptraverse_key = NULL;
     meshx_list_t *pnode = meshx_list_peek(&meshx_app_keys);
     if (NULL != pnode)
     {
-        *ptraverse_key = (const meshx_app_key_t *)MESHX_CONTAINER_OF(pnode, meshx_app_key_info_t, node);
+        *ptraverse_key = (meshx_app_key_t *)MESHX_CONTAINER_OF(pnode, meshx_app_key_info_t, node);
     }
 }
 
-void meshx_app_key_traverse_continue(const meshx_app_key_t **ptraverse_key)
+void meshx_app_key_traverse_continue(meshx_app_key_t **ptraverse_key)
 {
-    const meshx_app_key_info_t *pinfo = (const meshx_app_key_info_t *)(*ptraverse_key);
+    meshx_app_key_info_t *pinfo = (meshx_app_key_info_t *)(*ptraverse_key);
     *ptraverse_key = NULL;
     meshx_list_t *pnode = pinfo->node.pnext;
     if (pnode != &meshx_app_keys)
     {
-        *ptraverse_key = (const meshx_app_key_t *)MESHX_CONTAINER_OF(pnode, meshx_app_key_info_t, node);
+        *ptraverse_key = (meshx_app_key_t *)MESHX_CONTAINER_OF(pnode, meshx_app_key_info_t, node);
     }
 }
 
@@ -140,9 +159,10 @@ int32_t meshx_app_key_add(uint16_t net_key_index, uint16_t app_key_index,
         return -MESHX_ERR_MEM;
     }
 
+    papp_key->app_key.key_state = MESHX_KEY_STATE_NORMAL;
     papp_key->app_key.key_index = app_key_index;
     memcpy(&papp_key->app_key.key_value[0], app_key, sizeof(meshx_key_t));
-    papp_key->app_key.key_value[0].pnet_key_bind = &pnet_key->net_key;
+    papp_key->app_key.pnet_key_bind = &pnet_key->net_key;
     MESHX_INFO("application key add: index %d-%d", app_key_index, net_key_index);
     MESHX_DUMP_INFO(&papp_key->app_key.key_value[0], sizeof(meshx_key_t));
     meshx_app_key_derive(&papp_key->app_key.key_value[0]);
@@ -154,8 +174,78 @@ int32_t meshx_app_key_add(uint16_t net_key_index, uint16_t app_key_index,
 int32_t meshx_app_key_update(uint16_t net_key_index, uint16_t app_key_index,
                              meshx_key_t app_key)
 {
+    meshx_list_t *pnode;
+    meshx_app_key_info_t *papp_key;
+    int32_t ret = -MESHX_ERR_NOT_FOUND;
+    meshx_list_foreach(pnode, &meshx_app_keys)
+    {
+        papp_key = MESHX_CONTAINER_OF(pnode, meshx_app_key_info_t, node);
+        if (papp_key->app_key.key_index == app_key_index)
+        {
+            if (MESHX_KEY_STATE_PHASE1 == papp_key->app_key.pnet_key_bind->key_state)
+            {
+                if (MESHX_KEY_STATE_PHASE1 == papp_key->app_key.key_state)
+                {
+                    if (0 != memcmp(&papp_key->app_key.key_value[1], app_key, sizeof(meshx_key_t)))
+                    {
+                        MESHX_ERROR("can't update to different app key in phase1");
+                        ret = -MESHX_ERR_INVAL;
+                    }
+                    else
+                    {
+                        MESHX_ERROR("alreay in update state phase1, ignore");
+                        ret = MESHX_SUCCESS;
+                    }
+                    break;
+                }
 
-    return MESHX_SUCCESS;
+                papp_key->app_key.key_state = MESHX_KEY_STATE_PHASE1;
+                memcpy(&papp_key->app_key.key_value[1], app_key, sizeof(meshx_key_t));
+                meshx_app_key_derive(&papp_key->app_key.key_value[0]);
+                MESHX_INFO("application key update: index 0x%04x, value ", app_key_index);
+                MESHX_DUMP_INFO(app_key, sizeof(meshx_key_t));
+                ret = MESHX_SUCCESS;
+                break;
+            }
+            else
+            {
+                MESHX_ERROR("bind network key in not in update state phase1: state %d",
+                            papp_key->app_key.pnet_key_bind->key_state);
+                ret = -MESHX_ERR_STATE;
+                break;
+            }
+        }
+    }
+
+    return ret;
+}
+
+/* can transit from phase1->phase2->normal, can't transit from normal->phase1 */
+int32_t meshx_app_key_state_transit(uint16_t net_key_index, meshx_key_state_t key_state)
+{
+    meshx_list_t *pnode;
+    meshx_app_key_info_t *papp_key;
+    int32_t ret = -MESHX_ERR_NOT_FOUND;
+    meshx_list_foreach(pnode, &meshx_app_keys)
+    {
+        papp_key = MESHX_CONTAINER_OF(pnode, meshx_app_key_info_t, node);
+        if (papp_key->app_key.pnet_key_bind->key_index == net_key_index)
+        {
+            if (papp_key->app_key.key_state > MESHX_KEY_STATE_NORMAL)
+            {
+                MESHX_INFO("app key state transit from %d to %d", papp_key->app_key.key_state, key_state);
+                papp_key->app_key.key_state = key_state;
+                ret = MESHX_SUCCESS;
+            }
+            else
+            {
+                MESHX_WARN("can't transit from normal to phase1");
+                ret = -MESHX_ERR_STATE;
+            }
+        }
+    }
+
+    return ret;
 }
 
 int32_t meshx_app_key_delete(uint16_t net_key_index, uint16_t app_key_index)
@@ -190,24 +280,43 @@ const meshx_net_key_t *meshx_net_key_get(uint16_t net_key_index)
     return NULL;
 }
 
-void meshx_net_key_traverse_start(const meshx_net_key_t **ptraverse_key)
+const meshx_net_key_value_t *meshx_net_key_tx_get(uint16_t net_key_index)
+{
+    const meshx_net_key_t *pnet_key = meshx_net_key_get(net_key_index);
+    const meshx_net_key_value_t *pkey_value = NULL;
+    if (NULL != pnet_key)
+    {
+        if (MESHX_KEY_STATE_PHASE2 == pnet_key->key_state)
+        {
+            pkey_value = &pnet_key->key_value[1];
+        }
+        else
+        {
+            pkey_value = &pnet_key->key_value[0];
+        }
+    }
+
+    return pkey_value;
+}
+
+void meshx_net_key_traverse_start(meshx_net_key_t **ptraverse_key)
 {
     *ptraverse_key = NULL;
     meshx_list_t *pnode = meshx_list_peek(&meshx_net_keys);
     if (NULL != pnode)
     {
-        *ptraverse_key = (const meshx_net_key_t *)MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
+        *ptraverse_key = (meshx_net_key_t *)MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
     }
 }
 
-void meshx_net_key_traverse_continue(const meshx_net_key_t **ptraverse_key)
+void meshx_net_key_traverse_continue(meshx_net_key_t **ptraverse_key)
 {
-    const meshx_net_key_info_t *pinfo = (const meshx_net_key_info_t *)(*ptraverse_key);
+    meshx_net_key_info_t *pinfo = (meshx_net_key_info_t *)(*ptraverse_key);
     *ptraverse_key = NULL;
     meshx_list_t *pnode = pinfo->node.pnext;
     if (pnode != &meshx_net_keys)
     {
-        *ptraverse_key = (const meshx_net_key_t *)MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
+        *ptraverse_key = (meshx_net_key_t *)MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
     }
 }
 
@@ -271,6 +380,7 @@ int32_t meshx_net_key_add(uint16_t net_key_index, meshx_key_t net_key)
         return -MESHX_ERR_MEM;
     }
 
+    pnet_key->net_key.key_state = MESHX_KEY_STATE_NORMAL;
     pnet_key->net_key.key_index = net_key_index;
     memcpy(&pnet_key->net_key.key_value[0], net_key, sizeof(meshx_key_t));
     MESHX_INFO("network key add: index %d", net_key_index);
@@ -285,19 +395,44 @@ int32_t meshx_net_key_update(uint16_t net_key_index, meshx_key_t net_key)
 {
     meshx_list_t *pnode;
     meshx_net_key_info_t *pnet_key;
+    int32_t ret = -MESHX_ERR_NOT_FOUND;
     meshx_list_foreach(pnode, &meshx_net_keys)
     {
         pnet_key = MESHX_CONTAINER_OF(pnode, meshx_net_key_info_t, node);
         if (pnet_key->net_key.key_index == net_key_index)
         {
-            /* TODO:need compare or process app key? */
+            if (MESHX_KEY_STATE_PHASE2 == pnet_key->net_key.key_state)
+            {
+                MESHX_ERROR("can't update network key, wrong state: %d", pnet_key->net_key.key_state);
+                ret = -MESHX_ERR_STATE;
+                break;
+            }
+            else if (MESHX_KEY_STATE_PHASE1 == pnet_key->net_key.key_state)
+            {
+                if (0 != memcmp(&pnet_key->net_key.key_value[1], net_key, sizeof(meshx_key_t)))
+                {
+                    MESHX_ERROR("can't update to different network key in phase1!");
+                    ret = -MESHX_ERR_INVAL;
+                }
+                else
+                {
+                    MESHX_ERROR("alreay in update state phase1, ignore");
+                    ret = MESHX_SUCCESS;
+                }
+                break;
+            }
+
+            pnet_key->net_key.key_state = MESHX_KEY_STATE_PHASE1;
             memcpy(&pnet_key->net_key.key_value[1], net_key, sizeof(meshx_key_t));
             meshx_net_key_derive(&pnet_key->net_key.key_value[1]);
-            return MESHX_SUCCESS;
+            MESHX_INFO("nework key update: index 0x%04x, value ", net_key_index);
+            MESHX_DUMP_INFO(net_key, sizeof(meshx_key_t));
+            ret = MESHX_SUCCESS;
+            break;
         }
     }
 
-    return -MESHX_ERR_NOT_FOUND;
+    return ret;
 }
 
 int32_t meshx_net_key_delete(uint16_t net_key_index)

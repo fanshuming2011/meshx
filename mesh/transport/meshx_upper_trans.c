@@ -105,7 +105,7 @@ static int32_t meshx_upper_trans_decrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
         /* TODO: label uuid */
         uint8_t *padd = NULL;
         uint8_t add_len = 0;
-        const meshx_app_key_t *papp_key = NULL;
+        meshx_app_key_t *papp_key = NULL;
         meshx_app_key_traverse_start(&papp_key);
         while (NULL != papp_key)
         {

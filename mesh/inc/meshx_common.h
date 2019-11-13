@@ -53,7 +53,6 @@ typedef enum
     MESHX_KEY_STATE_NORMAL,
     MESHX_KEY_STATE_PHASE1,
     MESHX_KEY_STATE_PHASE2,
-    MESHX_KEY_STATE_PHASE3,
 } meshx_key_state_t;
 
 typedef struct
@@ -76,7 +75,6 @@ typedef struct
 
 typedef struct
 {
-    meshx_net_key_t *pnet_key_bind;
     meshx_key_t app_key;
     uint8_t aid; /* least significant 6 bits */
 } meshx_app_key_value_t;
@@ -86,6 +84,7 @@ typedef struct
     meshx_key_state_t key_state;
     uint16_t key_index;
     meshx_app_key_value_t key_value[2]; /* index 0: new key, index 1: old key*/
+    meshx_net_key_t *pnet_key_bind;
 } meshx_app_key_t;
 
 typedef struct

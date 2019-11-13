@@ -72,7 +72,7 @@ static void meshx_beacon_send_snb(meshx_bearer_t bearer)
     snb.iv_index = meshx_iv_index_get();
 
     uint8_t snb_auth[16];
-    const meshx_net_key_t *pnet_key = NULL;
+    meshx_net_key_t *pnet_key = NULL;
     const meshx_net_key_value_t *pnet_key_value = NULL;
     meshx_net_key_traverse_start(&pnet_key);
     while (NULL != pnet_key)
@@ -250,7 +250,7 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
         {
             /* find netkey first */
             const meshx_snb_t *psnb = (const meshx_snb_t *)pdata;
-            const meshx_net_key_t *pnet_key = NULL;
+            meshx_net_key_t *pnet_key = NULL;
             meshx_net_key_traverse_start(&pnet_key);
             while (NULL != pnet_key)
             {
@@ -263,16 +263,34 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
 
                 for (uint8_t i = 0; i < loop; ++i)
                 {
-                    if (0 == memcmp(pnet_key->key_value[0].net_id, psnb->net_id, sizeof(meshx_net_id_t)))
+                    if (0 == memcmp(pnet_key->key_value[loop].net_id, psnb->net_id, sizeof(meshx_net_id_t)))
                     {
                         uint8_t snb_auth[16];
-                        meshx_aes_cmac(pnet_key->key_value[0].beacon_key, ((uint8_t *)psnb) + 1, sizeof(meshx_snb_t) - 9,
+                        meshx_aes_cmac(pnet_key->key_value[loop].beacon_key, ((uint8_t *)psnb) + 1, sizeof(meshx_snb_t) - 9,
                                        snb_auth);
                         if (0 == memcmp(psnb->auth_value, snb_auth, 8))
                         {
                             if (psnb->flag.key_refresh)
                             {
-                                /* key refresh */
+                                if (MESHX_KEY_STATE_NORMAL == pnet_key->key_state)
+                                {
+                                    MESHX_ERROR("current state is normal, can't enter phase2");
+                                    ret = -MESHX_ERR_STATE;
+                                    goto FINISH;
+                                }
+                                pnet_key->key_state = MESHX_KEY_STATE_PHASE2;
+                                meshx_app_key_state_transit(pnet_key->key_index, MESHX_KEY_STATE_PHASE2);
+                            }
+                            else
+                            {
+                                if (1 == loop)
+                                {
+                                    /* use new key, skip state phase2 */
+                                    pnet_key->key_state = MESHX_KEY_STATE_NORMAL;
+                                    /* revoke old keys */
+                                    pnet_key->key_value[0] = pnet_key->key_value[1];
+                                    meshx_app_key_state_transit(pnet_key->key_index, MESHX_KEY_STATE_NORMAL);
+                                }
                             }
 
                             meshx_iv_update_state_t iv_update_state = MESHX_IV_UPDATE_STATE_NORMAL;

@@ -177,7 +177,7 @@ int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata, uin
     /* get net key */
     int32_t ret = MESHX_SUCCESS;
     uint8_t net_mic_len, trans_pdu_len;
-    const meshx_net_key_t *pnet_key = NULL;
+    meshx_net_key_t *pnet_key = NULL;
     const meshx_net_key_value_t *pkey_value = NULL;
     meshx_net_key_traverse_start(&pnet_key);
     while (NULL != pnet_key)
