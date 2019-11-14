@@ -191,18 +191,18 @@ int32_t meshx_net_receive(meshx_net_iface_t net_iface, const uint8_t *pdata, uin
 
         for (uint8_t i = 0; i < loop; ++i)
         {
-            if (pnet_key->key_value[loop].nid == net_pdu.net_metadata.nid)
+            if (pnet_key->key_value[i].nid == net_pdu.net_metadata.nid)
             {
                 /* restore header */
-                meshx_net_obfuscation(&net_pdu, iv_index, &pnet_key->key_value[loop]);
+                meshx_net_obfuscation(&net_pdu, iv_index, &pnet_key->key_value[i]);
 
                 /* decrypt transport layer data */
                 net_mic_len = net_pdu.net_metadata.ctl ? 8 : 4;
                 trans_pdu_len = len - sizeof(meshx_net_metadata_t) - net_mic_len;
-                ret = meshx_net_decrypt(&net_pdu, trans_pdu_len, iv_index, &pnet_key->key_value[loop]);
+                ret = meshx_net_decrypt(&net_pdu, trans_pdu_len, iv_index, &pnet_key->key_value[i]);
                 if (MESHX_SUCCESS == ret)
                 {
-                    pkey_value = &pnet_key->key_value[loop];
+                    pkey_value = &pnet_key->key_value[i];
                     goto FINISH;
                 }
             }

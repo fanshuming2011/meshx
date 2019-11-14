@@ -118,13 +118,13 @@ static int32_t meshx_upper_trans_decrypt(uint8_t *paccess_pdu, uint8_t pdu_len,
 
             for (uint8_t i = 0; i < loop; ++i)
             {
-                if (papp_key->key_value[loop].aid == pmsg_rx_ctx->aid)
+                if (papp_key->key_value[i].aid == pmsg_rx_ctx->aid)
                 {
-                    ret = meshx_aes_ccm_decrypt(papp_key->key_value[loop].app_key, nonce, MESHX_NONCE_SIZE,
+                    ret = meshx_aes_ccm_decrypt(papp_key->key_value[i].app_key, nonce, MESHX_NONCE_SIZE,
                                                 padd, add_len, paccess_pdu, pdu_len, paccess_pdu, ptrans_mic, trans_mic_len);
                     if (MESHX_SUCCESS == ret)
                     {
-                        pmsg_rx_ctx->papp_key = &papp_key->key_value[loop].app_key;
+                        pmsg_rx_ctx->papp_key = &papp_key->key_value[i].app_key;
                         goto FINISH;
                     }
                 }

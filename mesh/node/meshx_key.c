@@ -239,7 +239,7 @@ int32_t meshx_app_key_state_transit(uint16_t net_key_index, meshx_key_state_t ke
             }
             else
             {
-                MESHX_WARN("can't transit from normal to phase1");
+                MESHX_WARN("can't transit from state(%d) to state(%d)", papp_key->app_key.key_state, key_state);
                 ret = -MESHX_ERR_STATE;
             }
         }

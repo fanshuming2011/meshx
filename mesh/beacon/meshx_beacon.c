@@ -263,10 +263,10 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
 
                 for (uint8_t i = 0; i < loop; ++i)
                 {
-                    if (0 == memcmp(pnet_key->key_value[loop].net_id, psnb->net_id, sizeof(meshx_net_id_t)))
+                    if (0 == memcmp(pnet_key->key_value[i].net_id, psnb->net_id, sizeof(meshx_net_id_t)))
                     {
                         uint8_t snb_auth[16];
-                        meshx_aes_cmac(pnet_key->key_value[loop].beacon_key, ((uint8_t *)psnb) + 1, sizeof(meshx_snb_t) - 9,
+                        meshx_aes_cmac(pnet_key->key_value[i].beacon_key, ((uint8_t *)psnb) + 1, sizeof(meshx_snb_t) - 9,
                                        snb_auth);
                         if (0 == memcmp(psnb->auth_value, snb_auth, 8))
                         {
@@ -283,7 +283,7 @@ int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_
                             }
                             else
                             {
-                                if (1 == loop)
+                                if (1 == i)
                                 {
                                     /* use new key, skip state phase2 */
                                     pnet_key->key_state = MESHX_KEY_STATE_NORMAL;
