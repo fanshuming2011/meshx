@@ -102,7 +102,7 @@ MESHX_EXTERN void meshx_gap_stop(void);
 MESHX_EXTERN int32_t meshx_gap_handle_bt_status(const meshx_gap_bt_status_t *pstatus);
 MESHX_EXTERN int32_t meshx_gap_add_action(const meshx_gap_action_t *paction);
 MESHX_EXTERN int32_t meshx_gap_handle_adv_report(const uint8_t *pdata, uint16_t len,
-                                                 const meshx_bearer_rx_metadata_t *prx_metadata);
+                                                 const meshx_adv_metadata_t *padv_metadata);
 MESHX_EXTERN void meshx_gap_adv_done(void);
 
 

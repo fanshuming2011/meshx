@@ -59,7 +59,7 @@ static void meshx_beacon_send_udb(meshx_bearer_t bearer)
     }
     MESHX_INFO("udb send:");
     MESHX_DUMP_INFO(&udb, len);
-    meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&udb, len);
+    meshx_bearer_adv_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&udb, len);
 }
 
 static void meshx_beacon_send_snb(meshx_bearer_t bearer)
@@ -90,8 +90,8 @@ static void meshx_beacon_send_snb(meshx_bearer_t bearer)
         /* send snb */
         MESHX_INFO("snb send:");
         MESHX_DUMP_INFO(&snb, sizeof(meshx_snb_t));
-        meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&snb,
-                          sizeof(meshx_snb_t));
+        meshx_bearer_adv_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_BEACON, (const uint8_t *)&snb,
+                              sizeof(meshx_snb_t));
 
         meshx_net_key_traverse_continue(&pnet_key);
     }
@@ -220,7 +220,7 @@ void meshx_beacon_set_uri_hash(uint32_t uri_hash)
 }
 
 int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len,
-                             const meshx_bearer_rx_metadata_adv_t *padv_metadata)
+                             const meshx_adv_metadata_t *padv_metadata)
 {
     MESHX_ASSERT(NULL != pdata);
     int32_t ret = MESHX_SUCCESS;

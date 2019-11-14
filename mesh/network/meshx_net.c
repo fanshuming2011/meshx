@@ -23,6 +23,7 @@
 #include "meshx_rpl.h"
 #include "meshx_key.h"
 #include "meshx_lower_trans.h"
+#include "meshx_proxy.h"
 
 #define MESHX_NET_TRANS_PDU_MAX_LEN         20
 #define MESHX_NET_ENCRYPT_OFFSET            7
@@ -314,17 +315,17 @@ static int32_t meshx_net_send_to_bearer(const uint8_t *pdata, uint8_t len,
     }
 
     /* send data out */
-    uint8_t pkt_type = 0;
+    int32_t ret = MESHX_SUCCESS;
     if (MESHX_BEARER_TYPE_ADV == bearer->type)
     {
-        pkt_type = MESHX_BEARER_ADV_PKT_TYPE_MESH_MSG;
+        ret = meshx_bearer_adv_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_MESH_MSG, pdata, len);
     }
     else
     {
-        pkt_type = MESHX_BEARER_GATT_PKT_TYPE_NET;
+        ret = meshx_proxy_send(bearer, MESHX_PROXY_MSG_TYPE_NET, pdata, len);
     }
 
-    return meshx_bearer_send(bearer, pkt_type, pdata, len);
+    return ret;
 }
 
 int32_t meshx_net_send(const uint8_t *ptrans_pdu, uint8_t trans_pdu_len,

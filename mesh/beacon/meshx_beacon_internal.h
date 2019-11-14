@@ -40,7 +40,7 @@ typedef struct
 
 MESHX_EXTERN void meshx_beacon_async_handle_timeout(meshx_async_msg_t msg);
 MESHX_EXTERN int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len,
-                                          const meshx_bearer_rx_metadata_adv_t *padv_metadata);
+                                          const meshx_adv_metadata_t *padv_metadata);
 
 MESHX_END_DECLS
 

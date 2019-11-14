@@ -423,8 +423,6 @@ static void *meshx_thread(void *pargs)
     meshx_run();
 
     /*************** initialize sample data ****************/
-    meshx_bearer_rx_metadata_t rx_metadata;
-    rx_metadata.bearer_type = MESHX_BEARER_TYPE_ADV;
 
     /*********************** send sample network data *********************/
     meshx_msg_ctx_t ctx;
@@ -464,7 +462,7 @@ static void *meshx_thread(void *pargs)
     /*******************************************************/
 
     //meshx_bearer_rx_metadata_t rx_metadata;
-    meshx_bearer_rx_metadata_adv_t adv_metadata =
+    meshx_adv_metadata_t adv_metadata =
     {
         .adv_type = MESHX_GAP_ADV_TYPE_NONCONN_IND,
         .peer_addr = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
@@ -472,8 +470,6 @@ static void *meshx_thread(void *pargs)
         .channel = MESHX_GAP_CHANNEL_39,
         .rssi = 10,
     };
-    rx_metadata.bearer_type = MESHX_BEARER_TYPE_ADV;
-    rx_metadata.adv_metadata = adv_metadata;
 
 
     while (1)
@@ -487,7 +483,7 @@ static void *meshx_thread(void *pargs)
                 /* data read finished */
                 MESHX_DEBUG("receive adv data:");
                 MESHX_DUMP_DEBUG(async_data.data, async_data.data_len);
-                meshx_gap_handle_adv_report(async_data.data, async_data.data_len, &rx_metadata);
+                meshx_gap_handle_adv_report(async_data.data, async_data.data_len, &adv_metadata);
                 break;
             case ASYNC_DATA_TYPE_MESH_DATA:
                 {

@@ -247,7 +247,7 @@ int32_t meshx_upper_trans_send(const uint8_t *pdata, uint16_t len,
 }
 
 int32_t meshx_upper_trans_receive(uint8_t *pdata,
-                                  uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
+                                  uint16_t len, meshx_msg_ctx_t *pmsg_rx_ctx)
 {
     MESHX_DEBUG("receive upper transport pdu: type %d", pmsg_rx_ctx->ctl);
     MESHX_DUMP_DEBUG(pdata, len);

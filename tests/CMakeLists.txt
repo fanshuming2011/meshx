@@ -64,7 +64,8 @@ set(COMMON_SRC_LIST
     ../mesh/access/meshx_access.c
     ../mesh/provision/meshx_pb_adv.c
     ../mesh/provision/meshx_prov.c
-    ../mesh/beacon/meshx_beacon.c)
+    ../mesh/beacon/meshx_beacon.c
+    ../mesh/proxy/meshx_proxy.c)
 
 set(DEV_SRC_LIST
     ../platform/linux/meshx_gap_wrapper_dev.c

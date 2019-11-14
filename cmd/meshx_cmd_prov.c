@@ -72,10 +72,9 @@ int32_t meshx_cmd_prov_scan(const meshx_cmd_parsed_data_t *pparsed_data)
 
 int32_t meshx_cmd_prov_conn(const meshx_cmd_parsed_data_t *pparsed_data)
 {
-    meshx_bearer_rx_metadata_t rx_meatadata = {.bearer_type = MESHX_BEARER_TYPE_ADV};
     meshx_dev_uuid_t dev_uuid;
     meshx_bin2hex(pparsed_data->param_ptr[0], dev_uuid, sizeof(meshx_dev_uuid_t) * 2);
-    prov_dev = meshx_prov_create_device(meshx_bearer_get(&rx_meatadata),
+    prov_dev = meshx_prov_create_device(meshx_bearer_adv_get(),
                                         dev_uuid, MESHX_ROLE_PROVISIONER);
     meshx_prov_link_open(prov_dev);
     return MESHX_SUCCESS;

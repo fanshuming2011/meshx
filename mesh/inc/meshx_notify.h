@@ -54,7 +54,7 @@ typedef enum
 
 typedef struct
 {
-    const meshx_bearer_rx_metadata_adv_t *padv_metadata;
+    const meshx_adv_metadata_t *padv_metadata;
     meshx_dev_uuid_t dev_uuid;
     uint16_t oob_info;
     uint32_t uri_hash; /* optional */

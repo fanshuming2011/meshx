@@ -262,7 +262,7 @@ int32_t meshx_gap_add_action(const meshx_gap_action_t *paction)
 }
 
 int32_t meshx_gap_handle_adv_report(const uint8_t *pdata, uint16_t len,
-                                    const meshx_bearer_rx_metadata_t *prx_metadata)
+                                    const meshx_adv_metadata_t *padv_metadata)
 {
     if (len > MESHX_GAP_ADV_DATA_MAX_LEN || len < 2)
     {
@@ -278,6 +278,8 @@ int32_t meshx_gap_handle_adv_report(const uint8_t *pdata, uint16_t len,
         return -MESHX_ERR_LENGTH;
     }
 
-    return meshx_bearer_receive(pdata, len, prx_metadata);
+    return meshx_bearer_adv_receive(meshx_bearer_adv_get(), MESHX_GAP_GET_ADV_TYPE(pdata),
+                                    MESHX_GAP_GET_ADV_PDU(pdata),
+                                    MESHX_GAP_GET_ADV_PDU_LEN(pdata), padv_metadata);
 }
 

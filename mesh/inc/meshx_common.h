@@ -150,22 +150,7 @@ typedef struct
     meshx_mac_addr_type_t addr_type;
     uint8_t channel;
     int8_t rssi;
-} meshx_bearer_rx_metadata_adv_t;
-
-typedef struct
-{
-    uint16_t conn_id;
-} meshx_bearer_rx_metadata_gatt_t;
-
-typedef struct
-{
-    uint8_t bearer_type;
-    union
-    {
-        meshx_bearer_rx_metadata_adv_t adv_metadata;
-        meshx_bearer_rx_metadata_gatt_t gatt_metadata;
-    };
-} meshx_bearer_rx_metadata_t;
+} meshx_adv_metadata_t;
 
 MESHX_END_DECLS
 

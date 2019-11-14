@@ -16,7 +16,7 @@
 typedef struct
 {
     struct _meshx_bearer bearer;
-    meshx_bearer_param_gatt_t param;
+    uint8_t conn_id;
 } meshx_bearer_gatt_t;
 
 int32_t meshx_bearer_gatt_init(void)
@@ -24,16 +24,15 @@ int32_t meshx_bearer_gatt_init(void)
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, uint8_t pkt_type, const uint8_t *pdata,
+int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, const uint8_t *pdata,
                                uint8_t len)
 {
     MESHX_ASSERT(NULL != bearer);
     MESHX_ASSERT(NULL != pdata);
-    MESHX_ASSERT(MESHX_IS_BEARER_GATT_ADV_PKT_TYPE_VALID(pkt_type));
     return MESHX_SUCCESS;
 }
 
-meshx_bearer_t meshx_bearer_gatt_create(meshx_bearer_param_gatt_t gatt_param)
+meshx_bearer_t meshx_bearer_gatt_create(uint8_t conn_id)
 {
     return NULL;
 }
@@ -50,7 +49,12 @@ int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, const uint8_t *pdata, u
     return MESHX_SUCCESS;
 }
 
-meshx_bearer_t meshx_bearer_gatt_get(const meshx_bearer_rx_metadata_gatt_t *prx_metadata)
+meshx_bearer_t meshx_bearer_gatt_get(uint8_t conn_id)
 {
     return NULL;
+}
+
+uint16_t meshx_bearer_gatt_mtu_get(meshx_bearer_t bearer)
+{
+    return 1;
 }

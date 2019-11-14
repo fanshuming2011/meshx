@@ -35,8 +35,7 @@ int32_t meshx_init(void)
 
     if (meshx_node_params.config.adv_bearer_enable)
     {
-        meshx_bearer_param_t adv_param = {.bearer_type = MESHX_BEARER_TYPE_ADV};
-        meshx_bearer_t adv_bearer = meshx_bearer_create(adv_param);
+        meshx_bearer_t adv_bearer = meshx_bearer_adv_create();
 
         meshx_net_iface_t adv_net_iface = meshx_net_iface_create();
         meshx_net_iface_connect(adv_net_iface, adv_bearer, NULL, NULL);

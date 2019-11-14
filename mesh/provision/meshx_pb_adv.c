@@ -222,8 +222,8 @@ static int32_t pb_adv_send_trans(meshx_bearer_t bearer, uint32_t link_id, uint8_
             data_offset += segment_len;
             segment_len += sizeof(meshx_pb_adv_metadata_t) + sizeof(meshx_pb_adv_trans_continue_metadata_t);
         }
-        ret = meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                                segment_len);
+        ret = meshx_bearer_adv_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
+                                    segment_len);
         if (MESHX_SUCCESS != ret)
         {
             break;
@@ -244,8 +244,8 @@ static int32_t pb_adv_link_open(meshx_bearer_t bearer, uint32_t link_id, meshx_d
     pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_OPEN;
     memcpy(pb_adv_pkt.bearer_ctl.link_open.dev_uuid, dev_uuid, sizeof(meshx_dev_uuid_t));
-    return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                             MESHX_LINK_OPEN_PDU_LEN);
+    return meshx_bearer_adv_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
+                                 MESHX_LINK_OPEN_PDU_LEN);
 }
 #endif
 
@@ -259,8 +259,8 @@ static int32_t pb_adv_link_ack(meshx_bearer_t bearer, uint32_t link_id)
     pb_adv_pkt.metadata.trans_num = MESHX_BEARER_CTL_TRANS_NUM;
     pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_ACK;
-    return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
-                             (const uint8_t *)&pb_adv_pkt, MESHX_LINK_ACK_PDU_LEN);
+    return meshx_bearer_adv_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV,
+                                 (const uint8_t *)&pb_adv_pkt, MESHX_LINK_ACK_PDU_LEN);
 }
 #endif
 
@@ -274,8 +274,8 @@ static int32_t pb_adv_link_close(meshx_bearer_t bearer, uint32_t link_id, uint8_
     pb_adv_pkt.bearer_ctl.metadata.gpcf = MESHX_GPCF_BEARER_CTL;
     pb_adv_pkt.bearer_ctl.metadata.bearer_opcode = MESHX_BEARER_LINK_CLOSE;
     pb_adv_pkt.bearer_ctl.link_close.reason = reason;
-    return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                             MESHX_LINK_CLOSE_PDU_LEN);
+    return meshx_bearer_adv_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
+                                 MESHX_LINK_CLOSE_PDU_LEN);
 }
 
 static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t trans_num)
@@ -287,8 +287,8 @@ static int32_t pb_adv_trans_ack(meshx_bearer_t bearer, uint32_t link_id, uint8_t
     pb_adv_pkt.metadata.trans_num = trans_num;
     pb_adv_pkt.trans_ack.metadata.gpcf = MESHX_GPCF_TRANS_ACK;
     pb_adv_pkt.trans_ack.metadata.padding = 0;
-    return meshx_bearer_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
-                             MESHX_TRANS_ACK_PDU_LEN);
+    return meshx_bearer_adv_send(bearer, MESHX_BEARER_ADV_PKT_TYPE_PB_ADV, (const uint8_t *)&pb_adv_pkt,
+                                 MESHX_TRANS_ACK_PDU_LEN);
 }
 
 #if MESHX_SUPPORT_ROLE_PROVISIONER

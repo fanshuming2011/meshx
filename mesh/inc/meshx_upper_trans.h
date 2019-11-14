@@ -17,7 +17,7 @@ MESHX_EXTERN int32_t meshx_upper_trans_init(void);
 MESHX_EXTERN int32_t meshx_upper_trans_send(const uint8_t *pdata, uint16_t len,
                                             meshx_msg_ctx_t *pmsg_tx_ctx);
 MESHX_EXTERN int32_t meshx_upper_trans_receive(uint8_t *pdata,
-                                               uint8_t len, meshx_msg_ctx_t *pmsg_rx_ctx);
+                                               uint16_t len, meshx_msg_ctx_t *pmsg_rx_ctx);
 
 MESHX_END_DECLS
 

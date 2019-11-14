@@ -34,7 +34,6 @@ typedef union
 typedef struct
 {
     struct _meshx_bearer bearer;
-    meshx_bearer_param_adv_t param;
 } meshx_bearer_adv_t;
 
 #define MESHX_BEARER_ADV_ID       0
@@ -46,7 +45,7 @@ int32_t meshx_bearer_adv_init(void)
     return MESHX_SUCCESS;
 }
 
-meshx_bearer_t meshx_bearer_adv_create(meshx_bearer_param_adv_t adv_param)
+meshx_bearer_t meshx_bearer_adv_create(void)
 {
     if (MESHX_BEARER_TYPE_ADV == bearer_adv.bearer.type)
     {
@@ -56,7 +55,6 @@ meshx_bearer_t meshx_bearer_adv_create(meshx_bearer_param_adv_t adv_param)
 
     bearer_adv.bearer.type = MESHX_BEARER_TYPE_ADV;
     bearer_adv.bearer.net_iface = NULL;
-    bearer_adv.param = adv_param;
     MESHX_INFO("create adv bearer(0x%08x) success", &bearer_adv);
     return &bearer_adv.bearer;
 }
@@ -107,9 +105,14 @@ int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
 }
 
 int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv_type, const uint8_t *pdata,
-                                 uint8_t len, const meshx_bearer_rx_metadata_adv_t *padv_metadata)
+                                 uint8_t len, const meshx_adv_metadata_t *padv_metadata)
 {
-    MESHX_ASSERT(NULL != bearer);
+    if (NULL == bearer)
+    {
+        MESHX_ERROR("invalid bearer!");
+        return -MESHX_ERR_INVAL;
+    }
+
     int32_t ret = MESHX_SUCCESS;
     switch (adv_type)
     {
