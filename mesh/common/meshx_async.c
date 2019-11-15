@@ -126,6 +126,9 @@ void meshx_async_msg_process(void)
     case MESHX_ASYNC_MSG_TYPE_TIMEOUT_IV_INDEX:
         meshx_iv_index_async_handle_timeout(pmsg->msg);
         break;
+    case MESHX_ASYNC_MSG_TYPE_TIMEOUT_PROXY_SAR:
+        meshx_proxy_async_handle_sar_timeout(pmsg->msg);
+        break;
     default:
         MESHX_ERROR("unkonwn message type: %d", pmsg->msg.type);
         break;

@@ -33,8 +33,9 @@ MESHX_BEGIN_DECLS
 #define MESHX_ERR_TIMEOUT              18 /* Timeout */
 #define MESHX_ERR_NOT_FOUND            19 /* Not found */
 #define MESHX_ERR_KEY                  20 /* No key */
+#define MESHX_ERR_UNEXPECTED           21 /* Unexpected value */
 /* user defined errcode start number */
-#define MESHX_ERR_USER_DEFINED         21
+#define MESHX_ERR_USER_DEFINED         22
 
 const char *meshx_errno_to_string(int32_t err);
 

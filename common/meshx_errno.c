@@ -36,6 +36,7 @@ static const char *meshx_err_str_table[] =
     "timeout",
     "no key found",
     "not found",
+    "unexpected value"
 };
 
 const char *meshx_errno_to_string(int32_t err)
