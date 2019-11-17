@@ -85,6 +85,8 @@ static void meshx_proxy_rx_ctx_release(meshx_proxy_rx_ctx_t *prx_ctx)
 
     meshx_list_remove(&prx_ctx->node);
     meshx_free(prx_ctx);
+
+    MESHX_INFO("release proxy rx ctx: 0x%08x", prx_ctx);
 }
 
 static void meshx_proxy_sar_timeout_handler(void *pargs)
@@ -99,8 +101,8 @@ static void meshx_proxy_sar_timeout_handler(void *pargs)
 void meshx_proxy_async_handle_sar_timeout(meshx_async_msg_t msg)
 {
     meshx_proxy_rx_ctx_t *prx_ctx = msg.pdata;
+    MESHX_WARN("rrx ctx(0x%08x) receive msg type(%d) data timeout!", prx_ctx, prx_ctx->msg_type);
     meshx_proxy_rx_ctx_release(prx_ctx);
-    MESHX_WARN("receive msg type(%d) data timeout!", prx_ctx->msg_type);
 }
 
 static meshx_proxy_rx_ctx_t *meshx_proxy_rx_ctx_request(uint16_t len)
@@ -143,6 +145,8 @@ static meshx_proxy_rx_ctx_t *meshx_proxy_rx_ctx_request(uint16_t len)
 
     meshx_list_append(&meshx_proxy_rx_ctx_list, &prx_ctx->node);
 
+    MESHX_INFO("request proxy rx ctx: 0x%08x", prx_ctx);
+
     return prx_ctx;
 }
 
@@ -163,7 +167,7 @@ static int32_t meshx_proxy_rx_ctx_expand(meshx_proxy_rx_ctx_t *prx_ctx, uint16_t
     }
     prx_ctx->max_len += (len + MESHX_PROXY_INIT_PDU_LEN);
 
-    MESHX_INFO("expand ctx pdu len to %d", prx_ctx->max_len);
+    MESHX_INFO("expand ctx(0x%08x) pdu len to %d", prx_ctx, prx_ctx->max_len);
     prx_ctx->pdata = pdata;
 
     return MESHX_SUCCESS;
