@@ -8,6 +8,7 @@ include_directories(../common
                     ../mesh/node
                     ../mesh/security
                     ../mesh/transport
+                    ../mesh/proxy
                     ../cmd
                     ../mesh/beacon
                     ../platform

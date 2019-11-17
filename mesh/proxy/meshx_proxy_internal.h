@@ -12,7 +12,7 @@
 
 MESHX_BEGIN_DECLS
 
-MESHX_EXTERN void meshx_proxy_async_handle_sar_timeout(meshx_async_msg_t msg)
+MESHX_EXTERN void meshx_proxy_async_handle_sar_timeout(meshx_async_msg_t msg);
 
 MESHX_END_DECLS
 

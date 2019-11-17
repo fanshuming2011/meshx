@@ -30,6 +30,9 @@ MESHX_BEGIN_DECLS
 
 
 MESHX_EXTERN int32_t meshx_beacon_send(meshx_bearer_t bearer, uint8_t beacon_type);
+MESHX_EXTERN int32_t meshx_beacon_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len,
+                                          const meshx_adv_metadata_t *padv_metadata);
+
 MESHX_EXTERN int32_t meshx_beacon_start(meshx_bearer_t bearer, uint8_t beacon_type,
                                         uint32_t interval);
 MESHX_EXTERN void meshx_beacon_stop(uint8_t beacon_type);
