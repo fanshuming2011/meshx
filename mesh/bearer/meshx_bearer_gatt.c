@@ -11,23 +11,57 @@
 #include "meshx_errno.h"
 #include "meshx_assert.h"
 #include "meshx_net.h"
+#include "meshx_list.h"
+#include "meshx_proxy.h"
 
 
 typedef struct
 {
     struct _meshx_bearer bearer;
     uint8_t conn_id;
+    meshx_list_t node;
 } meshx_bearer_gatt_t;
+
+static meshx_list_t meshx_bearer_gatt_list;
+
+static meshx_bearer_t meshx_bearer_gatt_get(uint8_t conn_id)
+{
+
+}
+
+static bool meshx_bearer_gatt_exists(meshx_bearer_t bearer)
+{
+    meshx_list_t *pnode;
+    meshx_bearer_gatt_t *pbearer;
+    meshx_list_foreach(pnode, &meshx_bearer_gatt_list)
+    {
+        pbearer = MESHX_CONTAINER_OF(pnode, meshx_bearer_gatt_t, node);
+        if (&pbearer->bearer == bearer)
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
 
 int32_t meshx_bearer_gatt_init(void)
 {
+    meshx_list_init_head(&meshx_bearer_gatt_list);
     return MESHX_SUCCESS;
 }
 
 int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, const uint8_t *pdata,
                                uint8_t len)
 {
-    MESHX_ASSERT(NULL != bearer);
+    if (!meshx_bearer_gatt_exists(bearer))
+    {
+        MESHX_ERROR("invalid bearer: 0x%08x", bearer);
+        return -MESHX_ERR_INVAL;
+    }
+
+    meshx_proxy_send(bearer, msg_type, pdata, len);
+
     MESHX_ASSERT(NULL != pdata);
     return MESHX_SUCCESS;
 }
@@ -44,7 +78,11 @@ void meshx_bearer_gatt_delete(meshx_bearer_t bearer)
 
 int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
 {
-    MESHX_ASSERT(NULL != bearer);
+    if (NULL == bearer)
+    {
+        MESHX_ERROR("invalid bearer!");
+        return -MESHX_ERR_INVAL;
+    }
     MESHX_ASSERT(NULL != pdata);
     return MESHX_SUCCESS;
 }

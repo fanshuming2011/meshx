@@ -101,7 +101,7 @@ static void meshx_proxy_sar_timeout_handler(void *pargs)
 void meshx_proxy_async_handle_sar_timeout(meshx_async_msg_t msg)
 {
     meshx_proxy_rx_ctx_t *prx_ctx = msg.pdata;
-    MESHX_WARN("rrx ctx(0x%08x) receive msg type(%d) data timeout!", prx_ctx, prx_ctx->msg_type);
+    MESHX_WARN("rx ctx(0x%08x) receive msg type(%d) data timeout!", prx_ctx, prx_ctx->msg_type);
     meshx_proxy_rx_ctx_release(prx_ctx);
 }
 
