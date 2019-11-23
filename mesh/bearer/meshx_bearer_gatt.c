@@ -13,20 +13,32 @@
 #include "meshx_net.h"
 #include "meshx_list.h"
 #include "meshx_proxy.h"
+#include "meshx_gap_wrapper.h"
 
 
 typedef struct
 {
     struct _meshx_bearer bearer;
-    uint8_t conn_id;
+    uint16_t conn_handle;
     meshx_list_t node;
 } meshx_bearer_gatt_t;
 
 static meshx_list_t meshx_bearer_gatt_list;
 
-static meshx_bearer_t meshx_bearer_gatt_get(uint8_t conn_id)
+meshx_bearer_t meshx_bearer_gatt_get(uint16_t conn_handle)
 {
+    meshx_list_t *pnode;
+    meshx_bearer_gatt_t *pbearer;
+    meshx_list_foreach(pnode, &meshx_bearer_gatt_list)
+    {
+        pbearer = MESHX_CONTAINER_OF(pnode, meshx_bearer_gatt_t, node);
+        if (pbearer->conn_handle == conn_handle)
+        {
+            return &pbearer->bearer;
+        }
+    }
 
+    return NULL;
 }
 
 static bool meshx_bearer_gatt_exists(meshx_bearer_t bearer)
@@ -52,21 +64,21 @@ int32_t meshx_bearer_gatt_init(void)
 }
 
 int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, const uint8_t *pdata,
-                               uint8_t len)
+                               uint16_t len)
 {
+#if MESHX_REDUNDANCY_CHECK
     if (!meshx_bearer_gatt_exists(bearer))
     {
         MESHX_ERROR("invalid bearer: 0x%08x", bearer);
         return -MESHX_ERR_INVAL;
     }
+#endif
 
-    meshx_proxy_send(bearer, msg_type, pdata, len);
-
-    MESHX_ASSERT(NULL != pdata);
+    //meshx_gap_gatts_send(conn_handle, pdata, len);
     return MESHX_SUCCESS;
 }
 
-meshx_bearer_t meshx_bearer_gatt_create(uint8_t conn_id)
+meshx_bearer_t meshx_bearer_gatt_create(uint16_t conn_handle)
 {
     return NULL;
 }
@@ -76,7 +88,7 @@ void meshx_bearer_gatt_delete(meshx_bearer_t bearer)
     MESHX_ASSERT(NULL != bearer);
 }
 
-int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint8_t len)
+int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint16_t len)
 {
     if (NULL == bearer)
     {
@@ -85,11 +97,6 @@ int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, const uint8_t *pdata, u
     }
     MESHX_ASSERT(NULL != pdata);
     return MESHX_SUCCESS;
-}
-
-meshx_bearer_t meshx_bearer_gatt_get(uint8_t conn_id)
-{
-    return NULL;
 }
 
 uint16_t meshx_bearer_gatt_mtu_get(meshx_bearer_t bearer)

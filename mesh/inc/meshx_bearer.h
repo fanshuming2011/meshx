@@ -22,9 +22,9 @@ MESHX_BEGIN_DECLS
 #define MESHX_BEARER_GATT_PKT_TYPE_NET                  0
 #define MESHX_BEARER_GATT_PKY_TYPE_BEACON               1
 #define MESHX_BEARER_GATT_PKT_TYPE_PROV                 3
-#define MESHX_IS_BEARER_GATT_PKT_TYPE_VALID(type)       ((type == MESHX_BEARER_ADV_PKT_TYPE_PB_ADV) || \
-                                                         (type == MESHX_BEARER_ADV_PKT_TYPE_MESH_MSG) || \
-                                                         (type == MESHX_BEARER_ADV_PKT_TYPE_BEACON))
+#define MESHX_IS_BEARER_GATT_PKT_TYPE_VALID(type)       ((type == MESHX_BEARER_GATT_PKT_TYPE_NET) || \
+                                                         (type == MESHX_BEARER_GATT_PKT_TYPE_BEACON) || \
+                                                         (type == MESHX_BEARER_GATT_PKT_TYPE_PROV))
 
 
 
@@ -32,11 +32,11 @@ typedef struct _meshx_bearer *meshx_bearer_t;
 
 MESHX_EXTERN int32_t meshx_bearer_init(void);
 MESHX_EXTERN meshx_bearer_t meshx_bearer_adv_create(void);
-MESHX_EXTERN meshx_bearer_t meshx_bearer_gatt_create(uint8_t conn_id);
+MESHX_EXTERN meshx_bearer_t meshx_bearer_gatt_create(uint16_t conn_handle);
 MESHX_EXTERN void meshx_bearer_delete(meshx_bearer_t bearer);
 MESHX_EXTERN uint8_t meshx_bearer_type_get(meshx_bearer_t bearer);
 MESHX_EXTERN meshx_bearer_t meshx_bearer_adv_get(void);
-MESHX_EXTERN meshx_bearer_t meshx_bearer_gatt_get(uint8_t conn_id);
+MESHX_EXTERN meshx_bearer_t meshx_bearer_gatt_get(uint16_t conn_handle);
 
 MESHX_EXTERN int32_t meshx_bearer_adv_send(meshx_bearer_t bearer, uint8_t pkt_type,
                                            const uint8_t *pdata, uint8_t len);
@@ -46,9 +46,9 @@ MESHX_EXTERN int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv
                                               uint8_t len, const meshx_adv_metadata_t *padv_metadata);
 
 MESHX_EXTERN int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, const uint8_t *pdata,
-                                            uint8_t len);
+                                            uint16_t len);
 MESHX_EXTERN int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, const uint8_t *pdata,
-                                               uint8_t len);
+                                               uint16_t len);
 
 MESHX_END_DECLS
 

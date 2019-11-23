@@ -67,6 +67,13 @@ int32_t meshx_gap_adv_set_scan_rsp_data(const uint8_t *pdata, uint8_t len);
 int32_t meshx_gap_adv_start(void);
 int32_t meshx_gap_adv_stop(void);
 
+#define MESHX_GAP_GATT_TYPE_NOTIFY                            0
+#define MESHX_GAP_GATT_TYPE_INDICATE                          1
+
+int32_t meshx_gap_gatts_notify_or_indicate(uint16_t conn_handle, uint16_t srv_handle,
+                                           uint16_t char_value_handle,
+                                           uint8_t *p_value, uint8_t len, uint8_t type);
+
 MESHX_END_DECLS
 
 #endif /* _MESHX_GAP_WRAPPER_H_ */

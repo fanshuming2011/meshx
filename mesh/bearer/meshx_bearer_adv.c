@@ -36,7 +36,6 @@ typedef struct
     struct _meshx_bearer bearer;
 } meshx_bearer_adv_t;
 
-#define MESHX_BEARER_ADV_ID       0
 static meshx_bearer_adv_t bearer_adv;
 
 int32_t meshx_bearer_adv_init(void)
