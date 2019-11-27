@@ -20,6 +20,8 @@ typedef struct
 {
     struct _meshx_bearer bearer;
     uint16_t conn_handle;
+    uint16_t srv_handle;
+    uint16_t char_value_handle;
     meshx_list_t node;
 } meshx_bearer_gatt_t;
 
