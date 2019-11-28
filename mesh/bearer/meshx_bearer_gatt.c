@@ -14,14 +14,14 @@
 #include "meshx_list.h"
 #include "meshx_proxy.h"
 #include "meshx_gap_wrapper.h"
+#include "meshx_proxy_internal.h"
+#include "meshx_gatt_wrapper.h"
 
 
 typedef struct
 {
     struct _meshx_bearer bearer;
     uint16_t conn_handle;
-    uint16_t srv_handle;
-    uint16_t char_value_handle;
     meshx_list_t node;
 } meshx_bearer_gatt_t;
 
@@ -65,8 +65,8 @@ int32_t meshx_bearer_gatt_init(void)
     return MESHX_SUCCESS;
 }
 
-int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, const uint8_t *pdata,
-                               uint16_t len)
+int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, uint16_t char_value_handle,
+                               const uint8_t *pdata, uint16_t len)
 {
 #if MESHX_REDUNDANCY_CHECK
     if (!meshx_bearer_gatt_exists(bearer))
@@ -76,8 +76,8 @@ int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, const uint8_t *pdata,
     }
 #endif
 
-    //meshx_gap_gatts_send(conn_handle, pdata, len);
-    return MESHX_SUCCESS;
+    meshx_bearer_gatt_t *pbearer = (meshx_bearer_gatt_t *)bearer;
+    return meshx_gatts_notify(pbearer->conn_handle, char_value_handle, pdata, len);
 }
 
 meshx_bearer_t meshx_bearer_gatt_create(uint16_t conn_handle)
@@ -90,7 +90,8 @@ void meshx_bearer_gatt_delete(meshx_bearer_t bearer)
     MESHX_ASSERT(NULL != bearer);
 }
 
-int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint16_t len)
+int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, uint16_t char_value_handle,
+                                  const uint8_t *pdata, uint16_t len)
 {
     if (NULL == bearer)
     {
@@ -98,7 +99,23 @@ int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, const uint8_t *pdata, u
         return -MESHX_ERR_INVAL;
     }
     MESHX_ASSERT(NULL != pdata);
-    return MESHX_SUCCESS;
+
+    int32_t ret;
+    if (char_value_handle == meshx_proxy_char_data_in_handle())
+    {
+        ret = meshx_proxy_server_receive(bearer, pdata, len);
+    }
+    else if (char_value_handle == meshx_prov_char_data_in_handle())
+    {
+        ret = meshx_prov_server_receive(bearer, pdata, len);
+    }
+    else
+    {
+        MESHX_ERROR("invalid char value handle: %d", char_value_handle);
+        ret = MESHX_ERR_INVAL;
+    }
+
+    return ret;
 }
 
 uint16_t meshx_bearer_gatt_mtu_get(meshx_bearer_t bearer)

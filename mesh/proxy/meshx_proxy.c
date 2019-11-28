@@ -18,6 +18,7 @@
 #include "meshx_async_internal.h"
 #include "meshx_net.h"
 #include "meshx_beacon.h"
+#include "meshx_proxy_internal.h"
 
 #define MESHX_PROXY_INIT_PDU_LEN                   80
 
@@ -191,7 +192,16 @@ int32_t meshx_proxy_send(meshx_bearer_t bearer, uint8_t msg_type, const uint8_t 
         ppdu->msg_type = msg_type;
         memcpy(ppdu->data, pdata, len);
 
-        meshx_bearer_gatt_send(bearer, (const uint8_t *)ppdu, msg_len);
+        uint16_t char_value_handle;
+        if (msg_type == MESHX_PROXY_MSG_TYPE_PROV)
+        {
+            char_value_handle = meshx_prov_char_data_out_handle();
+        }
+        else
+        {
+            char_value_handle = meshx_proxy_char_data_out_handle();
+        }
+        meshx_bearer_gatt_send(bearer, char_value_handle, (const uint8_t *)ppdu, msg_len);
 
         meshx_free(ppdu);
     }
@@ -215,7 +225,17 @@ int32_t meshx_proxy_send(meshx_bearer_t bearer, uint8_t msg_type, const uint8_t 
                                                                 MESHX_PROXY_SAR_LAST_SEG : MESHX_PROXY_SAR_CONTINUE_SEG);
             seg_len = (i == (seg_num - 1)) ? (len - seg_offset) : mtu ;
             memcpy(ppdu->data, pdata + seg_offset, seg_len);
-            meshx_bearer_gatt_send(bearer, (const uint8_t *)ppdu, sizeof(meshx_proxy_pdu_t) + seg_len);
+            uint16_t char_value_handle;
+            if (msg_type == MESHX_PROXY_MSG_TYPE_PROV)
+            {
+                char_value_handle = meshx_prov_char_data_out_handle();
+            }
+            else
+            {
+                char_value_handle = meshx_proxy_char_data_out_handle();
+            }
+            meshx_bearer_gatt_send(bearer, char_value_handle, (const uint8_t *)ppdu,
+                                   sizeof(meshx_proxy_pdu_t) + seg_len);
             seg_offset += seg_len;
         }
 

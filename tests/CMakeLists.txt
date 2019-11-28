@@ -66,14 +66,18 @@ set(COMMON_SRC_LIST
     ../mesh/provision/meshx_pb_adv.c
     ../mesh/provision/meshx_prov.c
     ../mesh/beacon/meshx_beacon.c
-    ../mesh/proxy/meshx_proxy.c)
+    ../mesh/proxy/meshx_proxy.c
+    ../mesh/proxy/meshx_proxy_server.c
+    ../mesh/proxy/meshx_prov_server.c)
 
 set(DEV_SRC_LIST
     ../platform/linux/meshx_gap_wrapper_dev.c
+    ../platform/linux/meshx_gatt_wrapper.c
     device_cmd.c)
 
 set(PROV_SRC_LIST
     ../platform/linux/meshx_gap_wrapper_prov.c
+    ../platform/linux/meshx_gatt_wrapper.c
     provisioner_cmd.c)
 
 

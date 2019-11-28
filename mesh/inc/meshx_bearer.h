@@ -45,10 +45,11 @@ MESHX_EXTERN int32_t meshx_bearer_adv_receive(meshx_bearer_t bearer, uint8_t adv
                                               const uint8_t *pdata,
                                               uint8_t len, const meshx_adv_metadata_t *padv_metadata);
 
-MESHX_EXTERN int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, const uint8_t *pdata,
+MESHX_EXTERN int32_t meshx_bearer_gatt_send(meshx_bearer_t bearer, uint16_t char_value_handle,
+                                            const uint8_t *pdata,
                                             uint16_t len);
-MESHX_EXTERN int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, const uint8_t *pdata,
-                                               uint16_t len);
+MESHX_EXTERN int32_t meshx_bearer_gatt_receive(meshx_bearer_t bearer, uint16_t char_value_handle,
+                                               const uint8_t *pdata, uint16_t len);
 
 MESHX_END_DECLS
 

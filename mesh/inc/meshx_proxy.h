@@ -22,6 +22,13 @@ int32_t meshx_proxy_send(meshx_bearer_t bearer, uint8_t msg_type, const uint8_t 
                          uint16_t len);
 int32_t meshx_proxy_receive(meshx_bearer_t bearer, const uint8_t *pdata, uint16_t len);
 
+int32_t meshx_proxy_server_init(void);
+void meshx_proxy_server_deinit(void);
+
+int32_t meshx_prov_server_init(void);
+void meshx_prov_server_deinit(void);
+
+
 MESHX_END_DECLS
 
 #endif /* _MESHX_PROXY_H_ */
